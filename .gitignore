@@ -1,0 +1,6 @@
+
+.objects/
+include/
+test
+test.debug
+lib*.a

@@ -64,9 +64,12 @@ namespace ArcMist
             if(Endian::sSystemType != mInputEndian)
             {
                 // Read in reverse
+                //uint8_t *ptr = ((uint8_t *)pOutput) + pSize - 1;
+                //for(unsigned int i=0;i<pSize;i++)
+                //    read(ptr--, 1);
                 uint8_t data[pSize];
                 read(data, pSize);
-                for(int i=pSize-1, j=0;i>=0;i--, j++)
+                for(int i=pSize-1,j=0;i>=0;i--,j++)
                     ((uint8_t *)pOutput)[i] = data[j];
             }
             else
@@ -128,6 +131,9 @@ namespace ArcMist
             if(Endian::sSystemType != mOutputEndian)
             {
                 // Write in reverse
+                //uint8_t *ptr = ((uint8_t *)pInput) + pSize - 1;
+                //for(unsigned int i=0;i<pSize;i++)
+                //    write(ptr--, 1);
                 uint8_t data[pSize];
                 for(int i=pSize-1, j=0;i>=0;i--, j++)
                     data[j] = ((uint8_t *)pInput)[i];

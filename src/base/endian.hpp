@@ -99,7 +99,7 @@ namespace ArcMist
             return pValue;
         }
 
-        inline void convert(uint8_t *pData, int pSize, Type pEndian)
+        inline void convert(void *pData, int pSize, Type pEndian)
         {
 #ifdef ARCMIST_LITTLE_ENDIAN
             if(pEndian != LITTLE)

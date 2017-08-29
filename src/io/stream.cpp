@@ -26,42 +26,42 @@ namespace ArcMist
     uint16_t InputStream::readUnsignedShort()
     {
         uint16_t result;
-        readEndian((uint8_t *)&result, 2);
+        readEndian(&result, 2);
         return result;
     }
 
     uint32_t InputStream::readUnsignedInt()
     {
         uint32_t result;
-        readEndian((uint8_t *)&result, 4);
+        readEndian(&result, 4);
         return result;
     }
 
     uint64_t InputStream::readUnsignedLong()
     {
         uint64_t result;
-        readEndian((uint8_t *)&result, 8);
+        readEndian(&result, 8);
         return result;
     }
 
     int16_t InputStream::readShort()
     {
         int16_t result;
-        readEndian((uint8_t *)&result, 2);
+        readEndian(&result, 2);
         return result;
     }
 
     int32_t InputStream::readInt()
     {
         int32_t result;
-        readEndian((uint8_t *)&result, 4);
+        readEndian(&result, 4);
         return result;
     }
 
     int64_t InputStream::readLong()
     {
         int64_t result;
-        readEndian((uint8_t *)&result, 8);
+        readEndian(&result, 8);
         return result;
     }
 
@@ -146,37 +146,37 @@ namespace ArcMist
 
     unsigned int OutputStream::writeUnsignedShort(uint16_t pValue)
     {
-        writeEndian((uint8_t *)&pValue, 2);
+        writeEndian(&pValue, 2);
         return 2;
     }
 
     unsigned int OutputStream::writeUnsignedInt(uint32_t pValue)
     {
-        writeEndian((uint8_t *)&pValue, 4);
+        writeEndian(&pValue, 4);
         return 4;
     }
 
     unsigned int OutputStream::writeUnsignedLong(uint64_t pValue)
     {
-        writeEndian((uint8_t *)&pValue, 8);
+        writeEndian(&pValue, 8);
         return 8;
     }
 
     unsigned int OutputStream::writeShort(int16_t pValue)
     {
-        writeEndian((uint8_t *)&pValue, 2);
+        writeEndian(&pValue, 2);
         return 2;
     }
 
     unsigned int OutputStream::writeInt(int32_t pValue)
     {
-        writeEndian((uint8_t *)&pValue, 4);
+        writeEndian(&pValue, 4);
         return 1;
     }
 
     unsigned int OutputStream::writeLong(int64_t pValue)
     {
-        writeEndian((uint8_t *)&pValue, 8);
+        writeEndian(&pValue, 8);
         return 1;
     }
 

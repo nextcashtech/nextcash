@@ -13,6 +13,7 @@ namespace ArcMist
 
         // Current thread name
         static const char *currentName();
+        static void sleep(unsigned int pMilliseconds);
 
         Thread(const char *pName, void (*pFunction)());
         ~Thread();

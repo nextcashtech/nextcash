@@ -3,6 +3,7 @@
 #include "arcmist/base/log.hpp"
 
 #include <cstring>
+#include <unistd.h>
 
 #define THREAD_LOG_NAME "Thread"
 
@@ -47,5 +48,10 @@ namespace ArcMist
             return pair->second;
 
         return "Unknown";
+    }
+
+    void Thread::sleep(unsigned int pMilliseconds)
+    {
+        usleep(pMilliseconds * 1000);
     }
 }

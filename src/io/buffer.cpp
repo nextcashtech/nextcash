@@ -13,10 +13,11 @@ namespace ArcMist
 {
     Buffer::Buffer()
     {
-        mData = 0;
+        mData = NULL;
         mSize = 0;
         mReadOffset = 0;
         mWriteOffset = 0;
+        mEndOffset = 0;
         mAutoFlush = true;
     }
 
@@ -43,11 +44,13 @@ namespace ArcMist
         if(pSize == 0)
             return;
 
-        if(mData == 0 || mSize - mWriteOffset < pSize)
+        if(mData == NULL || mSize - mWriteOffset < pSize)
             reallocate(pSize);
 
         std::memcpy(mData + mWriteOffset, pInput, pSize);
         mWriteOffset += pSize;
+        if(mWriteOffset > mEndOffset)
+            mEndOffset = mWriteOffset;
     }
 
     void Buffer::moveReadOffset(int pOffset)
@@ -68,7 +71,7 @@ namespace ArcMist
 
     void Buffer::zeroize()
     {
-        if(mData == 0)
+        if(mData == NULL)
             return;
 
         std::memset(mData, 0, mSize);
@@ -78,10 +81,11 @@ namespace ArcMist
     {
         mReadOffset = 0;
         mWriteOffset = 0;
+        mEndOffset = 0;
         if(mData)
         {
             delete[] mData;
-            mData = 0;
+            mData = NULL;
             mSize = 0;
         }
     }
@@ -91,17 +95,24 @@ namespace ArcMist
         if(mData == NULL)
             return; // Empty
 
-        if(mWriteOffset == mSize)
+        if(mEndOffset == mSize)
             return; // Already compact
 
+        if(mEndOffset == 0)
+        {
+            delete[] mData;
+            mData = NULL;
+            return;
+        }
+
         // Allocate and populate new memory
-        uint8_t *newData = new uint8_t[mWriteOffset];
-        std::memcpy(newData, mData, mWriteOffset);
-        
+        uint8_t *newData = new uint8_t[mEndOffset];
+        std::memcpy(newData, mData, mEndOffset);
+
         // Remove and replace old memory
         delete[] mData;
         mData = newData;
-        mSize = mWriteOffset;
+        mSize = mEndOffset;
     }
 
     // Flush any read bytes
@@ -110,21 +121,24 @@ namespace ArcMist
         if(mReadOffset == 0)
             return;
 
-        if(mReadOffset >= mWriteOffset)
+        if(mReadOffset >= mEndOffset)
         {
-            if(mReadOffset > mWriteOffset)
-                Log::error(BUFFER_LOG_NAME, "Flush with read offset higher than write offset");
+            if(mReadOffset > mEndOffset)
+                Log::error(BUFFER_LOG_NAME, "Flush with read offset higher than end offset");
             mReadOffset  = 0;
             mWriteOffset = 0;
+            mEndOffset = 0;
             return;
         }
 
-        std::memmove(mData, mData + mReadOffset, mWriteOffset - mReadOffset);
+        
+        std::memmove(mData, mData + mReadOffset, mEndOffset - mReadOffset);
+        mEndOffset -= mReadOffset;
         mWriteOffset -= mReadOffset;
         mReadOffset = 0;
     }
 
-    // Reallocate to have at least pSize bytes available for writing
+    // Reallocate to have at least pSize bytes additional memory
     void Buffer::reallocate(unsigned int pSize)
     {
         // Allocate new memory
@@ -135,7 +149,7 @@ namespace ArcMist
             newSize = 1024;
 
         if(mAutoFlush)
-            usedBytes = mWriteOffset;
+            usedBytes = remaining();
         else
             usedBytes = length();
 
@@ -149,19 +163,20 @@ namespace ArcMist
             return;
         }
 
-        unsigned char *newData = new unsigned char[newSize];
+        uint8_t *newData = new uint8_t[newSize];
 
         if(mData)
         {
             // Copy old data into new memory
             if(mAutoFlush)
             {
-                std::memcpy(newData, mData + mReadOffset, mWriteOffset - mReadOffset);
+                std::memcpy(newData, mData + mReadOffset, mEndOffset - mReadOffset);
                 mWriteOffset -= mReadOffset;
+                mEndOffset -= mReadOffset;
                 mReadOffset = 0;
             }
             else
-                std::memcpy(newData, mData, mWriteOffset);
+                std::memcpy(newData, mData, mEndOffset);
 
             // Delete old memory
             delete[] mData;
