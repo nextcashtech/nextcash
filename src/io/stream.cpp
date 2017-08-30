@@ -13,8 +13,8 @@
 
 namespace ArcMist
 {
-    Endian::Type InputStream::sDefaultInputEndian = Endian::systemType();
-    Endian::Type OutputStream::sDefaultOutputEndian = Endian::systemType();
+    Endian::Type InputStream::sDefaultInputEndian = Endian::sSystemType;
+    Endian::Type OutputStream::sDefaultOutputEndian = Endian::sSystemType;
 
     uint8_t InputStream::readByte()
     {

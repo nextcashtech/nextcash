@@ -5,6 +5,8 @@
 
 #include <cstring>
 
+#define ARCMIST_STRING_LOG_NAME "String"
+
 #ifdef _WIN32
     static const char *PATH_SEPARATOR __attribute__ ((unused)) = "\\";
 #else
@@ -19,10 +21,10 @@ namespace ArcMist
     public:
 
         String() { mData = NULL; }
-        String(const String &pOther)
+        String(const String &pCopy)
         {
             mData = NULL;
-            *this = pOther;
+            *this = pCopy;
         }
         String(const char *pText)
         {
@@ -69,15 +71,7 @@ namespace ArcMist
         }
 
         // Allocate memory for a string of specific length and return it to be written into
-        char *writeAddress(unsigned int pLength)
-        {
-            clear();
-            if(pLength == 0)
-                return NULL;
-            mData = new char[pLength+1];
-            mData[pLength] = 0;
-            return mData;
-        }
+        char *writeAddress(unsigned int pLength);
 
         void writeHex(const void *pData, unsigned int pSize);
 
@@ -145,62 +139,10 @@ namespace ArcMist
         /*******************************************************************************************
          * Modify Operators
          ******************************************************************************************/
-        String &operator = (const char *pRight)
-        {
-            if(mData != NULL)
-                delete[] mData;
-            
-            if(pRight == NULL)
-                mData = NULL;
-            else
-            {
-                unsigned int newLength = std::strlen(pRight);
-                if(newLength == 0)
-                    mData = NULL;
-                else
-                {
-                    mData = new char[newLength+1];
-                    std::strcpy(mData, pRight);
-                }
-            }
+        String &operator = (const char *pRight);
+        String &operator = (const String &pRight);
 
-            return *this;
-        }
-        String &operator = (const String &pRight)
-        {
-            if(mData != NULL)
-                delete[] mData;
-
-            if(pRight.mData != NULL)
-            {
-                mData = new char[pRight.length()+1];
-                std::strcpy(mData, pRight.mData);
-            }
-            else
-                mData = NULL;
-
-            return *this;
-        }
-
-        void operator += (const char *pRight)
-        {
-            if(pRight == NULL)
-                return;
-            
-            unsigned int leftLength = length();
-            unsigned int rightLength = std::strlen(pRight);
-            
-            if(rightLength == 0)
-                return;
-
-            char *newData = new char[leftLength + rightLength + 1];
-
-            std::strcpy(newData, text());
-            std::strcpy(newData + leftLength, pRight);
-
-            *this = newData;
-            delete[] newData;
-        }
+        void operator += (const char *pRight);
         void operator += (const String &pRight) { *this += pRight.text(); }
 
         String operator + (const char *pRight) const

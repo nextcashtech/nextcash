@@ -29,8 +29,7 @@ namespace ArcMist
         FileInputStream(const char *pFilePathName)
         {
             mStreamNeedsDelete = true;
-            mStream = new std::ifstream();
-            ((std::fstream *)mStream)->open(pFilePathName, std::ios::binary);
+            mStream = new std::ifstream(pFilePathName, std::ios::binary);
             initialize();
         }
         ~FileInputStream() { if(mStreamNeedsDelete) delete mStream; }
@@ -86,13 +85,12 @@ namespace ArcMist
         FileOutputStream(const char *pFilePathName, bool pAppend = false, bool pTruncate = false)
         {
             mStreamNeedsDelete = true;
-            mStream = new std::ofstream();
             std::ios_base::openmode mode = std::ios::binary;
             if(pTruncate)
                 mode |= std::ios::trunc;
             else if(pAppend)
                 mode |= std::ios::app;
-            ((std::fstream *)mStream)->open(pFilePathName, mode);
+            mStream = new std::ofstream(pFilePathName, mode);
             initialize();
         }
         ~FileOutputStream() { mStream->flush(); if(mStreamNeedsDelete) delete mStream; }

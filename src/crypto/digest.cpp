@@ -825,8 +825,10 @@ namespace ArcMist
 
             // Put bit length in last 8 bytes of block (Big Endian)
             pTotalLength *= 8;
-            pBlock[15] = Endian::convert((uint32_t)(pTotalLength & 0xffffffff), Endian::BIG);
-            pBlock[14] = Endian::convert((uint32_t)((pTotalLength >> 32) & 0xffffffff), Endian::BIG);
+            uint32_t lower = pTotalLength & 0xffffffff;
+            pBlock[15] = Endian::convert(lower, Endian::BIG);
+            uint32_t upper = (pTotalLength >> 32) & 0xffffffff;
+            pBlock[14] = Endian::convert(upper, Endian::BIG);
 
             // Process last block
             process(pResult, pBlock);

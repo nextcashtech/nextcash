@@ -20,20 +20,6 @@ namespace ArcMist
     {
         enum Type { BIG, LITTLE };
 
-        inline Type systemType()
-        {
-            union
-            {
-                uint32_t integer;
-                uint8_t bytes[4];
-            } check = { 0x01000000 };
-
-            if(check.bytes[0] == 1)
-                return BIG;
-            else
-                return LITTLE;    
-        }
-
 #ifdef ARCMIST_LITTLE_ENDIAN
         static const Type sSystemType = LITTLE;
 #endif

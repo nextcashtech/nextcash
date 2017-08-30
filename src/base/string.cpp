@@ -7,16 +7,150 @@
 #include "arcmist/io/file_stream.hpp"
 
 #include <vector>
-
-#define STRING_LOG_NAME "String"
+#include <new>
 
 
 namespace ArcMist
 {
+    String &String::operator = (const char *pRight)
+    {
+        clear();
+        if(pRight == NULL)
+            mData = NULL;
+        else
+        {
+            unsigned int newLength = std::strlen(pRight);
+            if(newLength == 0)
+                mData = NULL;
+            else
+            {
+                mData = NULL;
+                try
+                {
+                    mData = new char[newLength+1];
+                }
+                catch(std::bad_alloc &pBadAlloc)
+                {
+                    ArcMist::Log::addFormatted(ArcMist::Log::ERROR, ARCMIST_STRING_LOG_NAME, "Bad allocation : %s", pBadAlloc.what());
+                    return *this;
+                }
+                catch(...)
+                {
+                    ArcMist::Log::add(ArcMist::Log::ERROR, ARCMIST_STRING_LOG_NAME, "Bad allocation : unknown");
+                    return *this;
+                }
+                std::strcpy(mData, pRight);
+            }
+        }
+
+        return *this;
+    }
+
+    String &String::operator = (const String &pRight)
+    {
+        clear();
+        if(pRight.mData != NULL)
+        {
+            mData = NULL;
+            try
+            {
+                mData = new char[pRight.length()+1];
+            }
+            catch(std::bad_alloc &pBadAlloc)
+            {
+                ArcMist::Log::addFormatted(ArcMist::Log::ERROR, ARCMIST_STRING_LOG_NAME, "Bad allocation : %s", pBadAlloc.what());
+                return *this;
+            }
+            catch(...)
+            {
+                ArcMist::Log::add(ArcMist::Log::ERROR, ARCMIST_STRING_LOG_NAME, "Bad allocation : unknown");
+                return *this;
+            }
+            std::strcpy(mData, pRight.mData);
+        }
+        else
+            mData = NULL;
+
+        return *this;
+    }
+
+    void String::operator += (const char *pRight)
+    {
+        if(pRight == NULL)
+            return;
+
+        unsigned int leftLength = length();
+        unsigned int rightLength = std::strlen(pRight);
+
+        if(rightLength == 0)
+            return;
+
+        char *newData = NULL;
+        try
+        {
+            newData = new char[leftLength + rightLength + 1];
+        }
+        catch(std::bad_alloc &pBadAlloc)
+        {
+            ArcMist::Log::addFormatted(ArcMist::Log::ERROR, ARCMIST_STRING_LOG_NAME, "Bad allocation : %s", pBadAlloc.what());
+            return;
+        }
+        catch(...)
+        {
+            ArcMist::Log::add(ArcMist::Log::ERROR, ARCMIST_STRING_LOG_NAME, "Bad allocation : unknown");
+            return;
+        }
+
+        std::strcpy(newData, mData);
+        std::strcpy(newData + leftLength, pRight);
+
+        clear();
+        mData = newData;
+    }
+
+    char *String::writeAddress(unsigned int pLength)
+    {
+        clear();
+        if(pLength == 0)
+            return NULL;
+        mData = NULL;
+        try
+        {
+            mData = new char[pLength+1];
+        }
+        catch(std::bad_alloc &pBadAlloc)
+        {
+            ArcMist::Log::addFormatted(ArcMist::Log::ERROR, ARCMIST_STRING_LOG_NAME, "Bad allocation : %s", pBadAlloc.what());
+            return NULL;
+        }
+        catch(...)
+        {
+            ArcMist::Log::add(ArcMist::Log::ERROR, ARCMIST_STRING_LOG_NAME, "Bad allocation : unknown");
+            return NULL;
+        }
+        mData[pLength] = 0;
+        return mData;
+    }
+
     void String::writeHex(const void *pData, unsigned int pSize)
     {
         clear();
-        mData = new char[(pSize * 2) + 1];
+        mData = NULL;
+        try
+        {
+            mData = new char[(pSize * 2) + 1];
+        }
+        catch(std::bad_alloc &pBadAlloc)
+        {
+            ArcMist::Log::addFormatted(ArcMist::Log::ERROR, ARCMIST_STRING_LOG_NAME, "Bad allocation : %s", pBadAlloc.what());
+            return;
+        }
+        catch(...)
+        {
+            ArcMist::Log::add(ArcMist::Log::ERROR, ARCMIST_STRING_LOG_NAME, "Bad allocation : unknown");
+            return;
+        }
+
         mData[pSize * 2] = 0;
         const char *hexByte;
 
@@ -71,7 +205,22 @@ namespace ArcMist
         // Translate the result into a string.
         if(mData != NULL)
             delete[] mData;
-        mData = new char[leadingZeroes + (b58.end() - it) + 1];
+        mData = NULL;
+        try
+        {
+            mData = new char[leadingZeroes + (b58.end() - it) + 1];
+        }
+        catch(std::bad_alloc &pBadAlloc)
+        {
+            ArcMist::Log::addFormatted(ArcMist::Log::ERROR, ARCMIST_STRING_LOG_NAME, "Bad allocation : %s", pBadAlloc.what());
+            return;
+        }
+        catch(...)
+        {
+            ArcMist::Log::add(ArcMist::Log::ERROR, ARCMIST_STRING_LOG_NAME, "Bad allocation : unknown");
+            return;
+        }
+
         mData[leadingZeroes + (b58.end() - it)] = 0;
 
         for(offset = 0;offset<leadingZeroes;offset++)
@@ -90,10 +239,10 @@ namespace ArcMist
          ******************************************************************************************/
         String empty;
         if(empty.mData == NULL)
-            Log::add(Log::INFO, STRING_LOG_NAME, "Passed empty");
+            Log::add(Log::INFO, ARCMIST_STRING_LOG_NAME, "Passed empty");
         else
         {
-            Log::add(Log::ERROR, STRING_LOG_NAME, "Failed empty");
+            Log::add(Log::ERROR, ARCMIST_STRING_LOG_NAME, "Failed empty");
             result = false;
         }
 
@@ -102,10 +251,10 @@ namespace ArcMist
          ******************************************************************************************/
         String constructorValue("value");
         if(constructorValue.mData != NULL && std::strcmp(constructorValue.mData, "value") == 0)
-            Log::add(Log::INFO, STRING_LOG_NAME, "Passed constructor value");
+            Log::add(Log::INFO, ARCMIST_STRING_LOG_NAME, "Passed constructor value");
         else
         {
-            Log::add(Log::ERROR, STRING_LOG_NAME, "Failed constructor value");
+            Log::add(Log::ERROR, ARCMIST_STRING_LOG_NAME, "Failed constructor value");
             result = false;
         }
 
@@ -114,10 +263,10 @@ namespace ArcMist
          ******************************************************************************************/
         String constructorAssignValue = "value";
         if(constructorAssignValue.mData != NULL && std::strcmp(constructorAssignValue.mData, "value") == 0)
-            Log::add(Log::INFO, STRING_LOG_NAME, "Passed constructor assign value");
+            Log::add(Log::INFO, ARCMIST_STRING_LOG_NAME, "Passed constructor assign value");
         else
         {
-            Log::add(Log::ERROR, STRING_LOG_NAME, "Failed constructor assign value");
+            Log::add(Log::ERROR, ARCMIST_STRING_LOG_NAME, "Failed constructor assign value");
             result = false;
         }
 
@@ -128,10 +277,10 @@ namespace ArcMist
         operatorAssignValue = constructorValue;
         if(operatorAssignValue.mData != NULL && operatorAssignValue.mData != constructorValue.mData &&
           std::strcmp(operatorAssignValue.mData, "value") == 0)
-            Log::add(Log::INFO, STRING_LOG_NAME, "Passed operator assign value");
+            Log::add(Log::INFO, ARCMIST_STRING_LOG_NAME, "Passed operator assign value");
         else
         {
-            Log::add(Log::ERROR, STRING_LOG_NAME, "Failed operator assign value");
+            Log::add(Log::ERROR, ARCMIST_STRING_LOG_NAME, "Failed operator assign value");
             result = false;
         }
 
@@ -139,10 +288,10 @@ namespace ArcMist
          * Test text function
          ******************************************************************************************/
         if(std::strcmp(operatorAssignValue.text(), "value") == 0)
-            Log::add(Log::INFO, STRING_LOG_NAME, "Passed text function");
+            Log::add(Log::INFO, ARCMIST_STRING_LOG_NAME, "Passed text function");
         else
         {
-            Log::add(Log::ERROR, STRING_LOG_NAME, "Failed text function");
+            Log::add(Log::ERROR, ARCMIST_STRING_LOG_NAME, "Failed text function");
             result = false;
         }
 
@@ -150,10 +299,10 @@ namespace ArcMist
          * Test length function
          ******************************************************************************************/
         if(operatorAssignValue.length() == 5)
-            Log::add(Log::INFO, STRING_LOG_NAME, "Passed length function");
+            Log::add(Log::INFO, ARCMIST_STRING_LOG_NAME, "Passed length function");
         else
         {
-            Log::add(Log::ERROR, STRING_LOG_NAME, "Failed length function");
+            Log::add(Log::ERROR, ARCMIST_STRING_LOG_NAME, "Failed length function");
             result = false;
         }
 
@@ -162,10 +311,10 @@ namespace ArcMist
          ******************************************************************************************/
         operatorAssignValue.clear();
         if(operatorAssignValue.mData == NULL)
-            Log::add(Log::INFO, STRING_LOG_NAME, "Passed clear function");
+            Log::add(Log::INFO, ARCMIST_STRING_LOG_NAME, "Passed clear function");
         else
         {
-            Log::add(Log::ERROR, STRING_LOG_NAME, "Failed clear function");
+            Log::add(Log::ERROR, ARCMIST_STRING_LOG_NAME, "Failed clear function");
             result = false;
         }
 
@@ -174,10 +323,10 @@ namespace ArcMist
          ******************************************************************************************/
         String equal = "equal";
         if(equal == "equal")
-            Log::add(Log::INFO, STRING_LOG_NAME, "Passed operator ==");
+            Log::add(Log::INFO, ARCMIST_STRING_LOG_NAME, "Passed operator ==");
         else
         {
-            Log::add(Log::ERROR, STRING_LOG_NAME, "Failed operator ==");
+            Log::add(Log::ERROR, ARCMIST_STRING_LOG_NAME, "Failed operator ==");
             result = false;
         }
 
@@ -186,10 +335,10 @@ namespace ArcMist
          ******************************************************************************************/
         equal = "";
         if(equal == "")
-            Log::add(Log::INFO, STRING_LOG_NAME, "Passed operator == nulls equal");
+            Log::add(Log::INFO, ARCMIST_STRING_LOG_NAME, "Passed operator == nulls equal");
         else
         {
-            Log::add(Log::ERROR, STRING_LOG_NAME, "Failed operator == nulls equal");
+            Log::add(Log::ERROR, ARCMIST_STRING_LOG_NAME, "Failed operator == nulls equal");
             result = false;
         }
 
@@ -199,11 +348,11 @@ namespace ArcMist
         equal = "";
         if(equal == "test")
         {
-            Log::add(Log::ERROR, STRING_LOG_NAME, "Failed operator == left null right not");
+            Log::add(Log::ERROR, ARCMIST_STRING_LOG_NAME, "Failed operator == left null right not");
             result = false;
         }
         else
-            Log::add(Log::INFO, STRING_LOG_NAME, "Passed operator == left null right not");
+            Log::add(Log::INFO, ARCMIST_STRING_LOG_NAME, "Passed operator == left null right not");
 
         /******************************************************************************************
          * Test operator == right null left not
@@ -211,20 +360,20 @@ namespace ArcMist
         equal = "test";
         if(equal == "")
         {
-            Log::add(Log::ERROR, STRING_LOG_NAME, "Failed operator == right null left not");
+            Log::add(Log::ERROR, ARCMIST_STRING_LOG_NAME, "Failed operator == right null left not");
             result = false;
         }
         else
-            Log::add(Log::INFO, STRING_LOG_NAME, "Passed operator == right null left not");
+            Log::add(Log::INFO, ARCMIST_STRING_LOG_NAME, "Passed operator == right null left not");
 
         /******************************************************************************************
          * Test operator !=
          ******************************************************************************************/
         if(equal != "not equal")
-            Log::add(Log::INFO, STRING_LOG_NAME, "Passed operator !=");
+            Log::add(Log::INFO, ARCMIST_STRING_LOG_NAME, "Passed operator !=");
         else
         {
-            Log::add(Log::ERROR, STRING_LOG_NAME, "Failed operator !=");
+            Log::add(Log::ERROR, ARCMIST_STRING_LOG_NAME, "Failed operator !=");
             result = false;
         }
 
@@ -233,10 +382,10 @@ namespace ArcMist
          ******************************************************************************************/
         String testBool = "123";
         if(testBool)
-            Log::add(Log::INFO, STRING_LOG_NAME, "Passed operator bool");
+            Log::add(Log::INFO, ARCMIST_STRING_LOG_NAME, "Passed operator bool");
         else
         {
-            Log::add(Log::ERROR, STRING_LOG_NAME, "Failed operator bool");
+            Log::add(Log::ERROR, ARCMIST_STRING_LOG_NAME, "Failed operator bool");
             result = false;
         }
 
@@ -246,21 +395,21 @@ namespace ArcMist
         testBool = "";
         if(testBool)
         {
-            Log::add(Log::ERROR, STRING_LOG_NAME, "Failed operator bool false");
+            Log::add(Log::ERROR, ARCMIST_STRING_LOG_NAME, "Failed operator bool false");
             result = false;
         }
         else
-            Log::add(Log::INFO, STRING_LOG_NAME, "Passed operator bool false");
+            Log::add(Log::INFO, ARCMIST_STRING_LOG_NAME, "Passed operator bool false");
 
         /******************************************************************************************
          * Test operator !
          ******************************************************************************************/
         testBool = "";
         if(!testBool)
-            Log::add(Log::INFO, STRING_LOG_NAME, "Passed operator !");
+            Log::add(Log::INFO, ARCMIST_STRING_LOG_NAME, "Passed operator !");
         else
         {
-            Log::add(Log::ERROR, STRING_LOG_NAME, "Failed operator !");
+            Log::add(Log::ERROR, ARCMIST_STRING_LOG_NAME, "Failed operator !");
             result = false;
         }
 
@@ -270,11 +419,11 @@ namespace ArcMist
         testBool = "123";
         if(!testBool)
         {
-            Log::add(Log::ERROR, STRING_LOG_NAME, "Failed operator ! false");
+            Log::add(Log::ERROR, ARCMIST_STRING_LOG_NAME, "Failed operator ! false");
             result = false;
         }
         else
-            Log::add(Log::INFO, STRING_LOG_NAME, "Passed operator ! false");
+            Log::add(Log::INFO, ARCMIST_STRING_LOG_NAME, "Passed operator ! false");
 
         /******************************************************************************************
          * Test operator +
@@ -283,10 +432,10 @@ namespace ArcMist
         String right = "right";
         String add = left + right;
         if(add == "leftright")
-            Log::add(Log::INFO, STRING_LOG_NAME, "Passed operator +");
+            Log::add(Log::INFO, ARCMIST_STRING_LOG_NAME, "Passed operator +");
         else
         {
-            Log::add(Log::ERROR, STRING_LOG_NAME, "Failed operator +");
+            Log::add(Log::ERROR, ARCMIST_STRING_LOG_NAME, "Failed operator +");
             result = false;
         }
 
@@ -296,10 +445,10 @@ namespace ArcMist
         String append = left;
         append += right;
         if(append == "leftright")
-            Log::add(Log::INFO, STRING_LOG_NAME, "Passed operator +=");
+            Log::add(Log::INFO, ARCMIST_STRING_LOG_NAME, "Passed operator +=");
         else
         {
-            Log::add(Log::ERROR, STRING_LOG_NAME, "Failed operator +=");
+            Log::add(Log::ERROR, ARCMIST_STRING_LOG_NAME, "Failed operator +=");
             result = false;
         }
 
@@ -309,10 +458,10 @@ namespace ArcMist
         left = "bcd";
         right = "abc";
         if(left > right)
-            Log::add(Log::INFO, STRING_LOG_NAME, "Passed operator >");
+            Log::add(Log::INFO, ARCMIST_STRING_LOG_NAME, "Passed operator >");
         else
         {
-            Log::add(Log::ERROR, STRING_LOG_NAME, "Failed operator >");
+            Log::add(Log::ERROR, ARCMIST_STRING_LOG_NAME, "Failed operator >");
             result = false;
         }
 
@@ -323,11 +472,11 @@ namespace ArcMist
         right = "abc";
         if(left > right)
         {
-            Log::add(Log::ERROR, STRING_LOG_NAME, "Failed operator > left null");
+            Log::add(Log::ERROR, ARCMIST_STRING_LOG_NAME, "Failed operator > left null");
             result = false;
         }
         else
-            Log::add(Log::INFO, STRING_LOG_NAME, "Passed operator > left null");
+            Log::add(Log::INFO, ARCMIST_STRING_LOG_NAME, "Passed operator > left null");
 
         /******************************************************************************************
          * Test operator > right null
@@ -335,10 +484,10 @@ namespace ArcMist
         left = "bcd";
         right = "";
         if(left > right)
-            Log::add(Log::INFO, STRING_LOG_NAME, "Passed operator > right null");
+            Log::add(Log::INFO, ARCMIST_STRING_LOG_NAME, "Passed operator > right null");
         else
         {
-            Log::add(Log::ERROR, STRING_LOG_NAME, "Failed operator > right null");
+            Log::add(Log::ERROR, ARCMIST_STRING_LOG_NAME, "Failed operator > right null");
             result = false;
         }
 
@@ -348,10 +497,10 @@ namespace ArcMist
         left = "abc";
         right = "bcd";
         if(left < right)
-            Log::add(Log::INFO, STRING_LOG_NAME, "Passed operator <");
+            Log::add(Log::INFO, ARCMIST_STRING_LOG_NAME, "Passed operator <");
         else
         {
-            Log::add(Log::ERROR, STRING_LOG_NAME, "Failed operator <");
+            Log::add(Log::ERROR, ARCMIST_STRING_LOG_NAME, "Failed operator <");
             result = false;
         }
 
@@ -361,10 +510,10 @@ namespace ArcMist
         left = "";
         right = "abc";
         if(left < right)
-            Log::add(Log::INFO, STRING_LOG_NAME, "Passed operator < left null");
+            Log::add(Log::INFO, ARCMIST_STRING_LOG_NAME, "Passed operator < left null");
         else
         {
-            Log::add(Log::ERROR, STRING_LOG_NAME, "Failed operator < left null");
+            Log::add(Log::ERROR, ARCMIST_STRING_LOG_NAME, "Failed operator < left null");
             result = false;
         }
 
@@ -375,11 +524,11 @@ namespace ArcMist
         right = "";
         if(left < right)
         {
-            Log::add(Log::ERROR, STRING_LOG_NAME, "Failed operator < right null");
+            Log::add(Log::ERROR, ARCMIST_STRING_LOG_NAME, "Failed operator < right null");
             result = false;
         }
         else
-            Log::add(Log::INFO, STRING_LOG_NAME, "Passed operator < right null");
+            Log::add(Log::INFO, ARCMIST_STRING_LOG_NAME, "Passed operator < right null");
 
         /******************************************************************************************
          * Test base58 test 1
@@ -389,10 +538,10 @@ namespace ArcMist
         base58.writeBase58(base58Data, 10);
 
         if(base58 == "11E4QQELDrmnD")
-            Log::addFormatted(Log::INFO, STRING_LOG_NAME, "Passed base58 test 1 : %s", base58.text());
+            Log::addFormatted(Log::INFO, ARCMIST_STRING_LOG_NAME, "Passed base58 test 1 : %s", base58.text());
         else
         {
-            Log::addFormatted(Log::ERROR, STRING_LOG_NAME, "Failed base58 test 1 : %s", base58.text());
+            Log::addFormatted(Log::ERROR, ARCMIST_STRING_LOG_NAME, "Failed base58 test 1 : %s", base58.text());
             result = false;
         }
 
@@ -403,10 +552,10 @@ namespace ArcMist
         base58.writeBase58(base58Data2, 21);
 
         if(base58 == "12FpmoFq5cpWVRp4dCgkYB3HiTzx7") // "x19DXstMaV43WpYg4ceREiiTv2UntmoiA9j")
-            Log::addFormatted(Log::INFO, STRING_LOG_NAME, "Passed base58 test 2 : %s", base58.text());
+            Log::addFormatted(Log::INFO, ARCMIST_STRING_LOG_NAME, "Passed base58 test 2 : %s", base58.text());
         else
         {
-            Log::addFormatted(Log::ERROR, STRING_LOG_NAME, "Failed base58 test 2 : %s", base58.text());
+            Log::addFormatted(Log::ERROR, ARCMIST_STRING_LOG_NAME, "Failed base58 test 2 : %s", base58.text());
             result = false;
         }
 
@@ -417,10 +566,10 @@ namespace ArcMist
         base58.writeBase58(base58Data3, 3);
 
         if(base58 == "ZiCa")
-            Log::addFormatted(Log::INFO, STRING_LOG_NAME, "Passed base58 test 3 : %s", base58.text());
+            Log::addFormatted(Log::INFO, ARCMIST_STRING_LOG_NAME, "Passed base58 test 3 : %s", base58.text());
         else
         {
-            Log::addFormatted(Log::ERROR, STRING_LOG_NAME, "Failed base58 test 3 : %s", base58.text());
+            Log::addFormatted(Log::ERROR, ARCMIST_STRING_LOG_NAME, "Failed base58 test 3 : %s", base58.text());
             result = false;
         }
 

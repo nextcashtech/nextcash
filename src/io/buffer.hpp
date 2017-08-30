@@ -14,6 +14,8 @@ namespace ArcMist
     public:
 
         Buffer();
+        Buffer(const Buffer &pCopy);
+        Buffer(unsigned int pSize);
         ~Buffer();
 
         // InputStream virtual functions
@@ -41,6 +43,7 @@ namespace ArcMist
         void zeroize();
         void clear(); // Clear all data
         void compact(); // Reduce memory footprint. Flush first if you want to remove read data
+        void setSize(unsigned int pSize);
 
         bool operator == (Buffer &pRight) const
         {

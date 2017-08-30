@@ -365,8 +365,8 @@ namespace ArcMist
         //Log::add(Log::VERBOSE, NETWORK_LOG_NAME, "Finished Receive");
 
         pStream->write(mBuffer, bytesReceived);
-        if(bytesReceived > 0)
-            Log::addFormatted(Log::DEBUG, NETWORK_LOG_NAME, "Received %d bytes", bytesReceived);
+        //if(bytesReceived > 0)
+        //    Log::addFormatted(Log::DEBUG, NETWORK_LOG_NAME, "Received %d bytes", bytesReceived);
         return bytesReceived;
     }
 
@@ -397,7 +397,7 @@ namespace ArcMist
             }
             //Log::add(Log::VERBOSE, NETWORK_LOG_NAME, "Finished Send");
 
-            Log::addFormatted(Log::DEBUG, NETWORK_LOG_NAME, "Sent %d bytes", length);
+            //Log::addFormatted(Log::DEBUG, NETWORK_LOG_NAME, "Sent %d bytes", length);
         }
 
         return true;

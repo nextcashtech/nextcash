@@ -5,8 +5,9 @@
 #include "arcmist/base/log.hpp"
 
 #include <cstring>
+#include <new>
 
-#define BUFFER_LOG_NAME "Buffer"
+#define ARCMIST_BUFFER_LOG_NAME "Buffer"
 
 
 namespace ArcMist
@@ -21,9 +22,34 @@ namespace ArcMist
         mAutoFlush = true;
     }
 
+    Buffer::Buffer(unsigned int pSize)
+    {
+        mSize = pSize;
+        try
+        {
+            mData = new uint8_t[mSize];
+        }
+        catch(std::bad_alloc &pBadAlloc)
+        {
+            ArcMist::Log::addFormatted(ArcMist::Log::ERROR, ARCMIST_BUFFER_LOG_NAME, "Bad allocation : %s", pBadAlloc.what());
+            mData = NULL;
+            mSize = 0;
+        }
+        catch(...)
+        {
+            ArcMist::Log::add(ArcMist::Log::ERROR, ARCMIST_BUFFER_LOG_NAME, "Bad allocation : unknown");
+            mData = NULL;
+            mSize = 0;
+        }
+        mReadOffset = 0;
+        mWriteOffset = 0;
+        mEndOffset = 0;
+        mAutoFlush = true;
+    }
+
     Buffer::~Buffer()
     {
-        if(mData)
+        if(mData != NULL)
             delete[] mData;
     }
 
@@ -57,12 +83,12 @@ namespace ArcMist
     {
         if(mReadOffset + pOffset > mWriteOffset)
         {
-            Log::error(BUFFER_LOG_NAME, "Move read offset too large");
+            Log::error(ARCMIST_BUFFER_LOG_NAME, "Move read offset too large");
             mReadOffset = mWriteOffset;
         }
         else if(mReadOffset + pOffset < 0)
         {
-            Log::error(BUFFER_LOG_NAME, "Move read offset too small");
+            Log::error(ARCMIST_BUFFER_LOG_NAME, "Move read offset too small");
             mReadOffset = 0;
         }
         else
@@ -106,13 +132,67 @@ namespace ArcMist
         }
 
         // Allocate and populate new memory
-        uint8_t *newData = new uint8_t[mEndOffset];
+        uint8_t *newData = NULL;
+        try
+        {
+            newData = new uint8_t[mEndOffset];
+        }
+        catch(std::bad_alloc &pBadAlloc)
+        {
+            ArcMist::Log::addFormatted(ArcMist::Log::ERROR, ARCMIST_BUFFER_LOG_NAME, "Bad allocation : %s", pBadAlloc.what());
+            return;
+        }
+        catch(...)
+        {
+            ArcMist::Log::add(ArcMist::Log::ERROR, ARCMIST_BUFFER_LOG_NAME, "Bad allocation : unknown");
+            return;
+        }
         std::memcpy(newData, mData, mEndOffset);
 
         // Remove and replace old memory
         delete[] mData;
         mData = newData;
         mSize = mEndOffset;
+    }
+
+    void Buffer::setSize(unsigned int pSize)
+    {
+        if(mSize >= pSize)
+            return; // Already big enough
+
+        if(mEndOffset == 0)
+        {
+            delete[] mData;
+            mData = NULL;
+        }
+
+        // Allocate and populate new memory
+        uint8_t *newData = NULL;
+        try
+        {
+            newData = new uint8_t[pSize];
+        }
+        catch(std::bad_alloc &pBadAlloc)
+        {
+            ArcMist::Log::addFormatted(ArcMist::Log::ERROR, ARCMIST_BUFFER_LOG_NAME, "Bad allocation : %s", pBadAlloc.what());
+            return;
+        }
+        catch(...)
+        {
+            ArcMist::Log::add(ArcMist::Log::ERROR, ARCMIST_BUFFER_LOG_NAME, "Bad allocation : unknown");
+            return;
+        }
+
+        if(mData != NULL)
+        {
+            std::memcpy(newData, mData, mEndOffset);
+
+            // Remove and replace old memory
+            delete[] mData;
+        }
+
+        mData = newData;
+        mSize = pSize;
     }
 
     // Flush any read bytes
@@ -124,7 +204,7 @@ namespace ArcMist
         if(mReadOffset >= mEndOffset)
         {
             if(mReadOffset > mEndOffset)
-                Log::error(BUFFER_LOG_NAME, "Flush with read offset higher than end offset");
+                Log::error(ARCMIST_BUFFER_LOG_NAME, "Flush with read offset higher than end offset");
             mReadOffset  = 0;
             mWriteOffset = 0;
             mEndOffset = 0;
@@ -163,9 +243,23 @@ namespace ArcMist
             return;
         }
 
-        uint8_t *newData = new uint8_t[newSize];
+        uint8_t *newData = NULL;
+        try
+        {
+            newData = new uint8_t[newSize];
+        }
+        catch(std::bad_alloc &pBadAlloc)
+        {
+            ArcMist::Log::addFormatted(ArcMist::Log::ERROR, ARCMIST_BUFFER_LOG_NAME, "Bad allocation : %s", pBadAlloc.what());
+            return;
+        }
+        catch(...)
+        {
+            ArcMist::Log::add(ArcMist::Log::ERROR, ARCMIST_BUFFER_LOG_NAME, "Bad allocation : unknown");
+            return;
+        }
 
-        if(mData)
+        if(mData != NULL)
         {
             // Copy old data into new memory
             if(mAutoFlush)
@@ -198,10 +292,10 @@ namespace ArcMist
         hexBinary.writeUnsignedInt(0x123456ff);
         String hexValue = hexBinary.readHexString(4);
         if(hexValue == "123456ff")
-            Log::add(Log::INFO, BUFFER_LOG_NAME, "Passed read hex string function");
+            Log::add(Log::INFO, ARCMIST_BUFFER_LOG_NAME, "Passed read hex string function");
         else
         {
-            Log::add(Log::ERROR, BUFFER_LOG_NAME, "Failed read hex string function");
+            Log::add(Log::ERROR, ARCMIST_BUFFER_LOG_NAME, "Failed read hex string function");
             result = false;
         }
 
@@ -213,10 +307,10 @@ namespace ArcMist
         base58Binary.writeBase58AsBinary(base58String.text());
         hexValue = base58Binary.readHexString(21);
         if(hexValue == "005a1fc5dd9e6f03819fca94a2d89669469667f9a0")
-            Log::addFormatted(Log::INFO, BUFFER_LOG_NAME, "Passed write base58 string function: %s", hexValue.text());
+            Log::addFormatted(Log::INFO, ARCMIST_BUFFER_LOG_NAME, "Passed write base58 string function: %s", hexValue.text());
         else
         {
-            Log::addFormatted(Log::ERROR, BUFFER_LOG_NAME, "Failed write base58 string function : %s", hexValue.text());
+            Log::addFormatted(Log::ERROR, ARCMIST_BUFFER_LOG_NAME, "Failed write base58 string function : %s", hexValue.text());
             result = false;
         }
 
