@@ -12,13 +12,13 @@
 
 namespace ArcMist
 {
-    Log *Log::mInstance = 0;
+    Log *Log::mInstance = NULL;
 
     Log &Log::log()
     {
         if(!mInstance)
         {
-            mInstance = new Log(0, "%F %T"); // YYYY-MM-DD HH:MM::SS
+            mInstance = new Log(NULL, "%F %T"); // YYYY-MM-DD HH:MM::SS
             std::atexit(Log::destroy);
         }
 
@@ -30,25 +30,25 @@ namespace ArcMist
         mDateTimeFormat = pDateTimeFormat;
         mLevel = INFO;
         mPendingEntryLevel = INFO;
-        mStreamToDestroy = 0;
-        mStream = 0;
+        mStreamToDestroy = NULL;
+        mStream = NULL;
         mUseColor = false;
 
-        internalSetOutput(pStream);
+        internalSetOutput(pStream, false);
     }
 
     Log::~Log()
     {
-        if(mStreamToDestroy)
+        if(mStreamToDestroy != NULL)
             delete mStreamToDestroy;
     }
 
     void Log::destroy()
     {
-        if(mInstance)
+        if(mInstance != NULL)
         {
             delete mInstance;
-            mInstance = 0;
+            mInstance = NULL;
         }
     }
 
@@ -57,19 +57,22 @@ namespace ArcMist
         log().mLevel = pLevel;
     }
 
-    void Log::setOutput(OutputStream *pStream)
+    void Log::setOutput(OutputStream *pStream, bool pDeleteOnExit)
     {
-        log().internalSetOutput(pStream);
+        log().internalSetOutput(pStream, pDeleteOnExit);
     }
 
-    void Log::internalSetOutput(OutputStream *pStream)
+    void Log::internalSetOutput(OutputStream *pStream, bool pDeleteOnExit)
     {
-        if(mStreamToDestroy)
+        if(mStreamToDestroy != NULL)
             delete mStreamToDestroy;
 
-        if(pStream)
+        if(pStream != NULL)
         {
-            mStreamToDestroy = 0;
+            if(pDeleteOnExit)
+                mStreamToDestroy = pStream;
+            else
+                mStreamToDestroy = NULL;
             mStream = pStream;
             mUseColor = false;
         }

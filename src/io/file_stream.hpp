@@ -6,6 +6,7 @@
 #include <iostream>
 #include <fstream>
 #include <cstdint>
+#include <cstdlib>
 
 
 namespace ArcMist
@@ -16,12 +17,21 @@ namespace ArcMist
         return f.good();
     }
 
+    inline bool createDirectory(const char *pPathName)
+    {
+        String command = "mkdir -p ";
+        command += pPathName;
+        int result = system(command.text());
+        return result >= 0;
+    }
+
     class FileInputStream : public InputStream
     {
     public:
 
         FileInputStream(std::istream &pInputStream)
         {
+            mValid = true;
             mStreamNeedsDelete = false;
             mStream = &pInputStream;
             initialize();
@@ -29,13 +39,26 @@ namespace ArcMist
         FileInputStream(const char *pFilePathName)
         {
             mStreamNeedsDelete = true;
-            mStream = new std::ifstream(pFilePathName, std::ios::binary);
+            mStream = new std::fstream;
+            ((std::fstream *)mStream)->open(pFilePathName, std::ios::in | std::ios::binary);
+            mValid = ((std::fstream *)mStream)->is_open();
             initialize();
         }
         ~FileInputStream() { if(mStreamNeedsDelete) delete mStream; }
 
-        unsigned int readOffset() const { return mReadOffset; }
+        bool isValid() { return mValid; }
         unsigned int length() const { return mEndOffset; }
+        unsigned int readOffset() const { return mReadOffset; }
+        bool setReadOffset(unsigned int pOffset)
+        {
+            if(pOffset <= mEndOffset)
+            {
+                mStream->seekg(pOffset);
+                mReadOffset = mStream->tellg();
+                return true;
+            }
+            return false;
+        }
         operator bool() const { return mStream->good() && (mReadOffset == (unsigned int)-1 || mReadOffset < mEndOffset); }
         bool operator !() const { return !mStream->good(); }
         void read(void *pOutput, unsigned int pSize)
@@ -67,6 +90,7 @@ namespace ArcMist
             mStream->seekg(mReadOffset, std::ios::beg);
         }
 
+        bool mValid;
         bool mStreamNeedsDelete;
         std::istream *mStream;
         unsigned int mReadOffset, mEndOffset;
@@ -78,24 +102,40 @@ namespace ArcMist
 
         FileOutputStream(std::ostream &pOutputStream)
         {
+            mValid = true;
             mStreamNeedsDelete = false;
             mStream = &pOutputStream;
             initialize();
         }
-        FileOutputStream(const char *pFilePathName, bool pAppend = false, bool pTruncate = false)
+        FileOutputStream(const char *pFilePathName, bool pTruncate = false)
         {
             mStreamNeedsDelete = true;
-            std::ios_base::openmode mode = std::ios::binary;
+            std::ios_base::openmode mode = std::ios::out | std::ios::binary;
             if(pTruncate)
                 mode |= std::ios::trunc;
-            else if(pAppend)
-                mode |= std::ios::app;
-            mStream = new std::ofstream(pFilePathName, mode);
+            else if(fileExists(pFilePathName))
+                mode |= std::ios::in; // This "hack" is required to prevent a file that already exists from being deleted. However if the file doesn't yet exist this causes failure.
+            mStream = new std::fstream;
+            ((std::fstream *)mStream)->open(pFilePathName, mode);
+            mValid = ((std::fstream *)mStream)->is_open();
             initialize();
         }
         ~FileOutputStream() { mStream->flush(); if(mStreamNeedsDelete) delete mStream; }
 
+        bool isValid() { return mValid; }
+        unsigned int length() const { return mEndOffset; }
         unsigned int writeOffset() const { return mWriteOffset; }
+        bool setWriteOffset(unsigned int pOffset)
+        {
+            if(pOffset <= mEndOffset)
+            {
+                flush();
+                mStream->seekp(pOffset);
+                mWriteOffset = mStream->tellp();
+                return true;
+            }
+            return false;
+        }
         void write(const void *pInput, unsigned int pSize)
         {
             mStream->write((const char *)pInput, pSize);
@@ -126,79 +166,10 @@ namespace ArcMist
             mStream->seekp(mWriteOffset, std::ios::beg);
         }
 
+        bool mValid;
         bool mStreamNeedsDelete;
         std::ostream *mStream;
         unsigned int mWriteOffset, mEndOffset;
-    };
-
-    class FileStream : public Stream
-    {
-    public:
-
-        FileStream(std::iostream &pStream)
-        {
-            mStreamNeedsDelete = false;
-            mStream = &pStream;
-            initialize();
-        }
-        FileStream(const char *pFilePathName, bool pAppend = false, bool pTruncate = false)
-        {
-            mStreamNeedsDelete = true;
-            mStream = new std::fstream();
-            std::ios_base::openmode mode = std::ios::binary;
-            if(pTruncate)
-                mode |= std::ios::trunc;
-            else if(pAppend)
-                mode |= std::ios::app;
-            ((std::fstream *)mStream)->open(pFilePathName, mode);
-            initialize();
-        }
-        ~FileStream() { mStream->flush(); if(mStreamNeedsDelete) delete mStream; }
-
-        unsigned int readOffset() const { return mReadOffset; }
-        void setReadOffset(unsigned int pOffset)
-        {
-            mStream->seekg(pOffset);
-            mReadOffset = pOffset;
-        }
-        unsigned int length() const { return mEndOffset; }
-        operator bool() const { return mStream->good() && mReadOffset < mEndOffset; }
-        bool operator !() const { return !mStream->good(); }
-        void read(void *pOutput, unsigned int pSize)
-        {
-            mStream->read((char *)pOutput, pSize);
-            mReadOffset += pSize;
-        }
-        unsigned int writeOffset() const { return mWriteOffset; }
-        void setWriteOffset(unsigned int pOffset)
-        {
-            mStream->seekp(pOffset);
-            mWriteOffset = pOffset;
-        }
-        void write(const void *pInput, unsigned int pSize)
-        {
-            mStream->write((const char *)pInput, pSize);
-            mWriteOffset += pSize;
-            if(mEndOffset < mWriteOffset)
-                mEndOffset = mWriteOffset;
-        }
-        void flush() { mStream->flush(); }
-
-    private:
-
-        // Setup offsets
-        void initialize()
-        {
-            mWriteOffset = mStream->tellp();
-            mReadOffset = mStream->tellg();
-            mStream->seekg(0, std::ios::end);
-            mEndOffset = mStream->tellg();
-            mStream->seekg(mReadOffset, std::ios::beg);
-        }
-
-        bool mStreamNeedsDelete;
-        std::iostream *mStream;
-        unsigned int mReadOffset, mWriteOffset, mEndOffset;
     };
 }
 

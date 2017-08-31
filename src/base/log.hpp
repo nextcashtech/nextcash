@@ -13,7 +13,7 @@ namespace ArcMist
         enum Level { DEBUG, VERBOSE, INFO, WARNING, ERROR, NOTIFICATION, CRITICAL };
 
         static void setLevel(Level pLevel); // Defaults to INFO
-        static void setOutput(OutputStream *pStream); // Defaults to std::cerr
+        static void setOutput(OutputStream *pStream, bool pDeleteOnExit = false); // Defaults to std::cerr
 
         static void add(Level pLevel, const char *pName, const char *pEntry);
         static void debug(const char *pName, const char *pEntry) { add(DEBUG, pName, pEntry); }
@@ -43,7 +43,7 @@ namespace ArcMist
 
         Log(OutputStream *pStream, const char *pDateTimeFormat);
         ~Log();
-        void internalSetOutput(OutputStream *pStream);
+        void internalSetOutput(OutputStream *pStream, bool pDeleteOnExit);
         bool startEntry(Level pLevel, const char *pName);
 
         const char *mDateTimeFormat;
