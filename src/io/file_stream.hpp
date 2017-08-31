@@ -107,12 +107,14 @@ namespace ArcMist
             mStream = &pOutputStream;
             initialize();
         }
-        FileOutputStream(const char *pFilePathName, bool pTruncate = false)
+        FileOutputStream(const char *pFilePathName, bool pTruncate = false, bool pAppend = false)
         {
             mStreamNeedsDelete = true;
             std::ios_base::openmode mode = std::ios::out | std::ios::binary;
             if(pTruncate)
                 mode |= std::ios::trunc;
+            else if(pAppend)
+                mode |= std::ios::app;
             else if(fileExists(pFilePathName))
                 mode |= std::ios::in; // This "hack" is required to prevent a file that already exists from being deleted. However if the file doesn't yet exist this causes failure.
             mStream = new std::fstream;
