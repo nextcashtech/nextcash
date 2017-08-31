@@ -44,7 +44,7 @@ namespace ArcMist
             result = (result >> 8) ^ CRC32::table[(result & 0xFF) ^ pInput->readByte()];
 
         result ^= 0xffffffff;
-        pOutput->writeUnsignedInt(result);
+        pOutput->writeUnsignedInt(Endian::convert(result, Endian::BIG));
     }
 
     uint32_t Digest::crc32(const char *pText)
@@ -289,7 +289,7 @@ namespace ArcMist
         uint64_t bitLength = (uint64_t)pInputLength * 8;
 
         Buffer message;
-        message.setInputEndian(Endian::BIG);
+        message.setEndian(Endian::BIG);
         message.writeStream(pInput, pInputLength);
 
         // Pre-processing:
@@ -304,7 +304,6 @@ namespace ArcMist
 
         // append length of message(before pre-processing), in bits, as 64-bit big-endian integer
         // Append the data length as a 64 bit number low order word first
-        message.setOutputEndian(Endian::BIG);
         message.writeUnsignedLong(bitLength);
 
         uint32_t state[5] = { 0x67452301, 0xEFCDAB89, 0x98BADCFE, 0x10325476, 0xC3D2E1F0 };
@@ -375,7 +374,7 @@ namespace ArcMist
         }
 
         for(unsigned int i=0;i<5;i++)
-            pOutput->writeUnsignedInt(state[i]);
+            pOutput->writeUnsignedInt(Endian::convert(state[i], Endian::BIG));
 
         // Zeroize possible sensitive data
         message.zeroize();
@@ -883,11 +882,10 @@ namespace ArcMist
                              0x28db77f523047d84, 0x32caab7b40c72493, 0x3c9ebe0a15c9bebc, 0x431d67c49c100d4c,
                              0x4cc5d4becb3e42b6, 0x597f299cfc657e2a, 0x5fcb6fab3ad6faec, 0x6c44198c4a475817};
 
-    void Digest::sha512(InputStream *pInput, unsigned int pInputLength, OutputStream *pOutput) // 512 bit(64 byte) result
+    /*void Digest::sha512(InputStream *pInput, unsigned int pInputLength, OutputStream *pOutput) // 512 bit(64 byte) result
     {
         Buffer message;
-        message.setInputEndian(Endian::BIG);
-        message.setOutputEndian(Endian::BIG);
+        message.setEndian(Endian::LITTLE);
         message.writeStream(pInput, pInputLength);
 
         // Append a one bit
@@ -959,12 +957,13 @@ namespace ArcMist
 
         for(i=0;i<8;i++)
             pOutput->writeUnsignedLong(hash[i]);
-    }
+    }*/
 
     Digest::Digest(Type pType)
     {
         mType = pType;
         mByteCount= 0;
+        setOutputEndian(Endian::BIG);
 
         switch(mType)
         {
@@ -985,6 +984,8 @@ namespace ArcMist
             mBlockData  = new uint32_t[mBlockSize / 4];
             break;
         case SHA256:
+        case SHA256_SHA256:
+        case SHA256_RIPEMD160:
             mBlockSize = 64;
             mResultData = new uint32_t[8];
             mBlockData  = new uint32_t[mBlockSize / 4];
@@ -1032,6 +1033,8 @@ namespace ArcMist
             RIPEMD160::init(mResultData);
             break;
         case SHA256:
+        case SHA256_SHA256:
+        case SHA256_RIPEMD160:
             SHA256::initialize(mResultData);
             break;
         //case SHA512:
@@ -1046,6 +1049,7 @@ namespace ArcMist
         case CRC32:
             while(mInput.remaining() >= mBlockSize)
                 *mResultData = (*mResultData >> 8) ^ CRC32::table[(*mResultData & 0xFF) ^ mInput.readByte()];
+            *mResultData = Endian::convert(*mResultData, Endian::BIG);
             break;
         //case MD5:
         //    break;
@@ -1059,6 +1063,8 @@ namespace ArcMist
             }
             break;
         case SHA256:
+        case SHA256_SHA256:
+        case SHA256_RIPEMD160:
             while(mInput.remaining() >= mBlockSize)
             {
                 mInput.read(mBlockData, mBlockSize);
@@ -1072,7 +1078,7 @@ namespace ArcMist
         mInput.flush();
     }
 
-    void Digest::getResult(OutputStream *pOutput)
+    void Digest::getResult(RawOutputStream *pOutput)
     {
         switch(mType)
         {
@@ -1081,7 +1087,7 @@ namespace ArcMist
             *mResultData ^= 0xffffffff;
 
             // Output result
-            pOutput->writeUnsignedInt(*mResultData);
+            pOutput->write(mResultData, 4);
             break;
         //case MD5:
         //    break;
@@ -1109,6 +1115,42 @@ namespace ArcMist
 
             // Output result
             pOutput->write(mResultData, 32);
+            break;
+        }
+        case SHA256_SHA256:
+        {
+            // Get last partial block (must be less than 64 bytes)
+            unsigned int lastBlockSize = mInput.remaining();
+            mInput.read(mBlockData, lastBlockSize);
+
+            SHA256::finish(mResultData, mBlockData, lastBlockSize, mByteCount);
+            
+            // Compute SHA256 of result
+            Digest secondSHA256(SHA256);
+            secondSHA256.write(mResultData, 32);
+            Buffer secondSHA256Data(32);
+            secondSHA256.getResult(&secondSHA256Data);
+
+            // Output result
+            pOutput->writeStream(&secondSHA256Data, 32);
+            break;
+        }
+        case SHA256_RIPEMD160:
+        {
+            // Get last partial block (must be less than 64 bytes)
+            unsigned int lastBlockSize = mInput.remaining();
+            mInput.read(mBlockData, lastBlockSize);
+
+            SHA256::finish(mResultData, mBlockData, lastBlockSize, mByteCount);
+
+            // Compute SHA256 of result
+            Digest ripEMD160(RIPEMD160);
+            ripEMD160.write(mResultData, 32);
+            Buffer ripEMD160Data(20);
+            ripEMD160.getResult(&ripEMD160Data);
+
+            // Output result
+            pOutput->writeStream(&ripEMD160Data, 20);
             break;
         }
         //case SHA512:
@@ -1154,7 +1196,7 @@ namespace ArcMist
          *****************************************************************************************/
         input.setReadOffset(0);
         crc32(&input, input.length(), &resultDigest);
-        correctDigest.writeHexAsBinary("00000000");
+        correctDigest.writeHex("00000000");
 
         if(buffersMatch(correctDigest, resultDigest))
             Log::add(Log::INFO, DIGEST_LOG_NAME, "Passed CRC32 empty");
@@ -1174,7 +1216,7 @@ namespace ArcMist
          *****************************************************************************************/
         input.setReadOffset(0);
         md5(&input, input.length(), &resultDigest);
-        correctDigest.writeHexAsBinary("d41d8cd98f00b204e9800998ecf8427e");
+        correctDigest.writeHex("d41d8cd98f00b204e9800998ecf8427e");
 
         if(buffersMatch(correctDigest, resultDigest))
             Log::add(Log::INFO, DIGEST_LOG_NAME, "Passed MD5 empty");
@@ -1194,7 +1236,7 @@ namespace ArcMist
          *****************************************************************************************/
         input.setReadOffset(0);
         sha1(&input, input.length(), &resultDigest);
-        correctDigest.writeHexAsBinary("da39a3ee5e6b4b0d3255bfef95601890afd80709");
+        correctDigest.writeHex("da39a3ee5e6b4b0d3255bfef95601890afd80709");
 
         if(buffersMatch(correctDigest, resultDigest))
             Log::add(Log::INFO, DIGEST_LOG_NAME, "Passed SHA1 empty");
@@ -1214,7 +1256,7 @@ namespace ArcMist
          *****************************************************************************************/
         input.setReadOffset(0);
         ripEMD160(&input, input.length(), &resultDigest);
-        correctDigest.writeHexAsBinary("9c1185a5c5e9fc54612808977ee8f548b2258d31");
+        correctDigest.writeHex("9c1185a5c5e9fc54612808977ee8f548b2258d31");
 
         if(buffersMatch(correctDigest, resultDigest))
             Log::add(Log::INFO, DIGEST_LOG_NAME, "Passed RIPEMD160 empty");
@@ -1236,7 +1278,7 @@ namespace ArcMist
         Digest ripemd160EmptyDigest(RIPEMD160);
         ripemd160EmptyDigest.writeStream(&input, input.length());
         ripemd160EmptyDigest.getResult(&resultDigest);
-        correctDigest.writeHexAsBinary("9c1185a5c5e9fc54612808977ee8f548b2258d31");
+        correctDigest.writeHex("9c1185a5c5e9fc54612808977ee8f548b2258d31");
 
         if(buffersMatch(correctDigest, resultDigest))
             Log::add(Log::INFO, DIGEST_LOG_NAME, "Passed RIPEMD160 digest empty");
@@ -1256,7 +1298,7 @@ namespace ArcMist
          *****************************************************************************************/
         input.setReadOffset(0);
         sha256(&input, input.length(), &resultDigest);
-        correctDigest.writeHexAsBinary("e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855");
+        correctDigest.writeHex("e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855");
 
         if(buffersMatch(correctDigest, resultDigest))
             Log::add(Log::INFO, DIGEST_LOG_NAME, "Passed SHA256 empty");
@@ -1278,7 +1320,7 @@ namespace ArcMist
         Digest sha256EmptyDigest(SHA256);
         sha256EmptyDigest.writeStream(&input, input.length());
         sha256EmptyDigest.getResult(&resultDigest);
-        correctDigest.writeHexAsBinary("e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855");
+        correctDigest.writeHex("e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855");
 
         if(buffersMatch(correctDigest, resultDigest))
             Log::add(Log::INFO, DIGEST_LOG_NAME, "Passed SHA256 digest empty");
@@ -1296,22 +1338,22 @@ namespace ArcMist
         /*****************************************************************************************
          * SHA512 empty
          *****************************************************************************************/
-        input.setReadOffset(0);
-        sha512(&input, input.length(), &resultDigest);
-        correctDigest.writeHexAsBinary("cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e");
+        // input.setReadOffset(0);
+        // sha512(&input, input.length(), &resultDigest);
+        // correctDigest.writeHex("cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e");
 
-        if(buffersMatch(correctDigest, resultDigest))
-            Log::add(Log::INFO, DIGEST_LOG_NAME, "Passed SHA512 empty");
-        else
-        {
-            Log::add(Log::ERROR, DIGEST_LOG_NAME, "Failed SHA512 empty");
-            logResults("Correct Digest", correctDigest);
-            logResults("Result Digest ", resultDigest);
-            result = false;
-        }
+        // if(buffersMatch(correctDigest, resultDigest))
+            // Log::add(Log::INFO, DIGEST_LOG_NAME, "Passed SHA512 empty");
+        // else
+        // {
+            // Log::add(Log::ERROR, DIGEST_LOG_NAME, "Failed SHA512 empty");
+            // logResults("Correct Digest", correctDigest);
+            // logResults("Result Digest ", resultDigest);
+            // result = false;
+        // }
 
-        correctDigest.clear();
-        resultDigest.clear();
+        // correctDigest.clear();
+        // resultDigest.clear();
 
         /******************************************************************************************
          * Test febooti.com (All confirmed from outside sources)
@@ -1324,7 +1366,7 @@ namespace ArcMist
          *****************************************************************************************/
         input.setReadOffset(0);
         crc32(&input, input.length(), &resultDigest);
-        correctDigest.writeHexAsBinary("0c877f61");
+        correctDigest.writeHex("0c877f61");
 
         if(buffersMatch(correctDigest, resultDigest))
             Log::add(Log::INFO, DIGEST_LOG_NAME, "Passed CRC32 febooti.com");
@@ -1369,7 +1411,7 @@ namespace ArcMist
          *****************************************************************************************/
         input.setReadOffset(0);
         md5(&input, input.length(), &resultDigest);
-        correctDigest.writeHexAsBinary("500ab6613c6db7fbd30c62f5ff573d0f");
+        correctDigest.writeHex("500ab6613c6db7fbd30c62f5ff573d0f");
 
         if(buffersMatch(correctDigest, resultDigest))
             Log::add(Log::INFO, DIGEST_LOG_NAME, "Passed MD5 febooti.com");
@@ -1389,7 +1431,7 @@ namespace ArcMist
          *****************************************************************************************/
         input.setReadOffset(0);
         sha1(&input, input.length(), &resultDigest);
-        correctDigest.writeHexAsBinary("a7631795f6d59cd6d14ebd0058a6394a4b93d868");
+        correctDigest.writeHex("a7631795f6d59cd6d14ebd0058a6394a4b93d868");
 
         if(buffersMatch(correctDigest, resultDigest))
             Log::add(Log::INFO, DIGEST_LOG_NAME, "Passed SHA1 febooti.com");
@@ -1409,7 +1451,7 @@ namespace ArcMist
          *****************************************************************************************/
         input.setReadOffset(0);
         ripEMD160(&input, input.length(), &resultDigest);
-        correctDigest.writeHexAsBinary("4e1ff644ca9f6e86167ccb30ff27e0d84ceb2a61");
+        correctDigest.writeHex("4e1ff644ca9f6e86167ccb30ff27e0d84ceb2a61");
 
         if(buffersMatch(correctDigest, resultDigest))
             Log::add(Log::INFO, DIGEST_LOG_NAME, "Passed RIPEMD160 febooti.com");
@@ -1429,7 +1471,7 @@ namespace ArcMist
          *****************************************************************************************/
         input.setReadOffset(0);
         sha256(&input, input.length(), &resultDigest);
-        correctDigest.writeHexAsBinary("077b18fe29036ada4890bdec192186e10678597a67880290521df70df4bac9ab");
+        correctDigest.writeHex("077b18fe29036ada4890bdec192186e10678597a67880290521df70df4bac9ab");
 
         if(buffersMatch(correctDigest, resultDigest))
             Log::add(Log::INFO, DIGEST_LOG_NAME, "Passed SHA256 febooti.com");
@@ -1447,22 +1489,22 @@ namespace ArcMist
         /*****************************************************************************************
          * SHA512 febooti.com
          *****************************************************************************************/
-        input.setReadOffset(0);
-        sha512(&input, input.length(), &resultDigest);
-        correctDigest.writeHexAsBinary("09fb898bc97319a243a63f6971747f8e102481fb8d5346c55cb44855adc2e0e98f304e552b0db1d4eeba8a5c8779f6a3010f0e1a2beb5b9547a13b6edca11e8a");
+        // input.setReadOffset(0);
+        // sha512(&input, input.length(), &resultDigest);
+        // correctDigest.writeHex("09fb898bc97319a243a63f6971747f8e102481fb8d5346c55cb44855adc2e0e98f304e552b0db1d4eeba8a5c8779f6a3010f0e1a2beb5b9547a13b6edca11e8a");
 
-        if(buffersMatch(correctDigest, resultDigest))
-            Log::add(Log::INFO, DIGEST_LOG_NAME, "Passed SHA512 febooti.com");
-        else
-        {
-            Log::add(Log::ERROR, DIGEST_LOG_NAME, "Failed SHA512 febooti.com");
-            logResults("Correct Digest", correctDigest);
-            logResults("Result Digest ", resultDigest);
-            result = false;
-        }
+        // if(buffersMatch(correctDigest, resultDigest))
+            // Log::add(Log::INFO, DIGEST_LOG_NAME, "Passed SHA512 febooti.com");
+        // else
+        // {
+            // Log::add(Log::ERROR, DIGEST_LOG_NAME, "Failed SHA512 febooti.com");
+            // logResults("Correct Digest", correctDigest);
+            // logResults("Result Digest ", resultDigest);
+            // result = false;
+        // }
 
-        correctDigest.clear();
-        resultDigest.clear();
+        // correctDigest.clear();
+        // resultDigest.clear();
 
         /******************************************************************************************
          * Test quick brown fox (All confirmed from outside sources)
@@ -1475,7 +1517,7 @@ namespace ArcMist
          *****************************************************************************************/
         input.setReadOffset(0);
         crc32(&input, input.length(), &resultDigest);
-        correctDigest.writeHexAsBinary("414FA339");
+        correctDigest.writeHex("414FA339");
 
         if(buffersMatch(correctDigest, resultDigest))
             Log::add(Log::INFO, DIGEST_LOG_NAME, "Passed CRC32 quick brown fox");
@@ -1495,7 +1537,7 @@ namespace ArcMist
          *****************************************************************************************/
         input.setReadOffset(0);
         md5(&input, input.length(), &resultDigest);
-        correctDigest.writeHexAsBinary("9e107d9d372bb6826bd81d3542a419d6");
+        correctDigest.writeHex("9e107d9d372bb6826bd81d3542a419d6");
 
         if(buffersMatch(correctDigest, resultDigest))
             Log::add(Log::INFO, DIGEST_LOG_NAME, "Passed MD5 quick brown fox");
@@ -1515,7 +1557,7 @@ namespace ArcMist
          *****************************************************************************************/
         input.setReadOffset(0);
         sha1(&input, input.length(), &resultDigest);
-        correctDigest.writeHexAsBinary("2fd4e1c67a2d28fced849ee1bb76e7391b93eb12");
+        correctDigest.writeHex("2fd4e1c67a2d28fced849ee1bb76e7391b93eb12");
 
         if(buffersMatch(correctDigest, resultDigest))
             Log::add(Log::INFO, DIGEST_LOG_NAME, "Passed SHA1 quick brown fox");
@@ -1535,7 +1577,7 @@ namespace ArcMist
          *****************************************************************************************/
         input.setReadOffset(0);
         ripEMD160(&input, input.length(), &resultDigest);
-        correctDigest.writeHexAsBinary("37f332f68db77bd9d7edd4969571ad671cf9dd3b");
+        correctDigest.writeHex("37f332f68db77bd9d7edd4969571ad671cf9dd3b");
 
         if(buffersMatch(correctDigest, resultDigest))
             Log::add(Log::INFO, DIGEST_LOG_NAME, "Passed RIPEMD160 quick brown fox");
@@ -1555,7 +1597,7 @@ namespace ArcMist
          *****************************************************************************************/
         input.setReadOffset(0);
         sha256(&input, input.length(), &resultDigest);
-        correctDigest.writeHexAsBinary("d7a8fbb307d7809469ca9abcb0082e4f8d5651e46d3cdb762d02d0bf37c9e592");
+        correctDigest.writeHex("d7a8fbb307d7809469ca9abcb0082e4f8d5651e46d3cdb762d02d0bf37c9e592");
 
         if(buffersMatch(correctDigest, resultDigest))
             Log::add(Log::INFO, DIGEST_LOG_NAME, "Passed SHA256 quick brown fox");
@@ -1573,60 +1615,60 @@ namespace ArcMist
         /*****************************************************************************************
          * SHA512 quick brown fox
          *****************************************************************************************/
-        input.setReadOffset(0);
-        sha512(&input, input.length(), &resultDigest);
-        correctDigest.writeHexAsBinary("07e547d9586f6a73f73fbac0435ed76951218fb7d0c8d788a309d785436bbb642e93a252a954f23912547d1e8a3b5ed6e1bfd7097821233fa0538f3db854fee6");
+        // input.setReadOffset(0);
+        // sha512(&input, input.length(), &resultDigest);
+        // correctDigest.writeHex("07e547d9586f6a73f73fbac0435ed76951218fb7d0c8d788a309d785436bbb642e93a252a954f23912547d1e8a3b5ed6e1bfd7097821233fa0538f3db854fee6");
 
-        if(buffersMatch(correctDigest, resultDigest))
-            Log::add(Log::INFO, DIGEST_LOG_NAME, "Passed SHA512 quick brown fox");
-        else
-        {
-            Log::add(Log::ERROR, DIGEST_LOG_NAME, "Failed SHA512 quick brown fox");
-            logResults("Correct Digest", correctDigest);
-            logResults("Result Digest ", resultDigest);
-            result = false;
-        }
+        // if(buffersMatch(correctDigest, resultDigest))
+            // Log::add(Log::INFO, DIGEST_LOG_NAME, "Passed SHA512 quick brown fox");
+        // else
+        // {
+            // Log::add(Log::ERROR, DIGEST_LOG_NAME, "Failed SHA512 quick brown fox");
+            // logResults("Correct Digest", correctDigest);
+            // logResults("Result Digest ", resultDigest);
+            // result = false;
+        // }
 
-        correctDigest.clear();
-        resultDigest.clear();
+        // correctDigest.clear();
+        // resultDigest.clear();
 
         /******************************************************************************************
          * Test random data 1024 (All confirmed from outside sources)
          ******************************************************************************************/
         input.clear();
-        input.writeHexAsBinary("9cd248ed860b10bbc7cd5f0ef18f81291a90307c91296dc67d3a1759f02e2a34db020eb9c1f401c1");
-        input.writeHexAsBinary("1820349dc9401246bab85810989136420a49830fb96a28e22247ec1073536862e6c2ce82adb93b1d");
-        input.writeHexAsBinary("b3193a938dfefe8db8aef7eefb784e6af35191b7bf79dd96da777d7b2423fd49c255839232934344");
-        input.writeHexAsBinary("41c94a6e2aa84e926a40ff9e640e224d0241a89565feb539791b2dcb31185b3ce463d638c99db0ed");
-        input.writeHexAsBinary("e615dded590af0c89e093d0db3637aac61cd052c776409d992ddfc0249221121909bea8085871db2");
-        input.writeHexAsBinary("a00011dc46d159b5ce630efff43117e379d7bb105142f4ef6e3af41ff0284624d16987b7ee6187e7");
-        input.writeHexAsBinary("3df4761d2710414f216310b8193c530568ce423b76cc0342ad0ed86a3e7c15530c54ab4022ebaeed");
-        input.writeHexAsBinary("df4e7996fec005e2d62b3ec1097af9b29443d45531399490cd763a78d58682fcf3bb483aa7448a44");
-        input.writeHexAsBinary("9ac089cf695a9285954751f4c139904d10512c3e1adb00de962f4912f5fd160ade61c7e8ba45c5b9");
-        input.writeHexAsBinary("4a763c943bf30249026f1c9eaf9be10f3f47ac2f001f633f5df3774bbcbc6cb85738a0d74778a07e");
-        input.writeHexAsBinary("736adfd769c99509d2aad922d49b6b1c67fe886578e95988961e20c64ed6b7e4e080bbda3ce24ce6");
-        input.writeHexAsBinary("741c51cacf401cc8b373ed6170d7b70a033f553eaef18d94065f06699d6bcd0bf5d845e09fd364e3");
-        input.writeHexAsBinary("98e96d3ed54f78dc5d6200560001a3c0f721ccba58eaf9fde2760e937b820e0c41c161530d1f6b25");
-        input.writeHexAsBinary("6b30463fd1dfe3e9d293afd5f278bf21e2b8bfc8860f7c86f4575cd7a922e4d9dbb8857815ede9a7");
-        input.writeHexAsBinary("628af97c7ecadf59d385de8f2a3b3d114344fd9429f15a4aabe42c3934347bc039121dd666c6cef7");
-        input.writeHexAsBinary("a81822889f394b82458f4016ed947fb86d8ef15b40d2a36b751f983339eeb7d4880554c5feebf6a6");
-        input.writeHexAsBinary("59467f9716afc92ad05b41aab06e958f5874d431c836419ed2c595282c6804c600e97ce3929380d9");
-        input.writeHexAsBinary("7f2687cc210890f95b3cf428ed66cb4e853505ba380bad5bda6c89b835c711a980ea946279051ea8");
-        input.writeHexAsBinary("d12d002a52e40b0b162e7ff1464a9474450980ff3354a04522dc869905573ee0418adbe5938e87f2");
-        input.writeHexAsBinary("0c3761960bf64c21de39ff305420a2127de03afdc5d117489271671219ccd538c0944ecd9ea869dc");
-        input.writeHexAsBinary("135246b03b5ac5474b8d7c1741f68bbe616048c53ebc49814c757435a0f82c48bee85c339bbfb134");
-        input.writeHexAsBinary("d4b64f561ca82ca1413eef619966d1e34bffb2771d069f795682e9559991d6239713fca03975d8fd");
-        input.writeHexAsBinary("e0c2fd4cfe37daf274a3298fdfb9637191524505aa608573b819b0271b97a76328130c0ad8b60d3d");
-        input.writeHexAsBinary("e53272e3e3b49760bfd3d20e5fc57bc5baa4b070c91f4eedd5e398405ac47a4bfa307747449ce0ad");
-        input.writeHexAsBinary("7b9e9e6e1cc3b4bdef0be7b773af02b590626c92e3a85e97e0726ac1f7061e149c550a8d1b17360d");
-        input.writeHexAsBinary("b22d56251b4fb0a6bb40595d1001d87d799d8544fdc54dfc");
+        input.writeHex("9cd248ed860b10bbc7cd5f0ef18f81291a90307c91296dc67d3a1759f02e2a34db020eb9c1f401c1");
+        input.writeHex("1820349dc9401246bab85810989136420a49830fb96a28e22247ec1073536862e6c2ce82adb93b1d");
+        input.writeHex("b3193a938dfefe8db8aef7eefb784e6af35191b7bf79dd96da777d7b2423fd49c255839232934344");
+        input.writeHex("41c94a6e2aa84e926a40ff9e640e224d0241a89565feb539791b2dcb31185b3ce463d638c99db0ed");
+        input.writeHex("e615dded590af0c89e093d0db3637aac61cd052c776409d992ddfc0249221121909bea8085871db2");
+        input.writeHex("a00011dc46d159b5ce630efff43117e379d7bb105142f4ef6e3af41ff0284624d16987b7ee6187e7");
+        input.writeHex("3df4761d2710414f216310b8193c530568ce423b76cc0342ad0ed86a3e7c15530c54ab4022ebaeed");
+        input.writeHex("df4e7996fec005e2d62b3ec1097af9b29443d45531399490cd763a78d58682fcf3bb483aa7448a44");
+        input.writeHex("9ac089cf695a9285954751f4c139904d10512c3e1adb00de962f4912f5fd160ade61c7e8ba45c5b9");
+        input.writeHex("4a763c943bf30249026f1c9eaf9be10f3f47ac2f001f633f5df3774bbcbc6cb85738a0d74778a07e");
+        input.writeHex("736adfd769c99509d2aad922d49b6b1c67fe886578e95988961e20c64ed6b7e4e080bbda3ce24ce6");
+        input.writeHex("741c51cacf401cc8b373ed6170d7b70a033f553eaef18d94065f06699d6bcd0bf5d845e09fd364e3");
+        input.writeHex("98e96d3ed54f78dc5d6200560001a3c0f721ccba58eaf9fde2760e937b820e0c41c161530d1f6b25");
+        input.writeHex("6b30463fd1dfe3e9d293afd5f278bf21e2b8bfc8860f7c86f4575cd7a922e4d9dbb8857815ede9a7");
+        input.writeHex("628af97c7ecadf59d385de8f2a3b3d114344fd9429f15a4aabe42c3934347bc039121dd666c6cef7");
+        input.writeHex("a81822889f394b82458f4016ed947fb86d8ef15b40d2a36b751f983339eeb7d4880554c5feebf6a6");
+        input.writeHex("59467f9716afc92ad05b41aab06e958f5874d431c836419ed2c595282c6804c600e97ce3929380d9");
+        input.writeHex("7f2687cc210890f95b3cf428ed66cb4e853505ba380bad5bda6c89b835c711a980ea946279051ea8");
+        input.writeHex("d12d002a52e40b0b162e7ff1464a9474450980ff3354a04522dc869905573ee0418adbe5938e87f2");
+        input.writeHex("0c3761960bf64c21de39ff305420a2127de03afdc5d117489271671219ccd538c0944ecd9ea869dc");
+        input.writeHex("135246b03b5ac5474b8d7c1741f68bbe616048c53ebc49814c757435a0f82c48bee85c339bbfb134");
+        input.writeHex("d4b64f561ca82ca1413eef619966d1e34bffb2771d069f795682e9559991d6239713fca03975d8fd");
+        input.writeHex("e0c2fd4cfe37daf274a3298fdfb9637191524505aa608573b819b0271b97a76328130c0ad8b60d3d");
+        input.writeHex("e53272e3e3b49760bfd3d20e5fc57bc5baa4b070c91f4eedd5e398405ac47a4bfa307747449ce0ad");
+        input.writeHex("7b9e9e6e1cc3b4bdef0be7b773af02b590626c92e3a85e97e0726ac1f7061e149c550a8d1b17360d");
+        input.writeHex("b22d56251b4fb0a6bb40595d1001d87d799d8544fdc54dfc");
 
         /*****************************************************************************************
          * CRC32 random data 1024
          *****************************************************************************************/
         input.setReadOffset(0);
         crc32(&input, input.length(), &resultDigest);
-        correctDigest.writeHexAsBinary("1f483b3f");
+        correctDigest.writeHex("1f483b3f");
 
         if(buffersMatch(correctDigest, resultDigest))
             Log::add(Log::INFO, DIGEST_LOG_NAME, "Passed CRC32 random data 1024");
@@ -1648,7 +1690,7 @@ namespace ArcMist
         Digest crc32Digest(CRC32);
         crc32Digest.writeStream(&input, input.length());
         crc32Digest.getResult(&resultDigest);
-        correctDigest.writeHexAsBinary("1f483b3f");
+        correctDigest.writeHex("1f483b3f");
 
         if(buffersMatch(correctDigest, resultDigest))
             Log::add(Log::INFO, DIGEST_LOG_NAME, "Passed CRC32 digest random data 1024");
@@ -1668,7 +1710,7 @@ namespace ArcMist
          *****************************************************************************************/
         input.setReadOffset(0);
         md5(&input, input.length(), &resultDigest);
-        correctDigest.writeHexAsBinary("6950a08814ee1e774314c28bce8707b0");
+        correctDigest.writeHex("6950a08814ee1e774314c28bce8707b0");
 
         if(buffersMatch(correctDigest, resultDigest))
             Log::add(Log::INFO, DIGEST_LOG_NAME, "Passed MD5 random data 1024");
@@ -1688,7 +1730,7 @@ namespace ArcMist
          *****************************************************************************************/
         input.setReadOffset(0);
         sha1(&input, input.length(), &resultDigest);
-        correctDigest.writeHexAsBinary("2F7A0D349F1B6ABD7354965E94800BDC3D6463AC");
+        correctDigest.writeHex("2F7A0D349F1B6ABD7354965E94800BDC3D6463AC");
 
         if(buffersMatch(correctDigest, resultDigest))
             Log::add(Log::INFO, DIGEST_LOG_NAME, "Passed SHA1 random data 1024");
@@ -1708,7 +1750,7 @@ namespace ArcMist
          *****************************************************************************************/
         input.setReadOffset(0);
         ripEMD160(&input, input.length(), &resultDigest);
-        correctDigest.writeHexAsBinary("0dae1c4a362242d2ffa49c26204ed5ac2f88c454");
+        correctDigest.writeHex("0dae1c4a362242d2ffa49c26204ed5ac2f88c454");
 
         if(buffersMatch(correctDigest, resultDigest))
             Log::add(Log::INFO, DIGEST_LOG_NAME, "Passed RIPEMD160 random data 1024");
@@ -1730,7 +1772,7 @@ namespace ArcMist
         Digest ripemd160Digest(RIPEMD160);
         ripemd160Digest.writeStream(&input, input.length());
         ripemd160Digest.getResult(&resultDigest);
-        correctDigest.writeHexAsBinary("0dae1c4a362242d2ffa49c26204ed5ac2f88c454");
+        correctDigest.writeHex("0dae1c4a362242d2ffa49c26204ed5ac2f88c454");
 
         if(buffersMatch(correctDigest, resultDigest))
             Log::add(Log::INFO, DIGEST_LOG_NAME, "Passed RIPEMD160 digest random data 1024");
@@ -1750,7 +1792,7 @@ namespace ArcMist
          *****************************************************************************************/
         input.setReadOffset(0);
         sha256(&input, input.length(), &resultDigest);
-        correctDigest.writeHexAsBinary("2baef0b3638abc90b17f2895e3cb24b6bbe7ff6ba7c291345102ea4eec785730");
+        correctDigest.writeHex("2baef0b3638abc90b17f2895e3cb24b6bbe7ff6ba7c291345102ea4eec785730");
 
         if(buffersMatch(correctDigest, resultDigest))
             Log::add(Log::INFO, DIGEST_LOG_NAME, "Passed SHA256 random data 1024");
@@ -1772,7 +1814,7 @@ namespace ArcMist
         Digest sha256Digest(SHA256);
         sha256Digest.writeStream(&input, input.length());
         sha256Digest.getResult(&resultDigest);
-        correctDigest.writeHexAsBinary("2baef0b3638abc90b17f2895e3cb24b6bbe7ff6ba7c291345102ea4eec785730");
+        correctDigest.writeHex("2baef0b3638abc90b17f2895e3cb24b6bbe7ff6ba7c291345102ea4eec785730");
 
         if(buffersMatch(correctDigest, resultDigest))
             Log::add(Log::INFO, DIGEST_LOG_NAME, "Passed SHA256 digest random data 1024");
@@ -1790,22 +1832,22 @@ namespace ArcMist
         /*****************************************************************************************
          * SHA512 random data 1024
          *****************************************************************************************/
-        input.setReadOffset(0);
-        sha512(&input, input.length(), &resultDigest);
-        correctDigest.writeHexAsBinary("8c63c499586f24f3209acad229b043f02eddfc19ec04d41c2f0aeee60b3a95e87297b2de4cfaaaca9a6691bbc5f63a0453fa98b02742da313fa9075ef633a94c");
+        // input.setReadOffset(0);
+        // sha512(&input, input.length(), &resultDigest);
+        // correctDigest.writeHex("8c63c499586f24f3209acad229b043f02eddfc19ec04d41c2f0aeee60b3a95e87297b2de4cfaaaca9a6691bbc5f63a0453fa98b02742da313fa9075ef633a94c");
 
-        if(buffersMatch(correctDigest, resultDigest))
-            Log::add(Log::INFO, DIGEST_LOG_NAME, "Passed SHA512 random data 1024");
-        else
-        {
-            Log::add(Log::ERROR, DIGEST_LOG_NAME, "Failed SHA512 random data 1024");
-            logResults("Correct Digest", correctDigest);
-            logResults("Result Digest ", resultDigest);
-            result = false;
-        }
+        // if(buffersMatch(correctDigest, resultDigest))
+            // Log::add(Log::INFO, DIGEST_LOG_NAME, "Passed SHA512 random data 1024");
+        // else
+        // {
+            // Log::add(Log::ERROR, DIGEST_LOG_NAME, "Failed SHA512 random data 1024");
+            // logResults("Correct Digest", correctDigest);
+            // logResults("Result Digest ", resultDigest);
+            // result = false;
+        // }
 
-        correctDigest.clear();
-        resultDigest.clear();
+        // correctDigest.clear();
+        // resultDigest.clear();
 
         /******************************************************************************************
          * Test 56 letters (All confirmed from outside sources)
@@ -1818,7 +1860,7 @@ namespace ArcMist
          *****************************************************************************************/
         input.setReadOffset(0);
         ripEMD160(&input, input.length(), &resultDigest);
-        correctDigest.writeHexAsBinary("12a053384a9c0c88e405a06c27dcf49ada62eb2b");
+        correctDigest.writeHex("12a053384a9c0c88e405a06c27dcf49ada62eb2b");
 
         if(buffersMatch(correctDigest, resultDigest))
             Log::add(Log::INFO, DIGEST_LOG_NAME, "Passed RIPEMD160 56 letters");
@@ -1844,7 +1886,7 @@ namespace ArcMist
          *****************************************************************************************/
         input.setReadOffset(0);
         ripEMD160(&input, input.length(), &resultDigest);
-        correctDigest.writeHexAsBinary("9b752e45573d4b39f4dbd3323cab82bf63326bfb");
+        correctDigest.writeHex("9b752e45573d4b39f4dbd3323cab82bf63326bfb");
 
         if(buffersMatch(correctDigest, resultDigest))
             Log::add(Log::INFO, DIGEST_LOG_NAME, "Passed RIPEMD160 8 times \"1234567890\"");
@@ -1871,7 +1913,7 @@ namespace ArcMist
          *****************************************************************************************/
         input.setReadOffset(0);
         ripEMD160(&input, input.length(), &resultDigest);
-        correctDigest.writeHexAsBinary("52783243c1697bdbe16d37f97f68f08325dc1528");
+        correctDigest.writeHex("52783243c1697bdbe16d37f97f68f08325dc1528");
 
         if(buffersMatch(correctDigest, resultDigest))
             Log::add(Log::INFO, DIGEST_LOG_NAME, "Passed RIPEMD160 million a");
@@ -1890,20 +1932,70 @@ namespace ArcMist
          * Test random data 150 (All confirmed from outside sources)
          ******************************************************************************************/
         input.clear();
-        input.writeHexAsBinary("182d86ed47df1c1673558e3d1ed08dcc7de3a906615589084f6316e71cabd18e7c37451d514d9ede653b03d047345a522ef1c55f27ac8bff3564635116855d862bac06d21f8abb3026746b5c74dd46e9679bd30137bf6b143b67249931ff3f0a3f50426a4479871d15603aa4151ef4b9321762553df9946f5bc194ac4a44e94205d8b0854f1722ea6915770f03bc598c306cabf23878");
+        input.writeHex("182d86ed47df1c1673558e3d1ed08dcc7de3a906615589084f6316e71cabd18e7c37451d514d9ede653b03d047345a522ef1c55f27ac8bff3564635116855d862bac06d21f8abb3026746b5c74dd46e9679bd30137bf6b143b67249931ff3f0a3f50426a4479871d15603aa4151ef4b9321762553df9946f5bc194ac4a44e94205d8b0854f1722ea6915770f03bc598c306cabf23878");
 
         /*****************************************************************************************
          * RIPEMD160 random data 150
          *****************************************************************************************/
         input.setReadOffset(0);
         ripEMD160(&input, input.length(), &resultDigest);
-        correctDigest.writeHexAsBinary("de4c02fe629897e3a2658c042f260a96ccfccac9");
+        correctDigest.writeHex("de4c02fe629897e3a2658c042f260a96ccfccac9");
 
         if(buffersMatch(correctDigest, resultDigest))
             Log::add(Log::INFO, DIGEST_LOG_NAME, "Passed RIPEMD160 random data 150");
         else
         {
             Log::add(Log::ERROR, DIGEST_LOG_NAME, "Failed RIPEMD160 random data 150");
+            logResults("Correct Digest", correctDigest);
+            logResults("Result Digest ", resultDigest);
+            result = false;
+        }
+
+        correctDigest.clear();
+        resultDigest.clear();
+
+        /******************************************************************************************
+         * Test hello
+         ******************************************************************************************/
+        input.clear();
+        input.writeString("hello");
+
+        /*****************************************************************************************
+         * SHA256_SHA256 hello
+         *****************************************************************************************/
+        input.setReadOffset(0);
+        Digest doubleSHA256(SHA256_SHA256);
+        doubleSHA256.writeStream(&input, input.length());
+        doubleSHA256.getResult(&resultDigest);
+        correctDigest.writeHex("9595c9df90075148eb06860365df33584b75bff782a510c6cd4883a419833d50");
+
+        if(buffersMatch(correctDigest, resultDigest))
+            Log::add(Log::INFO, DIGEST_LOG_NAME, "Passed SHA256_SHA256 hello");
+        else
+        {
+            Log::add(Log::ERROR, DIGEST_LOG_NAME, "Failed SHA256_SHA256 hello");
+            logResults("Correct Digest", correctDigest);
+            logResults("Result Digest ", resultDigest);
+            result = false;
+        }
+
+        correctDigest.clear();
+        resultDigest.clear();
+
+        /*****************************************************************************************
+         * SHA256_RIPEMD160 hello
+         *****************************************************************************************/
+        input.setReadOffset(0);
+        Digest sha256RIPEMD160(SHA256_RIPEMD160);
+        sha256RIPEMD160.writeStream(&input, input.length());
+        sha256RIPEMD160.getResult(&resultDigest);
+        correctDigest.writeHex("b6a9c8c230722b7c748331a8b450f05566dc7d0f");
+
+        if(buffersMatch(correctDigest, resultDigest))
+            Log::add(Log::INFO, DIGEST_LOG_NAME, "Passed SHA256_RIPEMD160 hello");
+        else
+        {
+            Log::add(Log::ERROR, DIGEST_LOG_NAME, "Failed SHA256_RIPEMD160 hello");
             logResults("Correct Digest", correctDigest);
             logResults("Result Digest ", resultDigest);
             result = false;

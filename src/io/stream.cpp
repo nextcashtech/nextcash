@@ -180,7 +180,7 @@ namespace ArcMist
         return 1;
     }
 
-    unsigned int OutputStream::writeStream(InputStream *pInput, unsigned int pMaxSize)
+    unsigned int RawOutputStream::writeStream(InputStream *pInput, unsigned int pMaxSize)
     {
         unsigned int size = pMaxSize;
 
@@ -235,7 +235,7 @@ namespace ArcMist
         return writtenCount;
     }
 
-    unsigned int OutputStream::writeHexAsBinary(const char *pString)
+    unsigned int OutputStream::writeHex(const char *pString)
     {
         bool firstNibble = true;
         uint8_t byte;

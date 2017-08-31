@@ -91,7 +91,7 @@ test: headers ${OBJECT_DIRECTORY}/.headers ${OBJECTS}
 	@./test || echo "\n                                  \033[0;31m!!!!!  Tests Failed  !!!!!\033[0m"
 	@echo "\033[0;34m----------------------------------------------------------------------------------------------------\033[0m"
 
-all: release debug test
+all: clean release debug test
 
 test.debug: headers ${OBJECT_DIRECTORY}/.headers ${DEBUG_OBJECTS}
 	@echo "\033[0;33m----------------------------------------------------------------------------------------------------\033[0m"

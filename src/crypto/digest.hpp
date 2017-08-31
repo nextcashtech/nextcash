@@ -14,7 +14,7 @@ namespace ArcMist
     {
     public:
 
-        enum Type { CRC32, RIPEMD160, SHA256 }; //TODO Not yet supported - MD5, SHA1, SHA512
+        enum Type { CRC32, RIPEMD160, SHA256, SHA256_SHA256, SHA256_RIPEMD160 }; //TODO Not yet supported - MD5, SHA1, SHA512
 
         Digest(Type pType);
         ~Digest();
@@ -25,7 +25,7 @@ namespace ArcMist
         // Note : Use write functions inherited from OutputStream to add data to the digest
 
         // Calculate result
-        void getResult(OutputStream *pOutput);
+        void getResult(RawOutputStream *pOutput);
 
         // Static digest calculation functions
         static void crc32(InputStream *pInput, unsigned int pInputLength, OutputStream *pOutput); // 32 bit(4 byte) result
@@ -35,7 +35,7 @@ namespace ArcMist
         static void sha1(InputStream *pInput, unsigned int pInputLength, OutputStream *pOutput);  // 160 bit(20 byte) result
         static void ripEMD160(InputStream *pInput, unsigned int pInputLength, OutputStream *pOutput);  // 160 bit(20 bytes) result
         static void sha256(InputStream *pInput, unsigned int pInputLength, OutputStream *pOutput);  // 256 bit(32 bytes) result
-        static void sha512(InputStream *pInput, unsigned int pInputLength, OutputStream *pOutput);  // 512 bit(64 bytes) result
+        //TODO fix endian issues //static void sha512(InputStream *pInput, unsigned int pInputLength, OutputStream *pOutput);  // 512 bit(64 bytes) result
 
         // Virtual overloaded functions
         unsigned int writeOffset() const { return mByteCount; }

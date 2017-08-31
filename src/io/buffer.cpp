@@ -22,6 +22,13 @@ namespace ArcMist
         mAutoFlush = true;
     }
 
+    Buffer::Buffer(const Buffer &pCopy)
+    {
+        mSize = 0;
+        mData = NULL;
+        *this = pCopy;
+    }
+
     Buffer::Buffer(unsigned int pSize)
     {
         mSize = pSize;
@@ -51,6 +58,24 @@ namespace ArcMist
     {
         if(mData != NULL)
             delete[] mData;
+    }
+    
+    const Buffer &Buffer::operator = (const Buffer &pRight)
+    {
+        clear();
+        mSize = pRight.mSize;
+        if(pRight.mSize > 0)
+        {
+            mData = new uint8_t[mSize];
+            std::memcpy(mData, pRight.mData, pRight.mEndOffset);
+        }
+        else
+            mData = NULL;
+        mReadOffset = pRight.mReadOffset;
+        mWriteOffset = pRight.mWriteOffset;
+        mEndOffset = pRight.mEndOffset;
+        mAutoFlush = pRight.mAutoFlush;
+        return *this;
     }
 
     void Buffer::read(void *pOutput, unsigned int pSize)
@@ -288,14 +313,28 @@ namespace ArcMist
          * Test read hex string function
          ******************************************************************************************/
         Buffer hexBinary;
-        hexBinary.setInputEndian(Endian::LITTLE);
+        hexBinary.setOutputEndian(Endian::BIG);
         hexBinary.writeUnsignedInt(0x123456ff);
         String hexValue = hexBinary.readHexString(4);
-        if(hexValue == "123456ff")
+        if(hexValue == "123456ff") // hex numbers in gdb are big endian
             Log::add(Log::INFO, ARCMIST_BUFFER_LOG_NAME, "Passed read hex string function");
         else
         {
             Log::add(Log::ERROR, ARCMIST_BUFFER_LOG_NAME, "Failed read hex string function");
+            result = false;
+        }
+        
+        /******************************************************************************************
+         * Test read hex string function little endian
+         ******************************************************************************************/
+        hexBinary.setOutputEndian(Endian::LITTLE);
+        hexBinary.writeUnsignedInt(0x123456ff);
+        hexValue = hexBinary.readHexString(4);
+        if(hexValue == "ff563412")
+            Log::add(Log::INFO, ARCMIST_BUFFER_LOG_NAME, "Passed read hex string function little endian");
+        else
+        {
+            Log::add(Log::ERROR, ARCMIST_BUFFER_LOG_NAME, "Failed read hex string function little endian");
             result = false;
         }
 

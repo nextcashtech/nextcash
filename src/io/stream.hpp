@@ -11,10 +11,32 @@
 namespace ArcMist
 {
     class OutputStream;
+    class InputStream;
 
-    class InputStream
+    // Basic abstract for a class that can be written to
+    class RawOutputStream
     {
     public:
+        virtual ~RawOutputStream() {}
+        virtual void write(const void *pInput, unsigned int pSize) = 0;
+
+        unsigned int writeStream(InputStream *pInput, unsigned int pMaxSize);
+    };
+
+    // Basic abstract for a class that can be read from
+    class RawInputStream
+    {
+    public:
+        virtual ~RawInputStream() {}
+        virtual void read(void *pOutput, unsigned int pSize) = 0;
+    };
+
+    // Abstract for a class that can have different primitive types read from it
+    class InputStream : public RawInputStream
+    {
+    public:
+
+        InputStream() { mInputEndian = sDefaultInputEndian; }
 
         uint8_t readByte();
         uint16_t readUnsignedShort();
@@ -37,8 +59,6 @@ namespace ArcMist
         // Read hex text into binary output
         //void readHexAsBinary(void *pOutput, unsigned int pSize);
 
-        virtual ~InputStream() {}
-
         // Offset into data where next byte will be read
         virtual unsigned int readOffset() const = 0;
 
@@ -50,7 +70,6 @@ namespace ArcMist
 
         virtual operator bool() const { return true; }
         virtual bool operator !() const { return false; }
-        virtual void read(void *pOutput, unsigned int pSize) = 0;
 
         // Endian defaulted on new InputStreams
         static Endian::Type sDefaultInputEndian;
@@ -82,9 +101,12 @@ namespace ArcMist
 
     };
 
-    class OutputStream
+    // Abstract for a class that can have different primitive types written to it
+    class OutputStream : public RawOutputStream
     {
     public:
+
+        OutputStream() { mOutputEndian = sDefaultOutputEndian; }
 
         unsigned int writeByte(uint8_t pValue);
         unsigned int writeUnsignedShort(uint16_t pValue);
@@ -93,7 +115,6 @@ namespace ArcMist
         unsigned int writeShort(int16_t pValue);
         unsigned int writeInt(int32_t pValue);
         unsigned int writeLong(int64_t pValue);
-        unsigned int writeStream(InputStream *pInput, unsigned int pMaxSize);
 
         // Write character string until null character
         unsigned int writeString(const char *pString, bool pWriteNull = false);
@@ -102,7 +123,7 @@ namespace ArcMist
         unsigned int writeAsHex(InputStream *pInput, unsigned int pMaxSize, bool pWriteNull = false);
 
         // Write hex text as binary
-        unsigned int writeHexAsBinary(const char *pString);
+        unsigned int writeHex(const char *pString);
 
         // Write binary from input as base58 text
         //unsigned int writeAsBase58(InputStream *pInput, unsigned int pMaxSize, bool pWriteNull = false);
@@ -114,9 +135,7 @@ namespace ArcMist
         unsigned int writeFormatted(const char *pFormatting, ...);
         unsigned int writeFormattedList(const char *pFormatting, va_list &pList);
 
-        virtual ~OutputStream() {}
         virtual unsigned int writeOffset() const = 0;
-        virtual void write(const void *pInput, unsigned int pSize) = 0;
         virtual void flush() {}
 
         // Endian defaulted on new OutputStreams
