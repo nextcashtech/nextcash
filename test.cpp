@@ -7,7 +7,7 @@
 int main(int pArgumentCount, char **pArguments)
 {
     int failed = 0;
-    
+
     ArcMist::Log::setLevel(ArcMist::Log::DEBUG);
 
     if(!ArcMist::String::test())
@@ -18,6 +18,12 @@ int main(int pArgumentCount, char **pArguments)
 
     if(!ArcMist::Digest::test())
         failed++;
+
+    ArcMist::Log::add(ArcMist::Log::DEBUG, "Test", "Debug Color Test");
+    ArcMist::Log::add(ArcMist::Log::VERBOSE, "Test", "Verbose Color Test");
+    ArcMist::Log::add(ArcMist::Log::INFO, "Test", "Info Color Test");
+    ArcMist::Log::add(ArcMist::Log::WARNING, "Test", "Warning Color Test");
+    ArcMist::Log::add(ArcMist::Log::ERROR, "Test", "Error Color Test");
 
     if(failed)
         return 1;

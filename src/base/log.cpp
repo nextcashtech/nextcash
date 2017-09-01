@@ -83,6 +83,37 @@ namespace ArcMist
             mUseColor = true;
         }
     }
+    
+    inline void startForegroundColor(OutputStream *pStream, unsigned int pColor)
+    {
+        pStream->writeByte(0x1b);
+        pStream->writeFormatted("[38;5;%dm", pColor);
+    }
+    
+    inline void startBackgroundColor(OutputStream *pStream, unsigned int pColor)
+    {
+        pStream->writeByte(0x1b);
+        pStream->writeFormatted("[48;5;%dm", pColor);
+    }
+    
+    inline void endColor(OutputStream *pStream)
+    {
+        pStream->writeByte(0x1b);
+        pStream->writeFormatted("[0m");
+    }
+
+    static const unsigned int BLACK      = 232;
+    static const unsigned int WHITE      = 252;
+    static const unsigned int GREY       = 243;
+    static const unsigned int LIGHT_GREY = 247;
+    static const unsigned int RED        = 160;
+    static const unsigned int BLUE       = 27;
+    static const unsigned int LIGHT_BLUE = 39;
+    static const unsigned int GREEN      = 28;
+    static const unsigned int YELLOW     = 190;
+    static const unsigned int PURPLE     = 92;
+    static const unsigned int ORANGE     = 166;
+    static const unsigned int TEAL       = 81;
 
     bool Log::startEntry(Level pLevel, const char *pName)
     {
@@ -96,11 +127,12 @@ namespace ArcMist
         std::time(&rawtime);
         timeinfo = std::localtime(&rawtime);
         std::strftime(dateTimeString, 64, mDateTimeFormat, timeinfo);
+        unsigned int entryColor = WHITE;
 
         lock();
 
         if(mUseColor)
-            mStream->writeString("\033[1;35m");
+            startForegroundColor(mStream, TEAL);
         mStream->writeString(dateTimeString);
         if(mUseColor)
             mStream->writeString("\033[0m");
@@ -111,38 +143,45 @@ namespace ArcMist
         switch(pLevel)
         {
             case DEBUG:
+                if(mUseColor)
+                    startForegroundColor(mStream, GREY);
+                entryColor = GREY;
                 mStream->writeString("DEBUG\t");
                 break;
             case VERBOSE:
                 if(mUseColor)
-                    mStream->writeString("\033[0;34m");
+                    startForegroundColor(mStream, LIGHT_GREY);
+                entryColor = LIGHT_GREY;
                 mStream->writeString("VERBOSE");
                 if(mUseColor)
-                    mStream->writeString("\033[0m");
+                    endColor(mStream);
                 mStream->writeByte('\t');
                 break;
             case INFO:
                 if(mUseColor)
-                    mStream->writeString("\033[0;32m");
+                    startForegroundColor(mStream, WHITE);
+                entryColor = WHITE;
                 mStream->writeString("INFO");
                 if(mUseColor)
-                    mStream->writeString("\033[0m");
+                    endColor(mStream);
                 mStream->writeByte('\t');
                 break;
             case WARNING:
                 if(mUseColor)
-                    mStream->writeString("\033[1;33m");
+                    startForegroundColor(mStream, YELLOW);
+                entryColor = YELLOW;
                 mStream->writeString("WARNING");
                 if(mUseColor)
-                    mStream->writeString("\033[0m");
+                    endColor(mStream);
                 mStream->writeByte('\t');
                 break;
             case ERROR:
                 if(mUseColor)
-                    mStream->writeString("\033[0;31m");
+                    startForegroundColor(mStream, RED);
+                entryColor = RED;
                 mStream->writeString("ERROR");
                 if(mUseColor)
-                    mStream->writeString("\033[0m");
+                    endColor(mStream);
                 mStream->writeByte('\t');
                 break;
             default:
@@ -152,22 +191,25 @@ namespace ArcMist
 
         // Output thread ID
         if(mUseColor)
-            mStream->writeString("\033[0;35m");
+            startForegroundColor(mStream, LIGHT_BLUE);
         mStream->writeString(Thread::currentName());
         mStream->writeByte('\t');
         if(mUseColor)
-            mStream->writeString("\033[0m");
+            endColor(mStream);
 
         // Output entry name
         if(pName)
         {
             if(mUseColor)
-                mStream->writeString("\033[0;36m");
+                startForegroundColor(mStream, BLUE);
             mStream->writeString(pName);
             if(mUseColor)
-                mStream->writeString("\033[0m");
+                endColor(mStream);
         }
         mStream->writeByte('\t');
+
+        if(mUseColor)
+            startForegroundColor(mStream, entryColor);
 
         return true;
     }
@@ -179,6 +221,8 @@ namespace ArcMist
         {
             theLog.mStream->writeString(pEntry);
             theLog.mStream->writeByte('\n');
+            if(theLog.mUseColor)
+                endColor(theLog.mStream);
             theLog.mStream->flush();
             theLog.unlock();
         }
@@ -194,6 +238,8 @@ namespace ArcMist
             theLog.mStream->writeFormattedList(pFormatting, args);
             va_end(args);
             theLog.mStream->writeByte('\n');
+            if(theLog.mUseColor)
+                endColor(theLog.mStream);
             theLog.mStream->flush();
             theLog.unlock();
         }
@@ -209,6 +255,8 @@ namespace ArcMist
             theLog.mStream->writeFormattedList(pFormatting, args);
             va_end(args);
             theLog.mStream->writeByte('\n');
+            if(theLog.mUseColor)
+                endColor(theLog.mStream);
             theLog.mStream->flush();
             theLog.unlock();
         }
@@ -224,6 +272,8 @@ namespace ArcMist
             theLog.mStream->writeFormattedList(pFormatting, args);
             va_end(args);
             theLog.mStream->writeByte('\n');
+            if(theLog.mUseColor)
+                endColor(theLog.mStream);
             theLog.mStream->flush();
             theLog.unlock();
         }
@@ -239,6 +289,8 @@ namespace ArcMist
             theLog.mStream->writeFormattedList(pFormatting, args);
             va_end(args);
             theLog.mStream->writeByte('\n');
+            if(theLog.mUseColor)
+                endColor(theLog.mStream);
             theLog.mStream->flush();
             theLog.unlock();
         }
@@ -254,6 +306,8 @@ namespace ArcMist
             theLog.mStream->writeFormattedList(pFormatting, args);
             va_end(args);
             theLog.mStream->writeByte('\n');
+            if(theLog.mUseColor)
+                endColor(theLog.mStream);
             theLog.mStream->flush();
             theLog.unlock();
         }
@@ -269,6 +323,8 @@ namespace ArcMist
             theLog.mStream->writeFormattedList(pFormatting, args);
             va_end(args);
             theLog.mStream->writeByte('\n');
+            if(theLog.mUseColor)
+                endColor(theLog.mStream);
             theLog.mStream->flush();
             theLog.unlock();
         }
@@ -283,6 +339,8 @@ namespace ArcMist
             theLog.mStream->writeByte('\n');
             theLog.mStream->writeAsHex(pStream, pSize);
             theLog.mStream->writeByte('\n');
+            if(theLog.mUseColor)
+                endColor(theLog.mStream);
             theLog.mStream->flush();
             theLog.unlock();
         }
