@@ -12,10 +12,8 @@ namespace ArcMist
         int sleeps = 0;
         while(!mMutex.try_lock())
         {
-            sleeps++;
             usleep(100);
-            
-            if(sleeps > 100)
+            if(++sleeps > 1000)
             {
                 sleeps = 0;
                 Log::addFormatted(Log::WARNING, "Mutex", "Waiting for lock on %s", mName);
