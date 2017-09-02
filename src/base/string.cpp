@@ -101,7 +101,8 @@ namespace ArcMist
             return;
         }
 
-        std::strcpy(newData, mData);
+        if(mData != NULL)
+            std::strcpy(newData, mData);
         std::strcpy(newData + leftLength, pRight);
 
         clear();
