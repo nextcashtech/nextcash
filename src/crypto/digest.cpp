@@ -1049,7 +1049,6 @@ namespace ArcMist
         case CRC32:
             while(mInput.remaining() >= mBlockSize)
                 *mResultData = (*mResultData >> 8) ^ CRC32::table[(*mResultData & 0xFF) ^ mInput.readByte()];
-            *mResultData = Endian::convert(*mResultData, Endian::BIG);
             break;
         //case MD5:
         //    break;
@@ -1085,6 +1084,7 @@ namespace ArcMist
         case CRC32:
             // Finalize result
             *mResultData ^= 0xffffffff;
+            *mResultData = Endian::convert(*mResultData, Endian::BIG);
 
             // Output result
             pOutput->write(mResultData, 4);
