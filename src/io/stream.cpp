@@ -182,8 +182,10 @@ namespace ArcMist
 
     unsigned int RawOutputStream::writeStream(InputStream *pInput, unsigned int pMaxSize)
     {
-        unsigned int size = pMaxSize;
+        if(pMaxSize == 0)
+            return 0;
 
+        unsigned int size = pMaxSize;
         if(size > pInput->remaining())
             size = pInput->remaining();
 
