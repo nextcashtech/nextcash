@@ -279,6 +279,113 @@ namespace ArcMist
         delete[] data;
     }
 
+    namespace SHA1
+    {
+        void initialize(uint32_t *pResult)
+        {
+            pResult[0] = 0x67452301;
+            pResult[1] = 0xEFCDAB89;
+            pResult[2] = 0x98BADCFE;
+            pResult[3] = 0x10325476;
+            pResult[4] = 0xC3D2E1F0;
+        }
+
+        void process(uint32_t *pResult, uint32_t *pBlock)
+        {
+            unsigned int i;
+            uint32_t a, b, c, d, e, f, k, step;
+            uint32_t extendedBlock[80];
+
+            std::memcpy(extendedBlock, pBlock, 64);
+
+            // Adjust for big endian
+            if(Endian::sSystemType != Endian::BIG)
+                for(i=0;i<16;i++)
+                    extendedBlock[i] = Endian::convert(extendedBlock[i], Endian::BIG);
+
+            // Extend the sixteen 32-bit words into eighty 32-bit words:
+            for(i=16;i<80;i++)
+                extendedBlock[i] = Math::rotateLeft(extendedBlock[i-3] ^ extendedBlock[i-8] ^ extendedBlock[i-14] ^ extendedBlock[i-16], 1);
+
+            // Initialize hash value for this chunk:
+            a = pResult[0];
+            b = pResult[1];
+            c = pResult[2];
+            d = pResult[3];
+            e = pResult[4];
+
+            // Main loop:
+            for(i=0;i<80;i++)
+            {
+                if(i < 20)
+                {
+                    f = (b & c) |((~b) & d);
+                    k = 0x5A827999;
+                }
+                else if(i < 40)
+                {
+                    f = b ^ c ^ d;
+                    k = 0x6ED9EBA1;
+                }
+                else if(i < 60)
+                {
+                    f = (b & c) |(b & d) |(c & d);
+                    k = 0x8F1BBCDC;
+                }
+                else // if(i < 80)
+                {
+                    f = b ^ c ^ d;
+                    k = 0xCA62C1D6;
+                }
+
+                step = Math::rotateLeft(a, 5) + f + e + k + extendedBlock[i];
+                e = d;
+                d = c;
+                c = Math::rotateLeft(b, 30);
+                b = a;
+                a = step;
+            }
+
+            // Add this chunk's hash to result so far:
+            pResult[0] += a;
+            pResult[1] += b;
+            pResult[2] += c;
+            pResult[3] += d;
+            pResult[4] += e;
+        }
+
+        void finish(uint32_t *pResult, uint32_t *pBlock, unsigned int pBlockLength, uint64_t pTotalLength)
+        {
+            // Zeroize the end of the block
+            std::memset(((uint8_t *)pBlock) + pBlockLength, 0, 64 - pBlockLength);
+
+            // Add 0x80 byte (basically a 1 bit at the end of the data)
+            ((uint8_t *)pBlock)[pBlockLength] = 0x80;
+
+            // Check if there is enough room for the total length in this block
+            if(pBlockLength > 55) // 55 because of the 0x80 byte already added
+            {
+                process(pResult, pBlock); // Process this block
+                std::memset(pBlock, 0, 64); // Clear the block
+            }
+
+            // Put bit length in last 8 bytes of block (Big Endian)
+            pTotalLength *= 8;
+            uint32_t lower = pTotalLength & 0xffffffff;
+            pBlock[15] = Endian::convert(lower, Endian::BIG);
+            uint32_t upper = (pTotalLength >> 32) & 0xffffffff;
+            pBlock[14] = Endian::convert(upper, Endian::BIG);
+
+            // Process last block
+            process(pResult, pBlock);
+
+            // Adjust for big endian
+            if(Endian::sSystemType != Endian::BIG)
+                for(unsigned int i=0;i<5;i++)
+                    pResult[i] = Endian::convert(pResult[i], Endian::BIG);
+        }
+    }
+
     void Digest::sha1(InputStream *pInput, unsigned int pInputLength, OutputStream *pOutput) // 160 bit(20 byte) result
     {
         // Note 1: All variables are unsigned 32 bits and wrap modulo 232 when calculating
@@ -479,7 +586,7 @@ namespace ArcMist
             pC = Math::rotateLeft(pC, 10);
         }
 
-        void init(uint32_t *pResult)
+        void initialize(uint32_t *pResult)
         {
             pResult[0] = 0x67452301;
             pResult[1] = 0xefcdab89;
@@ -715,7 +822,7 @@ namespace ArcMist
         uint32_t block[16];
         unsigned int remaining = pInputLength;
 
-        RIPEMD160::init(result);
+        RIPEMD160::initialize(result);
 
         // Process all full (64 byte) blocks
         while(remaining >= 64)
@@ -975,9 +1082,7 @@ namespace ArcMist
         //case MD5:
         //    mBlockSize = 64;
         //    break;
-        //case SHA1:
-        //    mBlockSize = 64;
-        //    break;
+        case SHA1:
         case RIPEMD160:
             mBlockSize = 64;
             mResultData = new uint32_t[5];
@@ -1027,10 +1132,11 @@ namespace ArcMist
             break;
         //case MD5:
         //    break;
-        //case SHA1:
-        //    break;
+        case SHA1:
+            SHA1::initialize(mResultData);
+            break;
         case RIPEMD160:
-            RIPEMD160::init(mResultData);
+            RIPEMD160::initialize(mResultData);
             break;
         case SHA256:
         case SHA256_SHA256:
@@ -1052,8 +1158,13 @@ namespace ArcMist
             break;
         //case MD5:
         //    break;
-        //case SHA1:
-        //    break;
+        case SHA1:
+            while(mInput.remaining() >= mBlockSize)
+            {
+                mInput.read(mBlockData, mBlockSize);
+                SHA1::process(mResultData, mBlockData);
+            }
+            break;
         case RIPEMD160:
             while(mInput.remaining() >= mBlockSize)
             {
@@ -1091,8 +1202,18 @@ namespace ArcMist
             break;
         //case MD5:
         //    break;
-        //case SHA1:
-        //    break;
+        case SHA1:
+        {
+            // Get last partial block (must be less than 64 bytes)
+            unsigned int lastBlockSize = mInput.remaining();
+            mInput.read(mBlockData, lastBlockSize);
+
+            SHA1::finish(mResultData, mBlockData, lastBlockSize, mByteCount);
+
+            // Output result
+            pOutput->write(mResultData, 20);
+            break;
+        }
         case RIPEMD160:
         {
             // Get last partial block (must be less than 64 bytes)
@@ -1243,6 +1364,28 @@ namespace ArcMist
         else
         {
             Log::add(Log::ERROR, DIGEST_LOG_NAME, "Failed SHA1 empty");
+            logResults("Correct Digest", correctDigest);
+            logResults("Result Digest ", resultDigest);
+            result = false;
+        }
+
+        correctDigest.clear();
+        resultDigest.clear();
+
+        /*****************************************************************************************
+         * SHA1 digest empty
+         *****************************************************************************************/
+        input.setReadOffset(0);
+        Digest sha1EmptyDigest(SHA1);
+        sha1EmptyDigest.writeStream(&input, input.length());
+        sha1EmptyDigest.getResult(&resultDigest);
+        correctDigest.writeHex("da39a3ee5e6b4b0d3255bfef95601890afd80709");
+
+        if(buffersMatch(correctDigest, resultDigest))
+            Log::add(Log::INFO, DIGEST_LOG_NAME, "Passed SHA1 digest empty");
+        else
+        {
+            Log::add(Log::ERROR, DIGEST_LOG_NAME, "Failed SHA1 digest empty");
             logResults("Correct Digest", correctDigest);
             logResults("Result Digest ", resultDigest);
             result = false;
@@ -1737,6 +1880,28 @@ namespace ArcMist
         else
         {
             Log::add(Log::ERROR, DIGEST_LOG_NAME, "Failed SHA1 random data 1024");
+            logResults("Correct Digest", correctDigest);
+            logResults("Result Digest ", resultDigest);
+            result = false;
+        }
+
+        correctDigest.clear();
+        resultDigest.clear();
+
+        /*****************************************************************************************
+         * SHA1 digest random data 1024
+         *****************************************************************************************/
+        input.setReadOffset(0);
+        Digest sha1RandomDigest(SHA1);
+        sha1RandomDigest.writeStream(&input, input.length());
+        sha1RandomDigest.getResult(&resultDigest);
+        correctDigest.writeHex("2F7A0D349F1B6ABD7354965E94800BDC3D6463AC");
+
+        if(buffersMatch(correctDigest, resultDigest))
+            Log::add(Log::INFO, DIGEST_LOG_NAME, "Passed SHA1 digest random data 1024");
+        else
+        {
+            Log::add(Log::ERROR, DIGEST_LOG_NAME, "Failed SHA1 digest random data 1024");
             logResults("Correct Digest", correctDigest);
             logResults("Result Digest ", resultDigest);
             result = false;

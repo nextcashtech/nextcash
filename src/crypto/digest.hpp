@@ -14,7 +14,7 @@ namespace ArcMist
     {
     public:
 
-        enum Type { CRC32, RIPEMD160, SHA256, SHA256_SHA256, SHA256_RIPEMD160 }; //TODO Not yet supported - MD5, SHA1, SHA512
+        enum Type { CRC32, SHA1, RIPEMD160, SHA256, SHA256_SHA256, SHA256_RIPEMD160 }; //TODO Not yet supported - MD5, SHA512
 
         Digest(Type pType);
         ~Digest();
