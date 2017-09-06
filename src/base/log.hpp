@@ -14,6 +14,12 @@ namespace ArcMist
 
         static void setLevel(Level pLevel); // Defaults to INFO
         static void setOutput(OutputStream *pStream, bool pDeleteOnExit = false); // Defaults to std::cerr
+        
+        // Set file path name for log file. Auto rolls every day
+        static void setOutputFile(const char *pFilePathName);
+        
+        // Set log file roll frequency. Only works after setOutputFile
+        static void setRollFrequency(uint64_t pSeconds);
 
         static void add(Level pLevel, const char *pName, const char *pEntry);
         static void debug(const char *pName, const char *pEntry) { add(DEBUG, pName, pEntry); }
@@ -44,11 +50,17 @@ namespace ArcMist
         Log(OutputStream *pStream, const char *pDateTimeFormat);
         ~Log();
         void internalSetOutput(OutputStream *pStream, bool pDeleteOnExit);
+        void internalSetOutputFile(const char *pFilePathName);
+        void internalSetRollFrequency(uint64_t pSeconds) { mRollFrequency = pSeconds; }
         bool startEntry(Level pLevel, const char *pName);
 
         const char *mDateTimeFormat;
         Level mLevel, mPendingEntryLevel;
         bool mUseColor;
+
+        void roll();
+        String mFilePathName;
+        uint64_t mLastFileRoll, mRollFrequency;
 
         OutputStream *mStream, *mStreamToDestroy;
 

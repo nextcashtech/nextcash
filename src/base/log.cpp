@@ -24,6 +24,67 @@ namespace ArcMist
 
         return *mInstance;
     }
+    
+    void rollFile(const char *pFilePathName)
+    {
+        if(!fileExists(pFilePathName))
+            return;
+
+        time_t rawtime;
+        struct tm *timeinfo;
+        char *dateTimeString = new char[64];
+        std::time(&rawtime);
+        timeinfo = std::localtime(&rawtime);
+        std::strftime(dateTimeString, 64, "%Y%m%d.%H%M", timeinfo);
+        
+        String newFilePathName;
+        const char *lastDot = NULL;
+        const char *ptr = pFilePathName;
+        while(*ptr)
+        {
+            if(*ptr == '.')
+                lastDot = ptr;
+            ptr++;
+        }
+
+        if(lastDot == NULL)
+        {
+            newFilePathName = pFilePathName;
+            newFilePathName += ".";
+            newFilePathName += dateTimeString;
+        }
+        else
+        {
+            // Copy the part before the dot
+            ptr = pFilePathName;
+            while(ptr != lastDot)
+                newFilePathName += *ptr++;
+
+            // Put the date string in
+            newFilePathName += ".";
+            newFilePathName += dateTimeString;
+
+            // Copy the part after the dot
+            while(*ptr)
+                newFilePathName += *ptr++;
+        }
+
+        std::rename(pFilePathName, newFilePathName);
+    }
+
+    void Log::roll()
+    {
+        mLastFileRoll = std::time(NULL);
+        if(!mFilePathName)
+            return; // Only roll when there is a file name
+
+        delete mStreamToDestroy;
+        rollFile(mFilePathName);
+
+        // Reopen file
+        mStreamToDestroy = new FileOutputStream(mFilePathName);
+        mStream = mStreamToDestroy;
+    }
 
     Log::Log(OutputStream *pStream, const char *pDateTimeFormat) : mMutex("Log")
     {
@@ -33,6 +94,8 @@ namespace ArcMist
         mStreamToDestroy = NULL;
         mStream = NULL;
         mUseColor = false;
+        mLastFileRoll = 0;
+        mRollFrequency = 86400; // Daily
 
         internalSetOutput(pStream, false);
     }
@@ -61,6 +124,16 @@ namespace ArcMist
     {
         log().internalSetOutput(pStream, pDeleteOnExit);
     }
+    
+    void Log::setOutputFile(const char *pFilePathName)
+    {
+        log().internalSetOutputFile(pFilePathName);
+    }
+    
+    void Log::setRollFrequency(uint64_t pSeconds)
+    {
+        log().internalSetRollFrequency(pSeconds);
+    }
 
     void Log::internalSetOutput(OutputStream *pStream, bool pDeleteOnExit)
     {
@@ -82,6 +155,17 @@ namespace ArcMist
             mStream = mStreamToDestroy;
             mUseColor = true;
         }
+    }
+
+    void Log::internalSetOutputFile(const char *pFilePathName)
+    {
+        if(mStreamToDestroy != NULL)
+            delete mStreamToDestroy;
+        mFilePathName = pFilePathName;
+        mStreamToDestroy = NULL;
+        mStream = NULL;
+        mUseColor = false;
+        roll();
     }
     
     inline void startForegroundColor(OutputStream *pStream, unsigned int pColor)
@@ -130,6 +214,9 @@ namespace ArcMist
         unsigned int entryColor = WHITE;
 
         lock();
+
+        if(mFilePathName && std::time(NULL) - mLastFileRoll > mRollFrequency)
+            roll();
 
         if(mUseColor)
             startForegroundColor(mStream, TEAL);

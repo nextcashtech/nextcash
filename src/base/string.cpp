@@ -74,6 +74,34 @@ namespace ArcMist
         return *this;
     }
 
+    void String::operator += (char pRight)
+    {
+        char *newData = NULL;
+        unsigned int leftLength = length();
+        try
+        {
+            newData = new char[leftLength + 2];
+        }
+        catch(std::bad_alloc &pBadAlloc)
+        {
+            ArcMist::Log::addFormatted(ArcMist::Log::ERROR, ARCMIST_STRING_LOG_NAME, "Bad allocation : %s", pBadAlloc.what());
+            return;
+        }
+        catch(...)
+        {
+            ArcMist::Log::add(ArcMist::Log::ERROR, ARCMIST_STRING_LOG_NAME, "Bad allocation : unknown");
+            return;
+        }
+
+        if(mData != NULL)
+            std::strcpy(newData, mData);
+        newData[leftLength] = pRight;
+        newData[leftLength+1] = 0;
+
+        clear();
+        mData = newData;
+    }
+
     void String::operator += (const char *pRight)
     {
         if(pRight == NULL)

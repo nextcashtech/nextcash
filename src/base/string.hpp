@@ -144,6 +144,7 @@ namespace ArcMist
 
         void operator += (const char *pRight);
         void operator += (const String &pRight) { *this += pRight.text(); }
+        void operator += (char pRight);
 
         String operator + (const char *pRight) const
         {
