@@ -455,7 +455,7 @@ namespace ArcMist
         Listener::Listener(sa_family_t pType, uint16_t pPort, unsigned int pListenBackLog, unsigned int pTimeoutSeconds)
         {
             mTimeoutSeconds = pTimeoutSeconds;
-            mSocketID = socket(pType, SOCK_STREAM, 6);
+            mSocketID = ::socket(pType, SOCK_STREAM, 6);
 
             if(mSocketID == -1)
             {
@@ -467,7 +467,7 @@ namespace ArcMist
 
             //  Set listening socket to allow multiple connections
             int optionValue = -1;
-            if(setsockopt(mSocketID, SOL_SOCKET, SO_REUSEADDR, (char *)&optionValue, sizeof(optionValue)) < 0)
+            if(::setsockopt(mSocketID, SOL_SOCKET, SO_REUSEADDR, (char *)&optionValue, sizeof(optionValue)) < 0)
             {
                 Log::addFormatted(Log::ERROR, NETWORK_LOG_NAME, "Listener socket failed to set options : %s", std::strerror(errno));
                 ::close(mSocketID);
@@ -512,72 +512,124 @@ namespace ArcMist
                 }
             }
 
-            if(listen(mSocketID, pListenBackLog) < 0)
+            if(::listen(mSocketID, pListenBackLog) < 0)
             {
                 Log::addFormatted(Log::ERROR, NETWORK_LOG_NAME, "Listener failed to listen : %s", std::strerror(errno));
                 ::close(mSocketID);
                 mSocketID = -1;
                 return;
             }
-
-            // Clear the socket set
-            FD_ZERO(&mSet);
-
-            // Add control socket to set
-            FD_SET(mSocketID, &mSet);
-
-            mTimeout.tv_sec = mTimeoutSeconds;
         }
 
-        Listener::~Listener()
+        // Check for new connections and add them to the pending connections list
+        bool Listener::processConnections()
         {
-            if(mSocketID != -1)
-                ::close(mSocketID);
-        }
+            // Setup the socket set to only contain the "listener" socket
+            fd_set set;
+            FD_ZERO(&set);
+            FD_SET(mSocketID, &set);
 
-        bool Listener::accept(Connection &pConnection)
-        {
-            // Check for a connection
-            mTimeout.tv_sec = mTimeoutSeconds;
-            if(!select(mSocketID + 1, &mSet, NULL, NULL, &mTimeout) && FD_ISSET(mSocketID, &mSet))
+            // Set timeout
+            struct timeval timeout;
+            timeout.tv_sec = mTimeoutSeconds;
+            timeout.tv_usec = 0;
+
+            int result = ::select(mSocketID + 1, &set, NULL, &set, &timeout);
+            if(result > 0) // Result is number of sockets connected
             {
-                struct sockaddr_in peerAddress;
+                // I think the set now contains only the new connection's socket ID.
+                // It doesn't contain the listener socket id.
+                // But accept below seems to give me the new socket ID
+                // if(!FD_ISSET(mSocketID, &set))
+                // {
+                    // Log::add(Log::ERROR, NETWORK_LOG_NAME, "Listener select returned unexpected set");
+                    // return false;
+                // }
+
+                struct sockaddr_in6 peerAddress;
                 socklen_t  peerAddressSize = sizeof(peerAddress);
-                // Connection received
-                int newSocketID = ::accept(mSocketID, (struct sockaddr *)&peerAddress, &peerAddressSize);
-                if(newSocketID < 0)
-                    return false;
-
-                // Add socket to set. I don't think we want this because we will be reading from them in another thread
-                //FD_SET(newSocketID, &mSet);
-
+                int newSocketID;
                 uint8_t ip[INET6_ADDRLEN];
                 char ipText[INET6_ADDRSTRLEN];
                 uint16_t port;
-                if(peerAddress.sin_family == AF_INET6)
+                bool success = true;
+
+                for(int i=0;i<result;++i)
                 {
-                    port = Endian::convert(((struct sockaddr_in6*)&peerAddress)->sin6_port, Endian::BIG);
-                    std::memcpy(ip, (((struct sockaddr_in6*)&peerAddress)->sin6_addr.s6_addr), INET6_ADDRLEN);
-                    inet_ntop(peerAddress.sin_family, ip, ipText, INET6_ADDRSTRLEN);
-                    Log::addFormatted(Log::VERBOSE, NETWORK_LOG_NAME, "New IPv6 connection %s : %d", ipText, port);
-                }
-                else if(peerAddress.sin_family == AF_INET)
-                {
-                    port = Endian::convert(((struct sockaddr_in*)&peerAddress)->sin_port, Endian::BIG);
-                    std::memcpy(ip, &(((struct sockaddr_in*)&peerAddress)->sin_addr.s_addr), INET_ADDRLEN);
-                    inet_ntop(peerAddress.sin_family, ip, ipText, INET_ADDRSTRLEN);
-                    Log::addFormatted(Log::VERBOSE, NETWORK_LOG_NAME, "New IPv4 connection %s : %d", ipText, port);
+                    // Get new connection
+                    newSocketID = ::accept(mSocketID, (struct sockaddr *)&peerAddress, &peerAddressSize);
+                    if(newSocketID < 0)
+                    {
+                        Log::addFormatted(Log::ERROR, NETWORK_LOG_NAME, "Listener accept failed : %s", std::strerror(errno));
+                        success = false;
+                    }
+                    else
+                    {
+                        // Create new connection and add it to the pending list
+                        if(peerAddress.sin6_family == AF_INET6)
+                        {
+                            port = Endian::convert(((struct sockaddr_in6*)&peerAddress)->sin6_port, Endian::BIG);
+                            std::memcpy(ip, (((struct sockaddr_in6*)&peerAddress)->sin6_addr.s6_addr), INET6_ADDRLEN);
+                            inet_ntop(peerAddress.sin6_family, ip, ipText, INET6_ADDRSTRLEN);
+                            Log::addFormatted(Log::VERBOSE, NETWORK_LOG_NAME, "New IPv6 connection %s : %d", ipText, port);
+                        }
+                        else if(peerAddress.sin6_family == AF_INET)
+                        {
+                            port = Endian::convert(((struct sockaddr_in*)&peerAddress)->sin_port, Endian::BIG);
+                            std::memcpy(ip, &(((struct sockaddr_in*)&peerAddress)->sin_addr.s_addr), INET_ADDRLEN);
+                            inet_ntop(peerAddress.sin6_family, ip, ipText, INET_ADDRSTRLEN);
+                            Log::addFormatted(Log::VERBOSE, NETWORK_LOG_NAME, "New IPv4 connection %s : %d", ipText, port);
+                        }
+                        else
+                        {
+                            Log::addFormatted(Log::ERROR, NETWORK_LOG_NAME, "Unknown type for new connection");
+                            success = false;
+                            ::close(newSocketID);
+                            continue;
+                        }
+
+                        mPendingConnections.push_back(new Connection(newSocketID, (struct sockaddr *)&peerAddress));
+                    }
                 }
 
-                pConnection.set(newSocketID, (struct sockaddr *)&peerAddress);
-                return true;
+                return success;
+            }
+            else if(result < 0)
+            {
+                Log::addFormatted(Log::ERROR, NETWORK_LOG_NAME, "Listener select failed : %s", std::strerror(errno));
+                return false;
             }
 
-            return false;
+            // No new connections
+            return true;
+        }
+
+        // Check for a connection
+        Connection *Listener::accept()
+        {
+            if(mPendingConnections.size() == 0)
+                processConnections();
+
+            Connection *result = NULL;
+            if(mPendingConnections.size() > 0)
+            {
+                // Retrieve and remove the first connection
+                result = mPendingConnections.front();
+                mPendingConnections.erase(mPendingConnections.begin());
+            }
+
+            return result;
         }
 
         void Listener::close()
         {
+            // Close pending sockets
+            for(std::vector<Connection *>::iterator connection=mPendingConnections.begin();connection!=mPendingConnections.end();++connection)
+                delete *connection;
+
+            mPendingConnections.clear();
+
+            // Close "listener" socket
             if(mSocketID != -1)
                 ::close(mSocketID);
 

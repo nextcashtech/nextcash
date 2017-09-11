@@ -91,12 +91,14 @@ namespace ArcMist
         public:
 
             Listener(sa_family_t pType, uint16_t pPort, unsigned int pListenBackLog = 5, unsigned int pTimeoutSeconds = 5);
-            ~Listener();
+            ~Listener() { close(); }
 
             bool isValid() const { return mSocketID >= 0; }
             uint16_t port() const { return mPort; }
 
-            bool accept(Connection &pConnection);
+            // Check for a new connection.
+            // Returns NULL if there aren't any new connections
+            Connection *accept();
 
             void close();
 
@@ -104,11 +106,13 @@ namespace ArcMist
 
             void setTimeout(unsigned int pSeconds);
 
+            bool processConnections();
+
             int mSocketID;
             uint16_t mPort;
-            fd_set mSet;
             unsigned int mTimeoutSeconds;
-            struct timeval mTimeout;
+
+            std::vector<Connection *> mPendingConnections;
         };
     }
 }
