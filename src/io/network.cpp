@@ -82,18 +82,24 @@ namespace ArcMist
         Connection::Connection(const char *pIPAddress, const char *pPort, unsigned int pTimeout)
         {
             mSocketID = -1;
+            mBytesReceived = 0;
+            mBytesSent = 0;
             open(pIPAddress, pPort, pTimeout);
         }
 
         Connection::Connection(unsigned int pFamily, const uint8_t *pIP, uint16_t pPort, unsigned int pTimeout)
         {
             mSocketID = -1;
+            mBytesReceived = 0;
+            mBytesSent = 0;
             open(pFamily, pIP, pPort, pTimeout);
         }
 
         Connection::Connection(int pSocketID, struct sockaddr *pAddress)
         {
             mSocketID = -1;
+            mBytesReceived = 0;
+            mBytesSent = 0;
             set(pSocketID, pAddress);
         }
 
@@ -105,6 +111,8 @@ namespace ArcMist
             std::memset(mIPv6Address, 0, INET6_ADDRSTRLEN);
 
             mSocketID = pSocketID;
+            mBytesReceived = 0;
+            mBytesSent = 0;
 
             struct sockaddr_in *address = (struct sockaddr_in *)pAddress;
 
@@ -145,6 +153,8 @@ namespace ArcMist
         bool Connection::open(unsigned int pFamily, const uint8_t *pIP, uint16_t pPort, unsigned int pTimeout)
         {
             close(); // Previous connection
+            mBytesReceived = 0;
+            mBytesSent = 0;
 
             std::memset(mIPv4Address, 0, INET_ADDRSTRLEN);
             std::memset(mIPv6Address, 0, INET6_ADDRSTRLEN);
@@ -231,6 +241,8 @@ namespace ArcMist
         bool Connection::open(const char *pIPAddress, const char *pPort, unsigned int pTimeout)
         {
             close(); // Previous connection
+            mBytesReceived = 0;
+            mBytesSent = 0;
 
             std::memset(mIPv4Address, 0, INET_ADDRSTRLEN);
             std::memset(mIPv6Address, 0, INET6_ADDRSTRLEN);
@@ -379,9 +391,9 @@ namespace ArcMist
             if(!pWait)
                 flags |= MSG_DONTWAIT;
 
-            int bytesReceived;
+            int bytesCount;
             //Log::add(Log::VERBOSE, NETWORK_LOG_NAME, "Starting Receive");
-            if((bytesReceived = recv(mSocketID, mBuffer, NETWORK_BUFFER_SIZE-1, flags)) == -1)
+            if((bytesCount = recv(mSocketID, mBuffer, NETWORK_BUFFER_SIZE-1, flags)) == -1)
             {
                 //Log::add(Log::VERBOSE, NETWORK_LOG_NAME, "Failed Receive");
                 if(errno != 11) // Resource temporarily unavailable because of MSG_DONTWAIT
@@ -390,10 +402,11 @@ namespace ArcMist
             }
             //Log::add(Log::VERBOSE, NETWORK_LOG_NAME, "Finished Receive");
 
-            pStream->write(mBuffer, bytesReceived);
-            //if(bytesReceived > 0)
-            //    Log::addFormatted(Log::DEBUG, NETWORK_LOG_NAME, "Received %d bytes", bytesReceived);
-            return bytesReceived;
+            mBytesReceived += bytesCount;
+            pStream->write(mBuffer, bytesCount);
+            //if(bytesCount > 0)
+            //    Log::addFormatted(Log::DEBUG, NETWORK_LOG_NAME, "Received %d bytes", bytesCount);
+            return bytesCount;
         }
 
         bool Connection::send(InputStream *pStream)
@@ -423,6 +436,8 @@ namespace ArcMist
                 }
                 //Log::add(Log::VERBOSE, NETWORK_LOG_NAME, "Finished Send");
 
+                mBytesSent += length;
+
                 //Log::addFormatted(Log::DEBUG, NETWORK_LOG_NAME, "Sent %d bytes", length);
             }
 
@@ -437,10 +452,10 @@ namespace ArcMist
             mSocketID = -1;
         }
 
-        Listener::Listener(uint16_t pPort, unsigned int pListenBackLog, unsigned int pTimeoutSeconds)
+        Listener::Listener(sa_family_t pType, uint16_t pPort, unsigned int pListenBackLog, unsigned int pTimeoutSeconds)
         {
             mTimeoutSeconds = pTimeoutSeconds;
-            mSocketID = socket(AF_INET6, SOCK_STREAM, 6);
+            mSocketID = socket(pType, SOCK_STREAM, 6);
 
             if(mSocketID == -1)
             {
@@ -462,20 +477,39 @@ namespace ArcMist
 
             mPort = pPort;
 
-            struct sockaddr_in6 address;
-            std::memset(&address, 0, sizeof(address));
-            address.sin6_family = AF_INET6;
-            address.sin6_port = Endian::convert(mPort, Endian::BIG);
-            //address.sin6_flowinfo = ;
-            address.sin6_addr = in6addr_any; // Allow connections to any local address
-            //address.sin6_scope_id = ;
-
-            if(bind(mSocketID, (struct sockaddr *)&address, sizeof(address)) < 0)
+            if(pType == AF_INET6)
             {
-                Log::addFormatted(Log::ERROR, NETWORK_LOG_NAME, "Listener binding failed : %s", std::strerror(errno));
-                ::close(mSocketID);
-                mSocketID = -1;
-                return;
+                struct sockaddr_in6 address;
+                std::memset(&address, 0, sizeof(address));
+                address.sin6_family = AF_INET6;
+                address.sin6_port = Endian::convert(mPort, Endian::BIG);
+                //address.sin6_flowinfo = ;
+                address.sin6_addr = in6addr_any; // Allow connections to any local address
+                //address.sin6_scope_id = ;
+
+                if(bind(mSocketID, (struct sockaddr *)&address, sizeof(address)) < 0)
+                {
+                    Log::addFormatted(Log::ERROR, NETWORK_LOG_NAME, "Listener binding failed : %s", std::strerror(errno));
+                    ::close(mSocketID);
+                    mSocketID = -1;
+                    return;
+                }
+            }
+            else if(pType == AF_INET)
+            {
+                struct sockaddr_in address;
+                std::memset(&address, 0, sizeof(address));
+                address.sin_family = AF_INET;
+                address.sin_port = Endian::convert(mPort, Endian::BIG);
+                address.sin_addr.s_addr = INADDR_ANY; // Allow connections to any local address
+
+                if(bind(mSocketID, (struct sockaddr *)&address, sizeof(address)) < 0)
+                {
+                    Log::addFormatted(Log::ERROR, NETWORK_LOG_NAME, "Listener binding failed : %s", std::strerror(errno));
+                    ::close(mSocketID);
+                    mSocketID = -1;
+                    return;
+                }
             }
 
             if(listen(mSocketID, pListenBackLog) < 0)

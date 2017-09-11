@@ -37,7 +37,7 @@ namespace ArcMist
         {
         public:
 
-            Connection() { mSocketID = -1; }
+            Connection() { mSocketID = -1; mBytesReceived = 0; mBytesSent = 0; }
             Connection(const char *pIP, const char *pPort, unsigned int pTimeout = 10);
             Connection(unsigned int pFamily, const uint8_t *pIP, uint16_t pPort, unsigned int pTimeout = 10);
             Connection(int pSocketID, struct sockaddr *pAddress);
@@ -62,6 +62,11 @@ namespace ArcMist
             unsigned int receive(OutputStream *pStream, bool pWait = false);
             bool send(InputStream *pStream);
 
+            // Tracking of bytes sent and recieved
+            uint64_t bytesReceived() const { return mBytesReceived; }
+            uint64_t bytesSent() const { return mBytesSent; }
+            void resetByteCounts() { mBytesReceived = 0; mBytesSent = 0; }
+
             void close();
 
         protected:
@@ -76,13 +81,16 @@ namespace ArcMist
             uint8_t mIPv6[INET6_ADDRLEN];
             uint16_t mPort;
             unsigned char mBuffer[NETWORK_BUFFER_SIZE];
+
+            uint64_t mBytesReceived;
+            uint64_t mBytesSent;
         };
 
         class Listener
         {
         public:
 
-            Listener(uint16_t pPort, unsigned int pListenBackLog = 5, unsigned int pTimeoutSeconds = 5);
+            Listener(sa_family_t pType, uint16_t pPort, unsigned int pListenBackLog = 5, unsigned int pTimeoutSeconds = 5);
             ~Listener();
 
             bool isValid() const { return mSocketID >= 0; }
