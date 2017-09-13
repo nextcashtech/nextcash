@@ -17,6 +17,11 @@ namespace ArcMist
         return f.good();
     }
 
+    inline bool removeFile(const char *pPathFileName)
+    {
+        return std::remove(pPathFileName) == 0;
+    }
+
     inline bool createDirectory(const char *pPathName)
     {
         String command = "mkdir -p ";
@@ -45,6 +50,8 @@ namespace ArcMist
             initialize();
         }
         ~FileInputStream() { if(mStreamNeedsDelete) delete mStream; }
+
+        void close() { ((std::fstream *)mStream)->close();}
 
         bool isValid() { return mValid; }
         unsigned int length() const { return mEndOffset; }
@@ -123,6 +130,8 @@ namespace ArcMist
             initialize();
         }
         ~FileOutputStream() { mStream->flush(); if(mStreamNeedsDelete) delete mStream; }
+
+        void close() { mStream->flush(); ((std::fstream *)mStream)->close();}
 
         bool isValid() { return mValid; }
         unsigned int length() const { return mEndOffset; }
