@@ -35,6 +35,7 @@ namespace ArcMist
             mReaderCount = 0;
             mWriterWaiting = false;
             mWriterLocked = false;
+            mWriteLockName = NULL;
         }
 
         void readLock();
@@ -46,6 +47,7 @@ namespace ArcMist
 
         std::mutex mMutex;
         String mName;
+        const char *mWriteLockName;
         unsigned int mReaderCount;
         bool mWriterWaiting;
         bool mWriterLocked;

@@ -43,7 +43,11 @@ namespace ArcMist
             if(++sleeps > 100)
             {
                 // It has been over a second. So notify that this wait is taking too long
-                Log::addFormatted(Log::WARNING, "Mutex", "Waiting for read lock on %s", mName.text());
+                if(mWriteLockName != NULL)
+                    Log::addFormatted(Log::VERBOSE, "Mutex", "Waiting for read lock on %s (locked by %s)",
+                      mName.text(), mWriteLockName);
+                else
+                    Log::addFormatted(Log::VERBOSE, "Mutex", "Waiting for read lock on %s", mName.text());
                 sleeps = 0;
             }
 
@@ -76,6 +80,7 @@ namespace ArcMist
             {
                 mWriterWaiting = false;
                 mWriterLocked = true;
+                mWriteLockName = pRequestName;
                 mMutex.unlock();
                 return;
             }
@@ -84,10 +89,10 @@ namespace ArcMist
             {
                 // It has been over a second. So notify that this wait is taking too long
                 if(pRequestName != NULL)
-                    Log::addFormatted(Log::WARNING, "Mutex", "Waiting for write lock for %s on %s (%d readers locked)",
+                    Log::addFormatted(Log::VERBOSE, "Mutex", "Waiting for write lock for %s on %s (%d readers locked)",
                       pRequestName, mName.text(), mReaderCount);
                 else
-                    Log::addFormatted(Log::WARNING, "Mutex", "Waiting for write lock on %s (%d readers locked)",
+                    Log::addFormatted(Log::VERBOSE, "Mutex", "Waiting for write lock on %s (%d readers locked)",
                       mName.text(), mReaderCount);
                 sleeps = 0;
             }
@@ -101,6 +106,7 @@ namespace ArcMist
     void ReadersLock::writeUnlock()
     {
         mMutex.lock();
+        mWriteLockName = NULL;
         mWriterLocked = false;
         mMutex.unlock();
     }
