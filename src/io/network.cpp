@@ -179,7 +179,7 @@ namespace ArcMist
                 address.sin_port = Endian::convert(mPort, Endian::BIG);
                 std::memcpy(&address.sin_addr.s_addr, mIPv4, INET_ADDRLEN);
 
-                if((mSocketID = socket(AF_INET, SOCK_STREAM, 6)) == -1)
+                if((mSocketID = ::socket(AF_INET, SOCK_STREAM, 6)) == -1)
                 {
                     Log::addFormatted(Log::ERROR, NETWORK_LOG_NAME, "Socket failed : %s", std::strerror(errno));
                     return false;
@@ -212,7 +212,7 @@ namespace ArcMist
                 std::memcpy(address.sin6_addr.s6_addr, mIPv6, INET6_ADDRLEN);
                 address.sin6_scope_id = 0;
 
-                if((mSocketID = socket(AF_INET6, SOCK_STREAM, 6)) == -1)
+                if((mSocketID = ::socket(AF_INET6, SOCK_STREAM, 6)) == -1)
                 {
                     Log::addFormatted(Log::ERROR, NETWORK_LOG_NAME, "Socket failed : %s", std::strerror(errno));
                     return false;
@@ -283,7 +283,7 @@ namespace ArcMist
             // Loop through all the results and connect to the first we can
             for(testAddress=addressInfo;testAddress!=NULL;testAddress=testAddress->ai_next)
             {
-                if((mSocketID = socket(testAddress->ai_family, testAddress->ai_socktype, testAddress->ai_protocol)) == -1)
+                if((mSocketID = ::socket(testAddress->ai_family, testAddress->ai_socktype, testAddress->ai_protocol)) == -1)
                 {
                     Log::addFormatted(Log::VERBOSE, NETWORK_LOG_NAME, "Socket failed : %s", std::strerror(errno));
                     continue;
@@ -573,14 +573,14 @@ namespace ArcMist
                             port = Endian::convert(((struct sockaddr_in6*)&peerAddress)->sin6_port, Endian::BIG);
                             std::memcpy(ip, (((struct sockaddr_in6*)&peerAddress)->sin6_addr.s6_addr), INET6_ADDRLEN);
                             inet_ntop(peerAddress.sin6_family, ip, ipText, INET6_ADDRSTRLEN);
-                            Log::addFormatted(Log::VERBOSE, NETWORK_LOG_NAME, "New IPv6 connection %s : %d", ipText, port);
+                            Log::addFormatted(Log::VERBOSE, NETWORK_LOG_NAME, "New IPv6 connection %s : %d (socket %d)", ipText, port, newSocketID);
                         }
                         else if(peerAddress.sin6_family == AF_INET)
                         {
                             port = Endian::convert(((struct sockaddr_in*)&peerAddress)->sin_port, Endian::BIG);
                             std::memcpy(ip, &(((struct sockaddr_in*)&peerAddress)->sin_addr.s_addr), INET_ADDRLEN);
                             inet_ntop(peerAddress.sin6_family, ip, ipText, INET_ADDRSTRLEN);
-                            Log::addFormatted(Log::VERBOSE, NETWORK_LOG_NAME, "New IPv4 connection %s : %d", ipText, port);
+                            Log::addFormatted(Log::VERBOSE, NETWORK_LOG_NAME, "New IPv4 connection %s : %d (socket %d)", ipText, port, newSocketID);
                         }
                         else
                         {

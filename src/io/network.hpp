@@ -43,6 +43,8 @@ namespace ArcMist
             Connection(int pSocketID, struct sockaddr *pAddress);
             ~Connection();
 
+            int socket() { return mSocketID; }
+
             bool open(const char *pIP, const char *pPort, unsigned int pTimeout = 10);
             bool open(unsigned int pFamily, const uint8_t *pIP, uint16_t pPort, unsigned int pTimeout = 10);
             bool isOpen() { return mSocketID != -1; }
