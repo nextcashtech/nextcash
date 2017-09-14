@@ -1,6 +1,8 @@
 #ifndef ARCMIST_MUTEX_HPP
 #define ARCMIST_MUTEX_HPP
 
+#include "string.hpp"
+
 #include <mutex>
 
 
@@ -10,14 +12,7 @@ namespace ArcMist
     {
     public:
 
-        Mutex(const char *pName)
-        {
-            for(int i=0;i<32;i++)
-                mName[i] = 0;
-            for(int i=0;pName[i];i++)
-                mName[i] = pName[i];
-        }
-        ~Mutex() {}
+        Mutex(const char *pName) { mName = pName; }
 
         void lock();
         void unlock();
@@ -25,7 +20,35 @@ namespace ArcMist
     private:
 
         std::mutex mMutex;
-        char mName[32];
+        String mName;
+
+    };
+
+    // Lock that allows multiple readers to lock concurrently, but a writer needs exclusive access.
+    class ReadersLock
+    {
+    public:
+
+        ReadersLock(const char *pName)
+        {
+            mName = pName;
+            mReaderCount = 0;
+            mWriterWaiting = false;
+            mWriterLocked = false;
+        }
+
+        void readLock();
+        void readUnlock();
+        void writeLock(const char *pRequestName = NULL);
+        void writeUnlock();
+
+    private:
+
+        std::mutex mMutex;
+        String mName;
+        unsigned int mReaderCount;
+        bool mWriterWaiting;
+        bool mWriterLocked;
 
     };
 }

@@ -383,7 +383,7 @@ namespace ArcMist
         {
             if(mSocketID == -1)
             {
-                Log::add(Log::ERROR, NETWORK_LOG_NAME, "Receive failed : socket invalid");
+                Log::add(Log::ERROR, NETWORK_LOG_NAME, "Receive failed : socket closed");
                 return false;
             }
 
@@ -397,7 +397,10 @@ namespace ArcMist
             {
                 //Log::add(Log::VERBOSE, NETWORK_LOG_NAME, "Failed Receive");
                 if(errno != 11) // Resource temporarily unavailable because of MSG_DONTWAIT
-                    Log::addFormatted(Log::ERROR, NETWORK_LOG_NAME, "Receive failed : %s", std::strerror(errno));
+                {
+                    Log::addFormatted(Log::ERROR, NETWORK_LOG_NAME, "[%d] Receive failed : %s", mSocketID, std::strerror(errno));
+                    close();
+                }
                 return 0;
             }
             //Log::add(Log::VERBOSE, NETWORK_LOG_NAME, "Finished Receive");
@@ -413,7 +416,7 @@ namespace ArcMist
         {
             if(mSocketID == -1)
             {
-                Log::add(Log::ERROR, NETWORK_LOG_NAME, "Send failed : socket invalid");
+                Log::add(Log::ERROR, NETWORK_LOG_NAME, "Send failed : socket closed");
                 return false;
             }
 
@@ -431,7 +434,9 @@ namespace ArcMist
                 if(::send(mSocketID, (char *)mBuffer, length, 0) == -1)
                 {
                     //Log::add(Log::VERBOSE, NETWORK_LOG_NAME, "Failed Send");
-                    Log::addFormatted(Log::ERROR, NETWORK_LOG_NAME, "Send of %d bytes failed : %s", length, std::strerror(errno));
+                    Log::addFormatted(Log::ERROR, NETWORK_LOG_NAME, "[%d] Send of %d bytes failed : %s",
+                      mSocketID, length, std::strerror(errno));
+                    close();
                     return false;
                 }
                 //Log::add(Log::VERBOSE, NETWORK_LOG_NAME, "Finished Send");
@@ -534,18 +539,15 @@ namespace ArcMist
             timeout.tv_sec = mTimeoutSeconds;
             timeout.tv_usec = 0;
 
-            int result = ::select(mSocketID + 1, &set, NULL, &set, &timeout);
-            if(result > 0) // Result is number of sockets connected
+            int result = ::select(mSocketID + 1, &set, NULL, NULL, &timeout);
+            if(result > 0)
             {
-                // I think the set now contains only the new connection's socket ID.
-                // It doesn't contain the listener socket id.
-                // But accept below seems to give me the new socket ID
-                // if(!FD_ISSET(mSocketID, &set))
-                // {
-                    // Log::add(Log::ERROR, NETWORK_LOG_NAME, "Listener select returned unexpected set");
-                    // return false;
-                // }
+                // "result" is number of sockets connected
+                // I think the set now contains only the new connection's socket IDs.
+                // It doesn't contain the listener socket id anymore
+                // "accept" below gives the new socket IDs one at a time
 
+                Connection *newConnection;
                 struct sockaddr_in6 peerAddress;
                 socklen_t  peerAddressSize = sizeof(peerAddress);
                 int newSocketID;
@@ -588,7 +590,26 @@ namespace ArcMist
                             continue;
                         }
 
-                        mPendingConnections.push_back(new Connection(newSocketID, (struct sockaddr *)&peerAddress));
+                        try
+                        {
+                            newConnection = new Connection(newSocketID, (struct sockaddr *)&peerAddress);
+                        }
+                        catch(std::bad_alloc &pBadAlloc)
+                        {
+                            ArcMist::Log::addFormatted(ArcMist::Log::ERROR, NETWORK_LOG_NAME,
+                              "Bad allocation while allocating new connection : %s", pBadAlloc.what());
+                            ::close(newSocketID);
+                            continue;
+                        }
+                        catch(...)
+                        {
+                            ArcMist::Log::add(ArcMist::Log::ERROR, NETWORK_LOG_NAME,
+                              "Bad allocation while allocating new connection : unknown");
+                            ::close(newSocketID);
+                            continue;
+                        }
+
+                        mPendingConnections.push_back(newConnection);
                     }
                 }
 
