@@ -17,7 +17,8 @@ namespace ArcMist
         // Name specified when the thread that is currently executing was created
         static const char *currentName(int pTimeoutMilliseconds = 1000);
         // Parameter specified when the thread that is currently executing was created. NULL if not specified or available
-        static void *currentParameter(int pTimeoutMilliseconds = 1000);
+        // Removes the parameter before returning
+        static void *getParameter(int pTimeoutMilliseconds = 1000);
         // Have this thread sleep for specified milliseconds
         static void sleep(unsigned int pMilliseconds);
 

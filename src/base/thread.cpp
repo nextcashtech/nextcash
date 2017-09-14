@@ -23,23 +23,21 @@ namespace ArcMist
         mName = pName;
         sThreadMutex.lock();
         sThreadNames[mThread.get_id()] = pName;
-        sThreadParameters[mThread.get_id()] = pParameter;
+        if(pParameter != NULL)
+            sThreadParameters[mThread.get_id()] = pParameter;
         sThreadMutex.unlock();
-        Log::addFormatted(Log::VERBOSE, THREAD_LOG_NAME, "Starting thread : %s", mName.text());
+        Log::addFormatted(Log::VERBOSE, THREAD_LOG_NAME, "Started thread : %s", mName.text());
     }
 
     Thread::~Thread()
     {
-        Log::addFormatted(Log::VERBOSE, THREAD_LOG_NAME, "Stopping thread : %s", mName.text());
-        mThread.join();
         sThreadMutex.lock();
         std::map<std::thread::id, String>::iterator name = sThreadNames.find(mThread.get_id());
         if(name != sThreadNames.end())
             sThreadNames.erase(name);
-        std::map<std::thread::id, void *>::iterator parameter = sThreadParameters.find(mThread.get_id());
-        if(parameter != sThreadParameters.end())
-            sThreadParameters.erase(parameter);
         sThreadMutex.unlock();
+        Log::addFormatted(Log::VERBOSE, THREAD_LOG_NAME, "Stopping thread : %s", mName.text());
+        mThread.join();
     }
 
     const char *Thread::currentName(int pTimeoutMilliseconds)
@@ -74,7 +72,7 @@ namespace ArcMist
         return result;
     }
 
-    void *Thread::currentParameter(int pTimeoutMilliseconds)
+    void *Thread::getParameter(int pTimeoutMilliseconds)
     {
         if(sMainThreadID == NULL)
             sMainThreadID = new std::thread::id(std::this_thread::get_id());
@@ -101,7 +99,10 @@ namespace ArcMist
         sThreadMutex.lock();
         std::map<std::thread::id, void *>::iterator parameter = sThreadParameters.find(currentID);
         if(parameter != sThreadParameters.end())
+        {
             result = parameter->second;
+            sThreadParameters.erase(parameter);
+        }
         sThreadMutex.unlock();
         return result;
     }
