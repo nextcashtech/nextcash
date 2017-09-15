@@ -1,3 +1,10 @@
+/**************************************************************************
+ * Copyright 2017 ArcMist, LLC                                            *
+ * Contributors :                                                         *
+ *   Curtis Ellis <curtis@arcmist.com>                                    *
+ * Distributed under the MIT software license, see the accompanying       *
+ * file license.txt or http://www.opensource.org/licenses/mit-license.php *
+ **************************************************************************/
 #include "digest.hpp"
 
 #include "arcmist/base/endian.hpp"
@@ -76,19 +83,19 @@ namespace ArcMist
             // XY v not(X) Z
             return (pX & pY) | (~pX & pZ);
         }
-        
+
         inline int g(int pX, int pY, int pZ)
         {
             // XZ v Y not(Z)
             return (pX & pZ) |(pY & ~pZ);
         }
-        
+
         inline int h(int pX, int pY, int pZ)
         {
             // X xor Y xor Z
             return (pX ^ pY) ^ pZ;
         }
-        
+
         inline int i(int pX, int pY, int pZ)
         {
             // Y xor(X v not(Z))
@@ -389,7 +396,7 @@ namespace ArcMist
     void Digest::sha1(InputStream *pInput, unsigned int pInputLength, OutputStream *pOutput) // 160 bit(20 byte) result
     {
         // Note 1: All variables are unsigned 32 bits and wrap modulo 232 when calculating
-        // Note 2: All constants in this pseudo code are in big endian. 
+        // Note 2: All constants in this pseudo code are in big endian.
         // Within each word, the most significant bit is stored in the leftmost bit position
 
         unsigned int dataSize = pInputLength + (64 - (pInputLength % 64));
@@ -617,7 +624,7 @@ namespace ArcMist
             ff(cc, dd, ee, aa, bb, pBlock[13],  7);
             ff(bb, cc, dd, ee, aa, pBlock[14],  9);
             ff(aa, bb, cc, dd, ee, pBlock[15],  8);
-                                     
+
             // Round 2
             gg(ee, aa, bb, cc, dd, pBlock[ 7],  7);
             gg(dd, ee, aa, bb, cc, pBlock[ 4],  6);
@@ -709,7 +716,7 @@ namespace ArcMist
             jjj(aaa, bbb, ccc, ddd, eee, pBlock[12],  6);
 
             // Parallel round 2
-            iii(eee, aaa, bbb, ccc, ddd, pBlock[ 6],  9); 
+            iii(eee, aaa, bbb, ccc, ddd, pBlock[ 6],  9);
             iii(ddd, eee, aaa, bbb, ccc, pBlock[11], 13);
             iii(ccc, ddd, eee, aaa, bbb, pBlock[ 3], 15);
             iii(bbb, ccc, ddd, eee, aaa, pBlock[ 7],  7);
@@ -1245,7 +1252,7 @@ namespace ArcMist
             mInput.read(mBlockData, lastBlockSize);
 
             SHA256::finish(mResultData, mBlockData, lastBlockSize, mByteCount);
-            
+
             // Compute SHA256 of result
             Digest secondSHA256(SHA256);
             secondSHA256.write(mResultData, 32);

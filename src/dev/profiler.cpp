@@ -1,3 +1,10 @@
+/**************************************************************************
+ * Copyright 2017 ArcMist, LLC                                            *
+ * Contributors :                                                         *
+ *   Curtis Ellis <curtis@arcmist.com>                                    *
+ * Distributed under the MIT software license, see the accompanying       *
+ * file license.txt or http://www.opensource.org/licenses/mit-license.php *
+ **************************************************************************/
 #include "profiler.hpp"
 
 #include <cstdlib>
@@ -20,7 +27,7 @@ namespace ArcMist
 
     ProfilerManager::ProfilerManager()
     {
-        
+
     }
 
     ProfilerManager::~ProfilerManager()

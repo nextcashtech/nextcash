@@ -1,3 +1,10 @@
+/**************************************************************************
+ * Copyright 2017 ArcMist, LLC                                            *
+ * Contributors :                                                         *
+ *   Curtis Ellis <curtis@arcmist.com>                                    *
+ * Distributed under the MIT software license, see the accompanying       *
+ * file license.txt or http://www.opensource.org/licenses/mit-license.php *
+ **************************************************************************/
 #include "stream.hpp"
 
 #include "arcmist/base/endian.hpp"
@@ -295,7 +302,7 @@ namespace ArcMist
             // Apply "b256 = b256 * 58 + match".
             i = 0;
             carry = match - Math::base58Codes;
-            
+
             for(std::vector<uint8_t>::reverse_iterator it = b256.rbegin(); (carry != 0 || i < length) && (it != b256.rend()); ++it, ++i)
             {
                 carry += 58 * (*it);

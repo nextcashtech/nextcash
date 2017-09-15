@@ -1,3 +1,10 @@
+/**************************************************************************
+ * Copyright 2017 ArcMist, LLC                                            *
+ * Contributors :                                                         *
+ *   Curtis Ellis <curtis@arcmist.com>                                    *
+ * Distributed under the MIT software license, see the accompanying       *
+ * file license.txt or http://www.opensource.org/licenses/mit-license.php *
+ **************************************************************************/
 #ifndef ARCMIST_STRING_HPP
 #define ARCMIST_STRING_HPP
 
@@ -59,7 +66,7 @@ namespace ArcMist
         char &operator[] (unsigned int pOffset)
         {
             return mData[pOffset];
-        }        
+        }
 
         void clear()
         {
@@ -166,12 +173,12 @@ namespace ArcMist
         char *mData;
 
     };
-    
+
     inline bool isLetter(char pChar)
     {
         return (pChar >= 'a' && pChar <= 'z') || (pChar >= 'A' && pChar <= 'Z');
     }
-    
+
     inline bool isWhiteSpace(char pChar)
     {
         return pChar == ' ' || pChar == '\t' || pChar == '\r' || pChar == '\n';

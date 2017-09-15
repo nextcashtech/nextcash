@@ -1,3 +1,10 @@
+/**************************************************************************
+ * Copyright 2017 ArcMist, LLC                                            *
+ * Contributors :                                                         *
+ *   Curtis Ellis <curtis@arcmist.com>                                    *
+ * Distributed under the MIT software license, see the accompanying       *
+ * file license.txt or http://www.opensource.org/licenses/mit-license.php *
+ **************************************************************************/
 #ifndef ARCMIST_LOG_HPP
 #define ARCMIST_LOG_HPP
 
@@ -14,10 +21,10 @@ namespace ArcMist
 
         static void setLevel(Level pLevel); // Defaults to INFO
         static void setOutput(OutputStream *pStream, bool pDeleteOnExit = false); // Defaults to std::cerr
-        
+
         // Set file path name for log file. Auto rolls every day
         static void setOutputFile(const char *pFilePathName);
-        
+
         // Set log file roll frequency. Only works after setOutputFile
         static void setRollFrequency(uint64_t pSeconds);
 

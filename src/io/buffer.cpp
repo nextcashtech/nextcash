@@ -1,3 +1,10 @@
+/**************************************************************************
+ * Copyright 2017 ArcMist, LLC                                            *
+ * Contributors :                                                         *
+ *   Curtis Ellis <curtis@arcmist.com>                                    *
+ * Distributed under the MIT software license, see the accompanying       *
+ * file license.txt or http://www.opensource.org/licenses/mit-license.php *
+ **************************************************************************/
 #include "buffer.hpp"
 
 #include "arcmist/base/endian.hpp"
@@ -59,7 +66,7 @@ namespace ArcMist
         if(mData != NULL)
             delete[] mData;
     }
-    
+
     const Buffer &Buffer::operator = (const Buffer &pRight)
     {
         clear();
@@ -236,7 +243,7 @@ namespace ArcMist
             return;
         }
 
-        
+
         std::memmove(mData, mData + mReadOffset, mEndOffset - mReadOffset);
         mEndOffset -= mReadOffset;
         mWriteOffset -= mReadOffset;
@@ -323,7 +330,7 @@ namespace ArcMist
             Log::add(Log::ERROR, ARCMIST_BUFFER_LOG_NAME, "Failed read hex string function");
             result = false;
         }
-        
+
         /******************************************************************************************
          * Test read hex string function little endian
          ******************************************************************************************/

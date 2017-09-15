@@ -1,3 +1,10 @@
+/**************************************************************************
+ * Copyright 2017 ArcMist, LLC                                            *
+ * Contributors :                                                         *
+ *   Curtis Ellis <curtis@arcmist.com>                                    *
+ * Distributed under the MIT software license, see the accompanying       *
+ * file license.txt or http://www.opensource.org/licenses/mit-license.php *
+ **************************************************************************/
 #ifndef ARCMIST_STREAM_HPP
 #define ARCMIST_STREAM_HPP
 
@@ -52,7 +59,7 @@ namespace ArcMist
 
         // Read binary data into hex text. Note: pOutput has to contain twice as many bytes as pByteCount
         void readAsHex(char *pOutput, unsigned int pSize);
-        
+
         // Create base 58 string from binary data
         String readBase58String(unsigned int pSize);
 

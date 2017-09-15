@@ -1,3 +1,10 @@
+/**************************************************************************
+ * Copyright 2017 ArcMist, LLC                                            *
+ * Contributors :                                                         *
+ *   Curtis Ellis <curtis@arcmist.com>                                    *
+ * Distributed under the MIT software license, see the accompanying       *
+ * file license.txt or http://www.opensource.org/licenses/mit-license.php *
+ **************************************************************************/
 #include "log.hpp"
 
 #include "arcmist/base/thread.hpp"
@@ -24,7 +31,7 @@ namespace ArcMist
 
         return *mInstance;
     }
-    
+
     void rollFile(const char *pFilePathName)
     {
         if(!fileExists(pFilePathName))
@@ -36,7 +43,7 @@ namespace ArcMist
         std::time(&rawtime);
         timeinfo = std::localtime(&rawtime);
         std::strftime(dateTimeString, 64, "%Y%m%d.%H%M", timeinfo);
-        
+
         String newFilePathName;
         const char *lastDot = NULL;
         const char *ptr = pFilePathName;
@@ -124,12 +131,12 @@ namespace ArcMist
     {
         log().internalSetOutput(pStream, pDeleteOnExit);
     }
-    
+
     void Log::setOutputFile(const char *pFilePathName)
     {
         log().internalSetOutputFile(pFilePathName);
     }
-    
+
     void Log::setRollFrequency(uint64_t pSeconds)
     {
         log().internalSetRollFrequency(pSeconds);
@@ -167,19 +174,19 @@ namespace ArcMist
         mUseColor = false;
         roll();
     }
-    
+
     inline void startForegroundColor(OutputStream *pStream, unsigned int pColor)
     {
         pStream->writeByte(0x1b);
         pStream->writeFormatted("[38;5;%dm", pColor);
     }
-    
+
     inline void startBackgroundColor(OutputStream *pStream, unsigned int pColor)
     {
         pStream->writeByte(0x1b);
         pStream->writeFormatted("[48;5;%dm", pColor);
     }
-    
+
     inline void endColor(OutputStream *pStream)
     {
         pStream->writeByte(0x1b);
