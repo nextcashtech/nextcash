@@ -14,7 +14,7 @@ namespace ArcMist
 {
     ProfilerManager *ProfilerManager::mInstance = 0;
 
-    ProfilerManager &ProfilerManager::manager()
+    ProfilerManager &ProfilerManager::instance()
     {
         if(!mInstance)
         {
@@ -32,12 +32,8 @@ namespace ArcMist
 
     ProfilerManager::~ProfilerManager()
     {
-        std::vector<Profiler *>::iterator iter = profilers.begin(), endIter = profilers.end();
-        while(iter != endIter)
-        {
+        for(std::vector<ProfilerData *>::iterator iter = mProfilers.begin();iter!=mProfilers.end();++iter)
             delete *iter;
-            iter++;
-        }
     }
 
     void ProfilerManager::destroy()
@@ -46,23 +42,18 @@ namespace ArcMist
             delete mInstance;
     }
 
-    void Profiler::write(OutputStream *pStream)
+    void ProfilerData::write(OutputStream *pStream)
     {
         pStream->writeFormatted("  %-32s %12d %9.6f %9.6f\n", name, hits, seconds, seconds / (float)hits);
     }
 
     void ProfilerManager::write(OutputStream *pStream)
     {
-        ProfilerManager &theManager = manager();
-
         pStream->writeString("Profiler:\n");
         pStream->writeString("  Name                                     Hits      Time       Avg\n");
 
-        std::vector<Profiler *>::iterator iter = theManager.profilers.begin(), endIter = theManager.profilers.end();
-        while(iter != endIter)
-        {
+        std::vector<ProfilerData *> &profilers = instance().mProfilers;
+        for(std::vector<ProfilerData *>::iterator iter = profilers.begin();iter!=profilers.end();++iter)
             (*iter)->write(pStream);
-            iter++;
-        }
     }
 }

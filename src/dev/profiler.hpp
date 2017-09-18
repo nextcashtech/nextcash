@@ -17,11 +17,12 @@
 
 namespace ArcMist
 {
-    class Profiler
+
+    class ProfilerData
     {
     public:
 
-        Profiler(const char *pName) : hits(0), seconds(0.0f)
+        ProfilerData(const char *pName) : hits(0), seconds(0.0f)
         {
             name = pName;
         }
@@ -47,11 +48,19 @@ namespace ArcMist
     {
     public:
 
-        static Profiler &profiler(const char *pName)
+        static ProfilerData *profilerData(const char *pName)
         {
-            return manager().profilerLookup(pName);
+            std::vector<ProfilerData *> &profilers = instance().mProfilers;
+            for(std::vector<ProfilerData *>::iterator iter = profilers.begin();iter!=profilers.end();++iter)
+                if(std::strcmp((*iter)->name, pName) == 0)
+                    return *iter;
+
+            ProfilerData *newProfiler = new ProfilerData(pName);
+            profilers.push_back(newProfiler);
+            return newProfiler;
         }
 
+        // Write text results that were collected by profiler
         static void write(OutputStream *pStream);
 
     private:
@@ -62,24 +71,27 @@ namespace ArcMist
         ProfilerManager();
         ~ProfilerManager();
 
-        Profiler &profilerLookup(const char *pName)
-        {
-            std::vector<Profiler *>::iterator iter = profilers.begin(), endIter = profilers.end();
-            while(iter != endIter)
-            {
-                if(std::strcmp((*iter)->name, pName) == 0)
-                    return **iter;
-                iter++;
-            }
+        static ProfilerManager &instance();
 
-            Profiler *newProfiler = new Profiler(pName);
-            profilers.push_back(newProfiler);
-            return *newProfiler;
+        std::vector<ProfilerData *> mProfilers;
+    };
+
+    class Profiler
+    {
+    public:
+        Profiler(const char *pName)
+        {
+            mData = ProfilerManager::profilerData(pName);
+            mData->start();
+        }
+        ~Profiler()
+        {
+            mData->stop();
         }
 
-        static ProfilerManager &manager();
+    private:
+        ProfilerData *mData;
 
-        std::vector<Profiler *> profilers;
     };
 }
 
