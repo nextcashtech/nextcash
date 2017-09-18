@@ -33,7 +33,7 @@ namespace ArcMist
         if(pParameter != NULL)
             sThreadParameters[mThread.get_id()] = pParameter;
         sThreadMutex.unlock();
-        Log::addFormatted(Log::VERBOSE, THREAD_LOG_NAME, "Started thread : %s", mName.text());
+        Log::addFormatted(Log::DEBUG, THREAD_LOG_NAME, "Started thread : %s", mName.text());
     }
 
     Thread::~Thread()
@@ -43,7 +43,7 @@ namespace ArcMist
         if(name != sThreadNames.end())
             sThreadNames.erase(name);
         sThreadMutex.unlock();
-        Log::addFormatted(Log::VERBOSE, THREAD_LOG_NAME, "Stopping thread : %s", mName.text());
+        Log::addFormatted(Log::DEBUG, THREAD_LOG_NAME, "Stopping thread : %s", mName.text());
         mThread.join();
     }
 
