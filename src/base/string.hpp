@@ -93,6 +93,9 @@ namespace ArcMist
             return *this;
         }
 
+        // Uses local time
+        void writeFormattedTime(time_t pTime, const char *pFormat = "%F %T"); // YYYY-MM-DD HH:MM::SS
+
         /*******************************************************************************************
          * Compare/Evaluate Operators
          ******************************************************************************************/

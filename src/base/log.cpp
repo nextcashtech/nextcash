@@ -37,13 +37,8 @@ namespace ArcMist
         if(!fileExists(pFilePathName))
             return;
 
-        time_t rawtime;
-        struct tm *timeinfo;
-        char *dateTimeString = new char[64];
-        std::time(&rawtime);
-        timeinfo = std::localtime(&rawtime);
-        std::strftime(dateTimeString, 64, "%Y%m%d.%H%M", timeinfo);
-
+        String dateTimeString;
+        dateTimeString.writeFormattedTime(std::time(NULL), "%Y%m%d.%H%M");
         String newFilePathName;
         const char *lastDot = NULL;
         const char *ptr = pFilePathName;
@@ -212,12 +207,8 @@ namespace ArcMist
             return false;
 
         // Output data/time stamp
-        time_t rawtime;
-        struct tm *timeinfo;
-        char *dateTimeString = new char[64];
-        std::time(&rawtime);
-        timeinfo = std::localtime(&rawtime);
-        std::strftime(dateTimeString, 64, mDateTimeFormat, timeinfo);
+        String dateTimeString;
+        dateTimeString.writeFormattedTime(std::time(NULL), mDateTimeFormat);
         unsigned int entryColor = WHITE;
 
         lock();
@@ -231,7 +222,6 @@ namespace ArcMist
         if(mUseColor)
             mStream->writeString("\033[0m");
         mStream->writeByte(' ');
-        delete[] dateTimeString;
 
         // Output entry level
         switch(pLevel)

@@ -266,6 +266,16 @@ namespace ArcMist
             mData[offset++] = Math::base58Codes[*(it++)];
     }
 
+    void String::writeFormattedTime(time_t pTime, const char *pFormat)
+    {
+        clear();
+        mData = new char[64];
+
+        struct tm *timeinfo;
+        timeinfo = std::localtime(&pTime);
+        std::strftime(mData, 64, pFormat, timeinfo);
+    }
+
     bool String::test()
     {
         bool result = true;
@@ -606,6 +616,22 @@ namespace ArcMist
         else
         {
             Log::addFormatted(Log::ERROR, ARCMIST_STRING_LOG_NAME, "Failed base58 test 3 : %s", base58.text());
+            result = false;
+        }
+
+        /******************************************************************************************
+         * Format time
+         ******************************************************************************************/
+        uint32_t testTime = 306250788;
+        String testTimeString;
+        testTimeString.writeFormattedTime(testTime);
+
+        if(testTimeString == "1979-09-15 07:39:48")
+            Log::addFormatted(Log::INFO, ARCMIST_STRING_LOG_NAME, "Passed format time : %s", testTimeString.text());
+        else
+        {
+            Log::addFormatted(Log::ERROR, ARCMIST_STRING_LOG_NAME,
+              "Failed format time : %s != 1979-09-15 07:39:48", testTimeString.text());
             result = false;
         }
 
