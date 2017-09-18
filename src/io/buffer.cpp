@@ -27,12 +27,14 @@ namespace ArcMist
         mWriteOffset = 0;
         mEndOffset = 0;
         mAutoFlush = true;
+        mSharing = false;
     }
 
     Buffer::Buffer(const Buffer &pCopy)
     {
         mSize = 0;
         mData = NULL;
+        mSharing = false;
         *this = pCopy;
     }
 
@@ -59,19 +61,20 @@ namespace ArcMist
         mWriteOffset = 0;
         mEndOffset = 0;
         mAutoFlush = true;
+        mSharing = false;
     }
 
     Buffer::~Buffer()
     {
-        if(mData != NULL)
+        if(mData != NULL && !mSharing)
             delete[] mData;
     }
 
     const Buffer &Buffer::operator = (const Buffer &pRight)
     {
         clear();
-        mSize = pRight.mSize;
-        if(pRight.mSize > 0)
+        mSize = pRight.mEndOffset;
+        if(mSize > 0)
         {
             mData = new uint8_t[mSize];
             std::memcpy(mData, pRight.mData, pRight.mEndOffset);
@@ -82,6 +85,7 @@ namespace ArcMist
         mWriteOffset = pRight.mWriteOffset;
         mEndOffset = pRight.mEndOffset;
         mAutoFlush = pRight.mAutoFlush;
+        mSharing = false;
         return *this;
     }
 
@@ -102,6 +106,9 @@ namespace ArcMist
         if(pSize == 0)
             return;
 
+        if(mSharing)
+            unShare();
+
         if(mData == NULL || mSize - mWriteOffset < pSize)
             reallocate(pSize);
 
@@ -109,6 +116,33 @@ namespace ArcMist
         mWriteOffset += pSize;
         if(mWriteOffset > mEndOffset)
             mEndOffset = mWriteOffset;
+    }
+
+    // Reuse the memory of the other buffer.
+    //   Only use this function when the pInput buffer will not change until after this buffer is done
+    void Buffer::copyBuffer(Buffer &pInput, unsigned int pSize)
+    {
+        clear();
+        mSharing = true;
+        mData = pInput.mData + pInput.mReadOffset;
+        mSize = pSize;
+        mReadOffset = 0;
+        mWriteOffset = pSize;
+        mEndOffset = pSize;
+        pInput.mReadOffset += pSize;
+    }
+
+    // The same as writeStream except allocates exactly enough memory and no extra
+    void Buffer::writeStreamCompact(InputStream &pInput, unsigned int pSize)
+    {
+        clear();
+        mData = new uint8_t[pSize];
+        pInput.read(mData, pSize);
+        mSize = pSize;
+        mReadOffset = 0;
+        mWriteOffset = pSize;
+        mEndOffset = pSize;
+        mSharing = false;
     }
 
     void Buffer::moveReadOffset(int pOffset)
@@ -131,6 +165,8 @@ namespace ArcMist
     {
         if(mData == NULL)
             return;
+        if(mSharing)
+            unShare();
 
         std::memset(mData, 0, mSize);
     }
@@ -142,14 +178,30 @@ namespace ArcMist
         mEndOffset = 0;
         if(mData)
         {
-            delete[] mData;
+            if(!mSharing)
+                delete[] mData;
             mData = NULL;
             mSize = 0;
         }
+        mSharing = false;
+    }
+
+    void Buffer::unShare()
+    {
+        if(mData == NULL || !mSharing)
+            return;
+
+        uint8_t *newData = new uint8_t[mSize];
+        std::memcpy(newData, mData, mSize);
+        mData = newData;
+        mSharing = false;
     }
 
     void Buffer::compact()
     {
+        if(mSharing)
+            unShare();
+
         if(mData == NULL)
             return; // Empty
 
@@ -189,6 +241,9 @@ namespace ArcMist
 
     void Buffer::setSize(unsigned int pSize)
     {
+        if(mSharing)
+            unShare();
+
         if(mSize >= pSize)
             return; // Already big enough
 
@@ -230,6 +285,9 @@ namespace ArcMist
     // Flush any read bytes
     void Buffer::flush()
     {
+        if(mSharing)
+            unShare();
+
         if(mReadOffset == 0)
             return;
 
@@ -253,6 +311,9 @@ namespace ArcMist
     // Reallocate to have at least pSize bytes additional memory
     void Buffer::reallocate(unsigned int pSize)
     {
+        if(mSharing)
+            unShare();
+
         // Allocate new memory
         unsigned int usedBytes;
         unsigned int newSize = mSize;

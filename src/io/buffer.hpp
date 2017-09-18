@@ -52,6 +52,13 @@ namespace ArcMist
         void compact(); // Reduce memory footprint. Flush first if you want to remove read data
         void setSize(unsigned int pSize);
 
+        // Reuse the memory of the other buffer.
+        //   Only use this function when the pInput buffer will not change until after this buffer is done
+        void copyBuffer(Buffer &pInput, unsigned int pSize);
+
+        // The same as writeStream except allocates exactly enough memory and no extra
+        void writeStreamCompact(InputStream &pInput, unsigned int pSize);
+
         const Buffer &operator = (const Buffer &pRight);
 
         bool operator == (Buffer &pRight) const
@@ -78,6 +85,10 @@ namespace ArcMist
         uint8_t *mData;
         unsigned int mSize, mReadOffset, mWriteOffset, mEndOffset;
         bool mAutoFlush;
+        bool mSharing;
+
+        // Copy data to unshared memory
+        void unShare();
 
         void reallocate(unsigned int pSize);
     };
