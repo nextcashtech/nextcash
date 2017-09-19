@@ -244,20 +244,25 @@ namespace ArcMist
         if(mSharing)
             unShare();
 
-        if(mSize >= pSize)
+        if(mSize - mReadOffset >= pSize)
             return; // Already big enough
 
         if(mEndOffset == 0)
         {
+            // No data in buffer
             delete[] mData;
             mData = NULL;
         }
 
         // Allocate and populate new memory
         uint8_t *newData = NULL;
+        unsigned newSize = pSize;
+        if(!mAutoFlush)
+            newSize += mReadOffset;
+
         try
         {
-            newData = new uint8_t[pSize];
+            newData = new uint8_t[newSize];
         }
         catch(std::bad_alloc &pBadAlloc)
         {
@@ -272,14 +277,23 @@ namespace ArcMist
 
         if(mData != NULL)
         {
-            std::memcpy(newData, mData, mEndOffset);
+            // Flush read data
+            if(mAutoFlush)
+            {
+                mEndOffset -= mReadOffset;
+                std::memcpy(newData, mData + mReadOffset, mEndOffset);
+                mWriteOffset -= mReadOffset;
+                mReadOffset = 0;
+            }
+            else
+                std::memcpy(newData, mData, mEndOffset);
 
             // Remove and replace old memory
             delete[] mData;
         }
 
         mData = newData;
-        mSize = pSize;
+        mSize = newSize;
     }
 
     // Flush any read bytes

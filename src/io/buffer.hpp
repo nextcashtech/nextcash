@@ -50,7 +50,7 @@ namespace ArcMist
         void zeroize();
         void clear(); // Clear all data
         void compact(); // Reduce memory footprint. Flush first if you want to remove read data
-        void setSize(unsigned int pSize);
+        void setSize(unsigned int pSize); // Sets the allocated memory size (flushes if readOffset is not zero and autoFlush is true)
 
         // Reuse the memory of the other buffer.
         //   Only use this function when the pInput buffer will not change until after this buffer is done
