@@ -40,7 +40,7 @@ namespace ArcMist
 
             if((errorCode = getaddrinfo(pName, 0, &hintAddress, &addressInfo)) != 0)
             {
-                Log::addFormatted(Log::ERROR, NETWORK_LOG_NAME, "Get Address Info : %s", gai_strerror(errorCode));
+                Log::addFormatted(Log::VERBOSE, NETWORK_LOG_NAME, "Get Address Info : %s", gai_strerror(errorCode));
                 return false;
             }
 
@@ -188,7 +188,7 @@ namespace ArcMist
 
                 if((mSocketID = ::socket(AF_INET, SOCK_STREAM, 6)) == -1)
                 {
-                    Log::addFormatted(Log::ERROR, NETWORK_LOG_NAME, "Socket failed : %s", std::strerror(errno));
+                    Log::addFormatted(Log::VERBOSE, NETWORK_LOG_NAME, "Socket failed : %s", std::strerror(errno));
                     return false;
                 }
 
@@ -196,7 +196,7 @@ namespace ArcMist
 
                 if(connect(mSocketID, (const sockaddr *)&address, sizeof(address)) == -1)
                 {
-                    Log::addFormatted(Log::ERROR, NETWORK_LOG_NAME, "Connect failed : %s", std::strerror(errno));
+                    Log::addFormatted(Log::VERBOSE, NETWORK_LOG_NAME, "Connect failed : %s", std::strerror(errno));
                     ::close(mSocketID);
                     mSocketID = -1;
                     return false;
@@ -221,7 +221,7 @@ namespace ArcMist
 
                 if((mSocketID = ::socket(AF_INET6, SOCK_STREAM, 6)) == -1)
                 {
-                    Log::addFormatted(Log::ERROR, NETWORK_LOG_NAME, "Socket failed : %s", std::strerror(errno));
+                    Log::addFormatted(Log::VERBOSE, NETWORK_LOG_NAME, "Socket failed : %s", std::strerror(errno));
                     return false;
                 }
 
@@ -229,7 +229,7 @@ namespace ArcMist
 
                 if(connect(mSocketID, (const sockaddr *)&address, sizeof(address)) == -1)
                 {
-                    Log::addFormatted(Log::ERROR, NETWORK_LOG_NAME, "Connect failed : %s", std::strerror(errno));
+                    Log::addFormatted(Log::VERBOSE, NETWORK_LOG_NAME, "Connect failed : %s", std::strerror(errno));
                     ::close(mSocketID);
                     mSocketID = -1;
                     return false;
@@ -265,7 +265,7 @@ namespace ArcMist
 
             if((errorCode = getaddrinfo(pIPAddress, pPort, &hintAddress, &addressInfo)) != 0)
             {
-                Log::addFormatted(Log::ERROR, NETWORK_LOG_NAME, "Get Address Info : %s", gai_strerror(errorCode));
+                Log::addFormatted(Log::VERBOSE, NETWORK_LOG_NAME, "Get Address Info : %s", gai_strerror(errorCode));
                 return false;
             }
 
@@ -337,10 +337,10 @@ namespace ArcMist
             {
                 mSocketID = -1;
                 if(mType == AF_INET)
-                    Log::addFormatted(Log::ERROR, NETWORK_LOG_NAME, "Failed to connect to IPv4 %s : %d - %s", mIPv4Address,
+                    Log::addFormatted(Log::VERBOSE, NETWORK_LOG_NAME, "Failed to connect to IPv4 %s : %d - %s", mIPv4Address,
                       mPort, std::strerror(errno));
                 else
-                    Log::addFormatted(Log::ERROR, NETWORK_LOG_NAME, "Failed to connect to IPv6 %s : %d - %s", mIPv6Address,
+                    Log::addFormatted(Log::VERBOSE, NETWORK_LOG_NAME, "Failed to connect to IPv6 %s : %d - %s", mIPv6Address,
                       mPort, std::strerror(errno));
                 return false;
             }
@@ -390,7 +390,7 @@ namespace ArcMist
         {
             if(mSocketID == -1)
             {
-                Log::add(Log::ERROR, NETWORK_LOG_NAME, "Receive failed : socket closed");
+                Log::add(Log::VERBOSE, NETWORK_LOG_NAME, "Receive failed : socket closed");
                 return false;
             }
 
@@ -405,7 +405,7 @@ namespace ArcMist
                 //Log::add(Log::VERBOSE, NETWORK_LOG_NAME, "Failed Receive");
                 if(errno != 11) // Resource temporarily unavailable because of MSG_DONTWAIT
                 {
-                    Log::addFormatted(Log::ERROR, NETWORK_LOG_NAME, "[%d] Receive failed : %s", mSocketID, std::strerror(errno));
+                    Log::addFormatted(Log::VERBOSE, NETWORK_LOG_NAME, "[%d] Receive failed : %s", mSocketID, std::strerror(errno));
                     close();
                 }
                 return 0;
@@ -423,7 +423,7 @@ namespace ArcMist
         {
             if(mSocketID == -1)
             {
-                Log::add(Log::ERROR, NETWORK_LOG_NAME, "Send failed : socket closed");
+                Log::add(Log::VERBOSE, NETWORK_LOG_NAME, "Send failed : socket closed");
                 return false;
             }
 
@@ -441,7 +441,7 @@ namespace ArcMist
                 if(::send(mSocketID, (char *)mBuffer, length, 0) == -1)
                 {
                     //Log::add(Log::VERBOSE, NETWORK_LOG_NAME, "Failed Send");
-                    Log::addFormatted(Log::ERROR, NETWORK_LOG_NAME, "[%d] Send of %d bytes failed : %s",
+                    Log::addFormatted(Log::VERBOSE, NETWORK_LOG_NAME, "[%d] Send of %d bytes failed : %s",
                       mSocketID, length, std::strerror(errno));
                     close();
                     return false;
@@ -569,7 +569,7 @@ namespace ArcMist
                     newSocketID = ::accept(mSocketID, (struct sockaddr *)&peerAddress, &peerAddressSize);
                     if(newSocketID < 0)
                     {
-                        Log::addFormatted(Log::ERROR, NETWORK_LOG_NAME, "Listener accept failed : %s", std::strerror(errno));
+                        Log::addFormatted(Log::VERBOSE, NETWORK_LOG_NAME, "Listener accept failed : %s", std::strerror(errno));
                         success = false;
                     }
                     else
