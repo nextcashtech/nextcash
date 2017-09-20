@@ -43,6 +43,7 @@ namespace ArcMist
         static void ripEMD160(InputStream *pInput, unsigned int pInputLength, OutputStream *pOutput);  // 160 bit(20 bytes) result
         static void sha256(InputStream *pInput, unsigned int pInputLength, OutputStream *pOutput);  // 256 bit(32 bytes) result
         //TODO fix endian issues //static void sha512(InputStream *pInput, unsigned int pInputLength, OutputStream *pOutput);  // 512 bit(64 bytes) result
+        static uint64_t sipHash24(uint8_t *pData, unsigned int pLength, uint64_t pKey0, uint64_t pKey1);
 
         // Virtual overloaded functions
         unsigned int writeOffset() const { return mByteCount; }
