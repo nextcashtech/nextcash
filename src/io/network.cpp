@@ -170,14 +170,22 @@ namespace ArcMist
             {
                 mPort = pPort;
                 if(pFamily == AF_INET6)
+                {
                     std::memcpy(mIPv4, pIP + 12, INET_ADDRLEN);
+                    std::memcpy(mIPv6, pIP, INET6_ADDRLEN);
+                }
                 else
+                {
                     std::memcpy(mIPv4, pIP, INET_ADDRLEN);
-                inet_ntop(AF_INET, mIPv4, mIPv4Address, INET_ADDRSTRLEN);
 
-                // Copy to IPv6 bytes as IPv4 mapped to IPv6
-                std::memset(mIPv6 + INET6_ADDRLEN - INET_ADDRLEN - 2, 0xff, 2);
-                std::memcpy(mIPv6 + INET6_ADDRLEN - INET_ADDRLEN, mIPv4, INET_ADDRLEN);
+                    // Copy to IPv6 bytes as IPv4 mapped to IPv6
+                    std::memset(mIPv6 + INET6_ADDRLEN - INET_ADDRLEN - 2, 0xff, 2);
+                    std::memcpy(mIPv6 + INET6_ADDRLEN - INET_ADDRLEN, mIPv4, INET_ADDRLEN);
+                }
+
+                // Convert to text IPs for both formats
+                inet_ntop(AF_INET, mIPv4, mIPv4Address, INET_ADDRSTRLEN);
+                inet_ntop(AF_INET6, mIPv6, mIPv6Address, INET6_ADDRSTRLEN);
 
                 Log::addFormatted(Log::INFO, NETWORK_LOG_NAME, "Attempting IPv4 connection to %s : %d", mIPv4Address, mPort);
 
@@ -329,6 +337,7 @@ namespace ArcMist
             {
                 std::memset(mIPv6 + INET6_ADDRLEN - INET_ADDRLEN - 2, 0xff, 2);
                 std::memcpy(mIPv6 + INET6_ADDRLEN - INET_ADDRLEN, mIPv4, INET_ADDRLEN);
+                inet_ntop(testAddress->ai_family, mIPv6, mIPv6Address, INET6_ADDRSTRLEN);
             }
 
             freeaddrinfo(addressInfo);
