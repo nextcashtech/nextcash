@@ -276,6 +276,44 @@ namespace ArcMist
         std::strftime(mData, 64, pFormat, timeinfo);
     }
 
+    bool String::writeFormatted(const char *pFormatting, ...)
+    {
+        va_list args;
+        va_start(args, pFormatting);
+        bool result = writeFormattedList(pFormatting, args);
+        va_end(args);
+        return result;
+    }
+
+    bool String::writeFormattedList(const char *pFormatting, va_list &pList)
+    {
+        clear();
+
+        // Get size
+        va_list args;
+        va_copy(args, pList);
+        int size = vsnprintf(NULL, 0, pFormatting, args);
+        va_end(args);
+        if(size < 0)
+        {
+            Log::error(ARCMIST_STRING_LOG_NAME, "Text formatting failed");
+            return false;
+        }
+
+        mData = new char[size + 1];
+        int actualSize = vsnprintf(mData, size + 1, pFormatting, pList);
+
+        if(actualSize < 0)
+        {
+            Log::error(ARCMIST_STRING_LOG_NAME, "Text formatting failed");
+            delete[] mData;
+            mData = NULL;
+            return false;
+        }
+
+        return true;
+    }
+
     bool String::test()
     {
         bool result = true;
@@ -632,6 +670,21 @@ namespace ArcMist
         {
             Log::addFormatted(Log::ERROR, ARCMIST_STRING_LOG_NAME,
               "Failed format time : %s != 1979-09-15 07:39:48", testTimeString.text());
+            result = false;
+        }
+
+        /******************************************************************************************
+         * Format text
+         ******************************************************************************************/
+        String formatText;
+        formatText.writeFormatted("Test %d %s", 512, "sample");
+
+        if(formatText == "Test 512 sample")
+            Log::addFormatted(Log::INFO, ARCMIST_STRING_LOG_NAME, "Passed format text : %s", formatText.text());
+        else
+        {
+            Log::addFormatted(Log::ERROR, ARCMIST_STRING_LOG_NAME,
+              "Failed format text : %s != Test 512 sample", formatText.text());
             result = false;
         }
 

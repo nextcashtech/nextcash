@@ -11,6 +11,7 @@
 #include "math.hpp"
 
 #include <cstring>
+#include <cstdarg>
 
 #define ARCMIST_STRING_LOG_NAME "String"
 
@@ -95,6 +96,10 @@ namespace ArcMist
 
         // Uses local time
         void writeFormattedTime(time_t pTime, const char *pFormat = "%F %T"); // YYYY-MM-DD HH:MM::SS
+
+        // Write with printf formatting codes
+        bool writeFormatted(const char *pFormatting, ...);
+        bool writeFormattedList(const char *pFormatting, va_list &pList);
 
         /*******************************************************************************************
          * Compare/Evaluate Operators

@@ -347,25 +347,31 @@ namespace ArcMist
 
     unsigned int OutputStream::writeFormattedList(const char *pFormatting, va_list &pList)
     {
-        char *entry = new char[512];
-        int actualSize = vsnprintf(entry, 512, pFormatting, pList);
-        unsigned int result = 0;
+        va_list args;
+        va_copy(args, pList);
+        int size = vsnprintf(NULL, 0, pFormatting, args);
+        va_end(args);
 
-        if(actualSize > 512)
+        if(size < 0)
         {
-            delete[] entry;
-            entry = new char[actualSize + 1];
-            actualSize = vsnprintf(entry, actualSize + 1, pFormatting, pList);
+            Log::error(STREAM_LOG_NAME, "Text formatting failed");
+            return 0;
         }
 
+        char *entry = new char[size + 1];
+        int actualSize = vsnprintf(entry, size + 1, pFormatting, pList);
+
         if(actualSize < 0)
+        {
             Log::error(STREAM_LOG_NAME, "Text formatting failed");
+            delete[] entry;
+            return 0;
+        }
         else
         {
             write((const uint8_t *)entry, actualSize);
-            result = actualSize;
+            delete[] entry;
+            return actualSize;
         }
-        delete[] entry;
-        return result;
     }
 }
