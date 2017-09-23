@@ -268,6 +268,24 @@ namespace ArcMist
                     endColor(mStream);
                 mStream->writeByte('\t');
                 break;
+            case NOTIFICATION:
+                if(mUseColor)
+                    startForegroundColor(mStream, ORANGE);
+                entryColor = ORANGE;
+                mStream->writeString("NOTIFICATION");
+                if(mUseColor)
+                    endColor(mStream);
+                mStream->writeByte('\t');
+                break;
+            case CRITICAL:
+                if(mUseColor)
+                    startForegroundColor(mStream, RED);
+                entryColor = RED;
+                mStream->writeString("CRITICAL");
+                if(mUseColor)
+                    endColor(mStream);
+                mStream->writeByte('\t');
+                break;
             default:
                 mStream->writeByte('\t');
                 break;

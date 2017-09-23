@@ -31,6 +31,8 @@ int main(int pArgumentCount, char **pArguments)
     ArcMist::Log::add(ArcMist::Log::INFO, "Test", "Info Color Test");
     ArcMist::Log::add(ArcMist::Log::WARNING, "Test", "Warning Color Test");
     ArcMist::Log::add(ArcMist::Log::ERROR, "Test", "Error Color Test");
+    ArcMist::Log::add(ArcMist::Log::NOTIFICATION, "Test", "Notification Color Test");
+    ArcMist::Log::add(ArcMist::Log::CRITICAL, "Test", "Critical Color Test");
 
     if(failed)
         return 1;
