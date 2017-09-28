@@ -82,7 +82,7 @@ namespace ArcMist
         char *writeAddress(unsigned int pLength);
 
         void writeHex(const void *pData, unsigned int pSize);
-
+        void writeReverseHex(const void *pData, unsigned int pSize);
         void writeBase58(const void *pData, unsigned int pSize);
 
         // Append a file system path seperator and then path part to the string

@@ -188,13 +188,51 @@ namespace ArcMist
         }
 
         mData[pSize * 2] = 0;
-        const char *hexByte;
 
-        for(unsigned int i=0;i<pSize;i++)
+        const char *hexByte;
+        char *hexChar = mData;
+        uint8_t *byte = (uint8_t *)pData;
+
+        for(unsigned int i=0;i<pSize;++i)
         {
-            hexByte = Math::byteToHex[((uint8_t *)pData)[i]];
-            mData[i*2] = hexByte[0];
-            mData[(i*2) + 1] = hexByte[1];
+            hexByte = Math::byteToHex[*byte];
+            *hexChar++ = hexByte[0];
+            *hexChar++ = hexByte[1];
+            ++byte;
+        }
+    }
+
+    void String::writeReverseHex(const void *pData, unsigned int pSize)
+    {
+        clear();
+        mData = NULL;
+        try
+        {
+            mData = new char[(pSize * 2) + 1];
+        }
+        catch(std::bad_alloc &pBadAlloc)
+        {
+            ArcMist::Log::addFormatted(ArcMist::Log::ERROR, ARCMIST_STRING_LOG_NAME, "Bad allocation : %s", pBadAlloc.what());
+            return;
+        }
+        catch(...)
+        {
+            ArcMist::Log::add(ArcMist::Log::ERROR, ARCMIST_STRING_LOG_NAME, "Bad allocation : unknown");
+            return;
+        }
+
+        mData[pSize * 2] = 0;
+
+        const char *hexByte;
+        char *hexChar = mData;
+        uint8_t *byte = ((uint8_t *)pData) + pSize - 1;
+
+        while(byte >= pData)
+        {
+            hexByte = Math::byteToHex[*byte];
+            *hexChar++ = hexByte[0];
+            *hexChar++ = hexByte[1];
+            --byte;
         }
     }
 
