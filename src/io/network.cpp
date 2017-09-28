@@ -187,7 +187,7 @@ namespace ArcMist
                 inet_ntop(AF_INET, mIPv4, mIPv4Address, INET_ADDRSTRLEN);
                 inet_ntop(AF_INET6, mIPv6, mIPv6Address, INET6_ADDRSTRLEN);
 
-                Log::addFormatted(Log::INFO, NETWORK_LOG_NAME, "Attempting IPv4 connection to %s : %d", mIPv4Address, mPort);
+                Log::addFormatted(Log::DEBUG, NETWORK_LOG_NAME, "Attempting IPv4 connection to %s : %d", mIPv4Address, mPort);
 
                 struct sockaddr_in address;
                 address.sin_family = AF_INET;
@@ -218,7 +218,7 @@ namespace ArcMist
                 mPort = pPort;
                 std::memcpy(mIPv6, pIP, INET6_ADDRLEN);
                 inet_ntop(AF_INET6, mIPv6, mIPv6Address, INET6_ADDRSTRLEN);
-                Log::addFormatted(Log::INFO, NETWORK_LOG_NAME, "Attempting IPv6 connection to %s : %d", mIPv6Address, mPort);
+                Log::addFormatted(Log::DEBUG, NETWORK_LOG_NAME, "Attempting IPv6 connection to %s : %d", mIPv6Address, mPort);
 
                 struct sockaddr_in6 address;
                 address.sin6_family = AF_INET6;
@@ -269,11 +269,11 @@ namespace ArcMist
             hintAddress.ai_family = AF_UNSPEC;
             hintAddress.ai_socktype = SOCK_STREAM;
 
-            Log::addFormatted(Log::VERBOSE, NETWORK_LOG_NAME, "Looking up %s : %s", pIPAddress, pPort);
+            Log::addFormatted(Log::DEBUG, NETWORK_LOG_NAME, "Looking up %s : %s", pIPAddress, pPort);
 
             if((errorCode = getaddrinfo(pIPAddress, pPort, &hintAddress, &addressInfo)) != 0)
             {
-                Log::addFormatted(Log::VERBOSE, NETWORK_LOG_NAME, "Get Address Info : %s", gai_strerror(errorCode));
+                Log::addFormatted(Log::VERBOSE, NETWORK_LOG_NAME, "Failed to get address info : %s", gai_strerror(errorCode));
                 return false;
             }
 
@@ -284,14 +284,14 @@ namespace ArcMist
                     mPort = Endian::convert(((struct sockaddr_in6*)testAddress->ai_addr)->sin6_port, Endian::BIG);
                     std::memcpy(mIPv6, (((struct sockaddr_in6*)testAddress->ai_addr)->sin6_addr.s6_addr), INET6_ADDRLEN);
                     inet_ntop(testAddress->ai_family, mIPv6, mIPv6Address, INET6_ADDRSTRLEN);
-                    Log::addFormatted(Log::VERBOSE, NETWORK_LOG_NAME, "Address found IPv6 %s : %d", mIPv6Address, mPort);
+                    Log::addFormatted(Log::DEBUG, NETWORK_LOG_NAME, "Address found IPv6 %s : %d", mIPv6Address, mPort);
                 }
                 else if(testAddress->ai_addr->sa_family == AF_INET)
                 {
                     mPort = Endian::convert(((struct sockaddr_in*)testAddress->ai_addr)->sin_port, Endian::BIG);
                     std::memcpy(mIPv4, &(((struct sockaddr_in*)testAddress->ai_addr)->sin_addr.s_addr), INET_ADDRLEN);
                     inet_ntop(testAddress->ai_family, mIPv4, mIPv4Address, INET_ADDRSTRLEN);
-                    Log::addFormatted(Log::VERBOSE, NETWORK_LOG_NAME, "Address found IPv4 %s : %d", mIPv4Address, mPort);
+                    Log::addFormatted(Log::DEBUG, NETWORK_LOG_NAME, "Address found IPv4 %s : %d", mIPv4Address, mPort);
                 }
             }
 
@@ -337,7 +337,7 @@ namespace ArcMist
             {
                 std::memset(mIPv6 + INET6_ADDRLEN - INET_ADDRLEN - 2, 0xff, 2);
                 std::memcpy(mIPv6 + INET6_ADDRLEN - INET_ADDRLEN, mIPv4, INET_ADDRLEN);
-                inet_ntop(testAddress->ai_family, mIPv6, mIPv6Address, INET6_ADDRSTRLEN);
+                inet_ntop(AF_INET6, mIPv6, mIPv6Address, INET6_ADDRSTRLEN);
             }
 
             freeaddrinfo(addressInfo);
@@ -355,9 +355,9 @@ namespace ArcMist
             }
 
             if(mType == AF_INET)
-                Log::addFormatted(Log::INFO, NETWORK_LOG_NAME, "Connected to IPv4 %s : %d", mIPv4Address, mPort);
+                Log::addFormatted(Log::VERBOSE, NETWORK_LOG_NAME, "Connected to IPv4 %s : %d", mIPv4Address, mPort);
             else
-                Log::addFormatted(Log::INFO, NETWORK_LOG_NAME, "Connected to IPv6 %s : %d", mIPv6Address, mPort);
+                Log::addFormatted(Log::VERBOSE, NETWORK_LOG_NAME, "Connected to IPv6 %s : %d", mIPv6Address, mPort);
 
             return true;
         }
@@ -589,14 +589,14 @@ namespace ArcMist
                             port = Endian::convert(((struct sockaddr_in6*)&peerAddress)->sin6_port, Endian::BIG);
                             std::memcpy(ip, (((struct sockaddr_in6*)&peerAddress)->sin6_addr.s6_addr), INET6_ADDRLEN);
                             inet_ntop(peerAddress.sin6_family, ip, ipText, INET6_ADDRSTRLEN);
-                            Log::addFormatted(Log::VERBOSE, NETWORK_LOG_NAME, "New IPv6 connection %s : %d (socket %d)", ipText, port, newSocketID);
+                            Log::addFormatted(Log::DEBUG, NETWORK_LOG_NAME, "New IPv6 connection %s : %d (socket %d)", ipText, port, newSocketID);
                         }
                         else if(peerAddress.sin6_family == AF_INET)
                         {
                             port = Endian::convert(((struct sockaddr_in*)&peerAddress)->sin_port, Endian::BIG);
                             std::memcpy(ip, &(((struct sockaddr_in*)&peerAddress)->sin_addr.s_addr), INET_ADDRLEN);
                             inet_ntop(peerAddress.sin6_family, ip, ipText, INET_ADDRSTRLEN);
-                            Log::addFormatted(Log::VERBOSE, NETWORK_LOG_NAME, "New IPv4 connection %s : %d (socket %d)", ipText, port, newSocketID);
+                            Log::addFormatted(Log::DEBUG, NETWORK_LOG_NAME, "New IPv4 connection %s : %d (socket %d)", ipText, port, newSocketID);
                         }
                         else
                         {
