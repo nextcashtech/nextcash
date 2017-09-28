@@ -23,6 +23,16 @@ namespace ArcMist
 {
     namespace Math
     {
+        inline double square(double pValue)
+        {
+            return pValue * pValue;
+        }
+
+        inline double squareRoot(double pValue)
+        {
+            return std::sqrt(pValue);
+        }
+
         static bool sRandomSeeded = false;
 
         inline void seedRandom()
