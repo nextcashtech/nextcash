@@ -17,7 +17,6 @@
 
 namespace ArcMist
 {
-
     class ProfilerData
     {
     public:
@@ -79,18 +78,25 @@ namespace ArcMist
     class Profiler
     {
     public:
-        Profiler(const char *pName)
+        Profiler(const char *pName, bool pStart = true)
         {
             mData = ProfilerManager::profilerData(pName);
-            mData->start();
+            mStarted = pStart;
+            if(pStart)
+                mData->start();
         }
         ~Profiler()
         {
-            mData->stop();
+            if(mStarted)
+                mData->stop();
         }
+
+        void start() { mData->start(); }
+        void stop() { mData->stop(); }
 
     private:
         ProfilerData *mData;
+        bool mStarted;
 
     };
 }
