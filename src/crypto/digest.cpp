@@ -42,10 +42,10 @@ namespace ArcMist
                                      0xbdbdf21c, 0xcabac28a, 0x53b39330, 0x24b4a3a6, 0xbad03605, 0xcdd70693, 0x54de5729, 0x23d967bf, 0xb3667a2e, 0xc4614ab8, 0x5d681b02, 0x2a6f2b94, 0xb40bbe37, 0xc30c8ea1, 0x5a05df1b, 0x2d02ef8d};
     }
 
-    void Digest::crc32(InputStream *pInput, unsigned int pInputLength, OutputStream *pOutput)
+    void Digest::crc32(InputStream *pInput, stream_size pInputLength, OutputStream *pOutput)
     {
         uint32_t result = 0xffffffff;
-        unsigned int remaining = pInputLength;
+        stream_size remaining = pInputLength;
 
         while(remaining--)
             result = (result >> 8) ^ CRC32::table[(result & 0xFF) ^ pInput->readByte()];
@@ -65,10 +65,10 @@ namespace ArcMist
         return result ^ 0xffffffff;
     }
 
-    uint32_t Digest::crc32(const uint8_t *pData, unsigned int pSize)
+    uint32_t Digest::crc32(const uint8_t *pData, stream_size pSize)
     {
         uint32_t result = 0xffffffff;
-        unsigned int offset = 0;
+        stream_size offset = 0;
 
         while(offset < pSize)
             result = (result >> 8) ^ CRC32::table[(result & 0xFF) ^ pData[offset++]];
@@ -151,16 +151,16 @@ namespace ArcMist
         }
     }
 
-    void Digest::md5(InputStream *pInput, unsigned int pInputLength, OutputStream *pOutput) // 128 bit(16 byte) result
+    void Digest::md5(InputStream *pInput, stream_size pInputLength, OutputStream *pOutput) // 128 bit(16 byte) result
     {
         uint8_t *data;
-        unsigned int dataSize = pInputLength + 9;
+        stream_size dataSize = pInputLength + 9;
 
         // Make the data size is congruent to 448, modulo 512 bits(56, 64 modulo bytes)
         dataSize += (64 - (dataSize % 64));
         data = new uint8_t[dataSize];
 
-        unsigned int offset = pInputLength;
+        stream_size offset = pInputLength;
         pInput->read(data, pInputLength);
 
         data[offset++] = 128; // 10000000 - append a one bit and the rest zero bits
@@ -393,13 +393,13 @@ namespace ArcMist
         }
     }
 
-    void Digest::sha1(InputStream *pInput, unsigned int pInputLength, OutputStream *pOutput) // 160 bit(20 byte) result
+    void Digest::sha1(InputStream *pInput, stream_size pInputLength, OutputStream *pOutput) // 160 bit(20 byte) result
     {
         // Note 1: All variables are unsigned 32 bits and wrap modulo 232 when calculating
         // Note 2: All constants in this pseudo code are in big endian.
         // Within each word, the most significant bit is stored in the leftmost bit position
 
-        unsigned int dataSize = pInputLength + (64 - (pInputLength % 64));
+        stream_size dataSize = pInputLength + (64 - (pInputLength % 64));
         uint64_t bitLength = (uint64_t)pInputLength * 8;
 
         Buffer message;
@@ -823,11 +823,11 @@ namespace ArcMist
         }
     }
 
-    void Digest::ripEMD160(InputStream *pInput, unsigned int pInputLength, OutputStream *pOutput)
+    void Digest::ripEMD160(InputStream *pInput, stream_size pInputLength, OutputStream *pOutput)
     {
         uint32_t result[5];
         uint32_t block[16];
-        unsigned int remaining = pInputLength;
+        stream_size remaining = pInputLength;
 
         RIPEMD160::initialize(result);
 
@@ -953,9 +953,9 @@ namespace ArcMist
         }
     }
 
-    void Digest::sha256(InputStream *pInput, unsigned int pInputLength, OutputStream *pOutput) // 256 bit(32 byte) result
+    void Digest::sha256(InputStream *pInput, stream_size pInputLength, OutputStream *pOutput) // 256 bit(32 byte) result
     {
-        unsigned int remaining = pInputLength;
+        stream_size remaining = pInputLength;
         uint32_t result[8];
         uint32_t block[16];
 
@@ -996,7 +996,7 @@ namespace ArcMist
                              0x28db77f523047d84, 0x32caab7b40c72493, 0x3c9ebe0a15c9bebc, 0x431d67c49c100d4c,
                              0x4cc5d4becb3e42b6, 0x597f299cfc657e2a, 0x5fcb6fab3ad6faec, 0x6c44198c4a475817};
 
-    /*void Digest::sha512(InputStream *pInput, unsigned int pInputLength, OutputStream *pOutput) // 512 bit(64 byte) result
+    /*void Digest::sha512(InputStream *pInput, stream_size pInputLength, OutputStream *pOutput) // 512 bit(64 byte) result
     {
         Buffer message;
         message.setEndian(Endian::LITTLE);
@@ -1144,13 +1144,13 @@ namespace ArcMist
         }
     }
 
-    uint64_t Digest::sipHash24(uint8_t *pData, unsigned int pLength, uint64_t pKey0, uint64_t pKey1)
+    uint64_t Digest::sipHash24(uint8_t *pData, stream_size pLength, uint64_t pKey0, uint64_t pKey1)
     {
         uint64_t result[4];
 
         SipHash24::initialize(result, pKey0, pKey1);
 
-        unsigned int offset = 0;
+        stream_size offset = 0;
         while(pLength - offset >= 8)
         {
             SipHash24::process(result, pData);
@@ -1211,7 +1211,7 @@ namespace ArcMist
             delete[] mResultData;
     }
 
-    void Digest::write(const void *pInput, unsigned int pSize)
+    void Digest::write(const void *pInput, stream_size pSize)
     {
         mInput.write(pInput, pSize);
         mByteCount += pSize;

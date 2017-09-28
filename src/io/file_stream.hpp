@@ -61,24 +61,26 @@ namespace ArcMist
         void close() { ((std::fstream *)mStream)->close();}
 
         bool isValid() { return mValid; }
-        unsigned int length() const { return mEndOffset; }
-        unsigned int readOffset() const { return mReadOffset; }
-        bool setReadOffset(unsigned int pOffset)
+        stream_size length() const { return mEndOffset; }
+        stream_size readOffset() const { return mReadOffset; }
+        bool setReadOffset(stream_size pOffset)
         {
             if(pOffset <= mEndOffset)
             {
+                if(mStream->eof())
+                    mStream->clear(); // Clear eof flag
                 mStream->seekg(pOffset);
                 mReadOffset = mStream->tellg();
                 return true;
             }
             return false;
         }
-        operator bool() const { return mStream->good() && (mReadOffset == (unsigned int)-1 || mReadOffset < mEndOffset); }
+        operator bool() const { return mStream->good() && (mReadOffset == (stream_size)-1 || mReadOffset < mEndOffset); }
         bool operator !() const { return !mStream->good(); }
-        void read(void *pOutput, unsigned int pSize)
+        void read(void *pOutput, stream_size pSize)
         {
             mStream->read((char *)pOutput, pSize);
-            if(mReadOffset != (unsigned int)-1)
+            if(mReadOffset != 0xffffffff)
             {
                 mReadOffset += pSize;
                 if(mEndOffset < mReadOffset)
@@ -93,8 +95,8 @@ namespace ArcMist
         {
             if(mStream->tellg() == -1)
             {
-                mReadOffset = -1;
-                mEndOffset = -1;
+                mReadOffset = 0xffffffff;
+                mEndOffset = 0xffffffff;
                 return;
             }
 
@@ -107,7 +109,7 @@ namespace ArcMist
         bool mValid;
         bool mStreamNeedsDelete;
         std::istream *mStream;
-        unsigned int mReadOffset, mEndOffset;
+        stream_size mReadOffset, mEndOffset;
     };
 
     class FileOutputStream : public OutputStream
@@ -141,9 +143,9 @@ namespace ArcMist
         void close() { mStream->flush(); ((std::fstream *)mStream)->close();}
 
         bool isValid() { return mValid; }
-        unsigned int length() const { return mEndOffset; }
-        unsigned int writeOffset() const { return mWriteOffset; }
-        bool setWriteOffset(unsigned int pOffset)
+        stream_size length() const { return mEndOffset; }
+        stream_size writeOffset() const { return mWriteOffset; }
+        bool setWriteOffset(stream_size pOffset)
         {
             if(pOffset <= mEndOffset)
             {
@@ -154,10 +156,10 @@ namespace ArcMist
             }
             return false;
         }
-        void write(const void *pInput, unsigned int pSize)
+        void write(const void *pInput, stream_size pSize)
         {
             mStream->write((const char *)pInput, pSize);
-            if(mWriteOffset != (unsigned int)-1)
+            if(mWriteOffset != 0xffffffff)
             {
                 mWriteOffset += pSize;
                 if(mEndOffset < mWriteOffset)
@@ -173,8 +175,8 @@ namespace ArcMist
         {
             if(mStream->tellp() == -1)
             {
-                mWriteOffset = -1;
-                mEndOffset = -1;
+                mWriteOffset = 0xffffffff;
+                mEndOffset = 0xffffffff;
                 return;
             }
 
@@ -187,7 +189,7 @@ namespace ArcMist
         bool mValid;
         bool mStreamNeedsDelete;
         std::ostream *mStream;
-        unsigned int mWriteOffset, mEndOffset;
+        stream_size mWriteOffset, mEndOffset;
     };
 }
 

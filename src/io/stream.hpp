@@ -20,14 +20,16 @@ namespace ArcMist
     class OutputStream;
     class InputStream;
 
+    typedef uint64_t stream_size;
+
     // Basic abstract for a class that can be written to
     class RawOutputStream
     {
     public:
         virtual ~RawOutputStream() {}
-        virtual void write(const void *pInput, unsigned int pSize) = 0;
+        virtual void write(const void *pInput, stream_size pSize) = 0;
 
-        unsigned int writeStream(InputStream *pInput, unsigned int pMaxSize);
+        stream_size writeStream(InputStream *pInput, stream_size pMaxSize);
     };
 
     // Basic abstract for a class that can be read from
@@ -35,7 +37,7 @@ namespace ArcMist
     {
     public:
         virtual ~RawInputStream() {}
-        virtual void read(void *pOutput, unsigned int pSize) = 0;
+        virtual void read(void *pOutput, stream_size pSize) = 0;
     };
 
     // Abstract for a class that can have different primitive types read from it
@@ -52,28 +54,29 @@ namespace ArcMist
         int16_t readShort();
         int32_t readInt();
         int64_t readLong();
-        unsigned int readStream(OutputStream *pOutput, unsigned int pMaxSize);
-        String readString(unsigned int pLength);
+        stream_size readStream(OutputStream *pOutput, stream_size pMaxSize);
+        String readString(stream_size pLength);
         // Create hex string from binary data
-        String readHexString(unsigned int pSize);
+        String readHexString(stream_size pSize);
 
         // Read binary data into hex text. Note: pOutput has to contain twice as many bytes as pByteCount
-        void readAsHex(char *pOutput, unsigned int pSize);
+        void readAsHex(char *pOutput, stream_size pSize);
 
         // Create base 58 string from binary data
-        String readBase58String(unsigned int pSize);
+        String readBase58String(stream_size pSize);
 
         // Read hex text into binary output
-        //void readHexAsBinary(void *pOutput, unsigned int pSize);
+        //void readHexAsBinary(void *pOutput, stream_size pSize);
 
         // Offset into data where next byte will be read
-        virtual unsigned int readOffset() const = 0;
+        virtual stream_size readOffset() const = 0;
+        virtual bool setReadOffset(stream_size pOffset) { return false; }
 
         // Number of bytes in data
-        virtual unsigned int length() const = 0;
+        virtual stream_size length() const = 0;
 
         // Number of bytes remaining to be read
-        virtual unsigned int remaining() const { return length() - readOffset(); }
+        virtual stream_size remaining() const { return length() - readOffset(); }
 
         virtual operator bool() const { return true; }
         virtual bool operator !() const { return false; }
@@ -85,13 +88,13 @@ namespace ArcMist
         // Endian for this InputStream
         Endian::Type inputEndian() { return mInputEndian; }
         void setInputEndian(Endian::Type pEndian) { mInputEndian = pEndian; }
-        void readEndian(void *pOutput, unsigned int pSize)
+        void readEndian(void *pOutput, stream_size pSize)
         {
             if(Endian::sSystemType != mInputEndian)
             {
                 // Read in reverse
                 //uint8_t *ptr = ((uint8_t *)pOutput) + pSize - 1;
-                //for(unsigned int i=0;i<pSize;i++)
+                //for(stream_size i=0;i<pSize;i++)
                 //    read(ptr--, 1);
                 uint8_t data[pSize];
                 read(data, pSize);
@@ -115,34 +118,36 @@ namespace ArcMist
 
         OutputStream() { mOutputEndian = sDefaultOutputEndian; }
 
-        unsigned int writeByte(uint8_t pValue);
-        unsigned int writeUnsignedShort(uint16_t pValue);
-        unsigned int writeUnsignedInt(uint32_t pValue);
-        unsigned int writeUnsignedLong(uint64_t pValue);
-        unsigned int writeShort(int16_t pValue);
-        unsigned int writeInt(int32_t pValue);
-        unsigned int writeLong(int64_t pValue);
+        stream_size writeByte(uint8_t pValue);
+        stream_size writeUnsignedShort(uint16_t pValue);
+        stream_size writeUnsignedInt(uint32_t pValue);
+        stream_size writeUnsignedLong(uint64_t pValue);
+        stream_size writeShort(int16_t pValue);
+        stream_size writeInt(int32_t pValue);
+        stream_size writeLong(int64_t pValue);
 
         // Write character string until null character
-        unsigned int writeString(const char *pString, bool pWriteNull = false);
+        stream_size writeString(const char *pString, bool pWriteNull = false);
 
         // Write binary from input as hex text
-        unsigned int writeAsHex(InputStream *pInput, unsigned int pMaxSize, bool pWriteNull = false);
+        stream_size writeAsHex(InputStream *pInput, stream_size pMaxSize, bool pWriteNull = false);
 
         // Write hex text as binary
-        unsigned int writeHex(const char *pString);
+        stream_size writeHex(const char *pString);
 
         // Write binary from input as base58 text
-        //unsigned int writeAsBase58(InputStream *pInput, unsigned int pMaxSize, bool pWriteNull = false);
+        //stream_size writeAsBase58(InputStream *pInput, stream_size pMaxSize, bool pWriteNull = false);
 
         // Write base58 text as binary
-        unsigned int writeBase58AsBinary(const char *pString);
+        stream_size writeBase58AsBinary(const char *pString);
 
         // Use printf string formatting to write
-        unsigned int writeFormatted(const char *pFormatting, ...);
-        unsigned int writeFormattedList(const char *pFormatting, va_list &pList);
+        stream_size writeFormatted(const char *pFormatting, ...);
+        stream_size writeFormattedList(const char *pFormatting, va_list &pList);
 
-        virtual unsigned int writeOffset() const = 0;
+        virtual stream_size length() const { return 0; }
+        virtual stream_size writeOffset() const = 0;
+        virtual bool setWriteOffset(stream_size pOffset) { return false; }
         virtual void flush() {}
 
         // Endian defaulted on new OutputStreams
@@ -152,13 +157,13 @@ namespace ArcMist
         // Endian for this OutputStream
         Endian::Type outputEndian() { return mOutputEndian; }
         void setOutputEndian(Endian::Type pEndian) { mOutputEndian = pEndian; }
-        void writeEndian(const void *pInput, unsigned int pSize)
+        void writeEndian(const void *pInput, stream_size pSize)
         {
             if(Endian::sSystemType != mOutputEndian)
             {
                 // Write in reverse
                 //uint8_t *ptr = ((uint8_t *)pInput) + pSize - 1;
-                //for(unsigned int i=0;i<pSize;i++)
+                //for(stream_size i=0;i<pSize;i++)
                 //    write(ptr--, 1);
                 uint8_t data[pSize];
                 for(int i=pSize-1, j=0;i>=0;i--, j++)

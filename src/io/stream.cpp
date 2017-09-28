@@ -72,15 +72,15 @@ namespace ArcMist
         return result;
     }
 
-    unsigned int InputStream::readStream(OutputStream *pOutput, unsigned int pMaxSize)
+    stream_size InputStream::readStream(OutputStream *pOutput, stream_size pMaxSize)
     {
-        unsigned int size = pMaxSize;
+        stream_size size = pMaxSize;
 
         if(size > remaining())
             size = remaining();
 
         uint8_t chunk[STREAM_CHUNK_SIZE];
-        unsigned int remainingBytes = size, chunkSize;
+        stream_size remainingBytes = size, chunkSize;
 
         while(remainingBytes)
         {
@@ -98,7 +98,7 @@ namespace ArcMist
         return size;
     }
 
-    String InputStream::readString(unsigned int pLength)
+    String InputStream::readString(stream_size pLength)
     {
         String result;
         if(pLength == 0)
@@ -108,22 +108,22 @@ namespace ArcMist
         return result;
     }
 
-    String InputStream::readHexString(unsigned int pSize)
+    String InputStream::readHexString(stream_size pSize)
     {
         String result;
         char *text = result.writeAddress(pSize * 2);
 
-        for(unsigned int i=0,offset=0;i<pSize;i++,offset+=2)
+        for(stream_size i=0,offset=0;i<pSize;i++,offset+=2)
             std::memcpy(text + offset, Math::byteToHex[readByte()], 2);
 
         return result;
     }
 
-    void InputStream::readAsHex(char *pOutput, unsigned int pSize)
+    void InputStream::readAsHex(char *pOutput, stream_size pSize)
     {
         uint8_t byte;
-        unsigned int offset = 0;
-        for(unsigned int i=0;i<pSize;i++)
+        stream_size offset = 0;
+        for(stream_size i=0;i<pSize;i++)
         {
             byte = readByte();
             pOutput[offset++] = Math::nibbleToHex((byte >> 4) & 0x0f);
@@ -131,7 +131,7 @@ namespace ArcMist
         }
     }
 
-    String InputStream::readBase58String(unsigned int pSize)
+    String InputStream::readBase58String(stream_size pSize)
     {
         uint8_t data[pSize];
         read(data, pSize);
@@ -140,64 +140,64 @@ namespace ArcMist
         return result;
     }
 
-    //void InputStream::readHexAsBinary(void *pOutput, unsigned int pSize)
+    //void InputStream::readHexAsBinary(void *pOutput, stream_size pSize)
     //{
         // TODO
     //}
 
-    unsigned int OutputStream::writeByte(uint8_t pValue)
+    stream_size OutputStream::writeByte(uint8_t pValue)
     {
         write(&pValue, 1);
         return 1;
     }
 
-    unsigned int OutputStream::writeUnsignedShort(uint16_t pValue)
+    stream_size OutputStream::writeUnsignedShort(uint16_t pValue)
     {
         writeEndian(&pValue, 2);
         return 2;
     }
 
-    unsigned int OutputStream::writeUnsignedInt(uint32_t pValue)
+    stream_size OutputStream::writeUnsignedInt(uint32_t pValue)
     {
         writeEndian(&pValue, 4);
         return 4;
     }
 
-    unsigned int OutputStream::writeUnsignedLong(uint64_t pValue)
+    stream_size OutputStream::writeUnsignedLong(uint64_t pValue)
     {
         writeEndian(&pValue, 8);
         return 8;
     }
 
-    unsigned int OutputStream::writeShort(int16_t pValue)
+    stream_size OutputStream::writeShort(int16_t pValue)
     {
         writeEndian(&pValue, 2);
         return 2;
     }
 
-    unsigned int OutputStream::writeInt(int32_t pValue)
+    stream_size OutputStream::writeInt(int32_t pValue)
     {
         writeEndian(&pValue, 4);
         return 1;
     }
 
-    unsigned int OutputStream::writeLong(int64_t pValue)
+    stream_size OutputStream::writeLong(int64_t pValue)
     {
         writeEndian(&pValue, 8);
         return 1;
     }
 
-    unsigned int RawOutputStream::writeStream(InputStream *pInput, unsigned int pMaxSize)
+    stream_size RawOutputStream::writeStream(InputStream *pInput, stream_size pMaxSize)
     {
         if(pMaxSize == 0)
             return 0;
 
-        unsigned int size = pMaxSize;
+        stream_size size = pMaxSize;
         if(size > pInput->remaining())
             size = pInput->remaining();
 
         uint8_t chunk[STREAM_CHUNK_SIZE];
-        unsigned int remainingBytes = size, chunkSize;
+        stream_size remainingBytes = size, chunkSize;
 
         while(remainingBytes)
         {
@@ -215,9 +215,9 @@ namespace ArcMist
         return size;
     }
 
-    unsigned int OutputStream::writeString(const char *pString, bool pWriteNull)
+    stream_size OutputStream::writeString(const char *pString, bool pWriteNull)
     {
-        unsigned int length = 0;
+        stream_size length = 0;
         const char *ptr = pString;
         while(*ptr)
         {
@@ -230,9 +230,9 @@ namespace ArcMist
         return length;
     }
 
-    unsigned int OutputStream::writeAsHex(InputStream *pInput, unsigned int pMaxSize, bool pWriteNull)
+    stream_size OutputStream::writeAsHex(InputStream *pInput, stream_size pMaxSize, bool pWriteNull)
     {
-        unsigned int readCount = 0, writtenCount = 0;
+        stream_size readCount = 0, writtenCount = 0;
         while(pInput->remaining() && readCount < pMaxSize)
         {
             readCount++;
@@ -244,12 +244,12 @@ namespace ArcMist
         return writtenCount;
     }
 
-    unsigned int OutputStream::writeHex(const char *pString)
+    stream_size OutputStream::writeHex(const char *pString)
     {
         bool firstNibble = true;
         uint8_t byte;
         const char *ptr = pString;
-        unsigned int writtenCount = 0;
+        stream_size writtenCount = 0;
         while(*ptr)
         {
             if(firstNibble)
@@ -266,21 +266,21 @@ namespace ArcMist
         return writtenCount;
     }
 
-    //unsigned int OutputStream::writeAsBase58(InputStream *pInput, unsigned int pMaxSize, bool pWriteNull)
+    //stream_size OutputStream::writeAsBase58(InputStream *pInput, stream_size pMaxSize, bool pWriteNull)
     //{
         //TODO
     //    return 0;
     //}
 
-    unsigned int OutputStream::writeBase58AsBinary(const char *pString)
+    stream_size OutputStream::writeBase58AsBinary(const char *pString)
     {
         // Skip leading white space.
         while(*pString && isWhiteSpace(*pString))
             pString++;
 
         // Skip and count leading '1's.
-        unsigned int zeroes = 0;
-        unsigned int length = 0;
+        stream_size zeroes = 0;
+        stream_size length = 0;
         while(*pString == '1')
         {
             zeroes++;
@@ -288,7 +288,7 @@ namespace ArcMist
         }
 
         // Allocate enough space in big-endian base256 representation.
-        unsigned int i, carry, size = std::strlen(pString) * 733 /1000 + 1; // log(58) / log(256), rounded up.
+        stream_size i, carry, size = std::strlen(pString) * 733 /1000 + 1; // log(58) / log(256), rounded up.
         const char *match;
         std::vector<uint8_t> b256(size);
         // Process the characters.
@@ -327,7 +327,7 @@ namespace ArcMist
             it++;
 
         // Copy result into output vector.
-        unsigned int bytesWritten = 0;
+        stream_size bytesWritten = 0;
         for(i=0;i<zeroes;i++)
             bytesWritten += writeByte(0);
         while (it != b256.end())
@@ -336,16 +336,16 @@ namespace ArcMist
         return bytesWritten;
     }
 
-    unsigned int OutputStream::writeFormatted(const char *pFormatting, ...)
+    stream_size OutputStream::writeFormatted(const char *pFormatting, ...)
     {
         va_list args;
         va_start(args, pFormatting);
-        unsigned int result = writeFormattedList(pFormatting, args);
+        stream_size result = writeFormattedList(pFormatting, args);
         va_end(args);
         return result;
     }
 
-    unsigned int OutputStream::writeFormattedList(const char *pFormatting, va_list &pList)
+    stream_size OutputStream::writeFormattedList(const char *pFormatting, va_list &pList)
     {
         va_list args;
         va_copy(args, pList);

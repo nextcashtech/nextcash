@@ -432,7 +432,7 @@ namespace ArcMist
         }
     }
 
-    void Log::addHex(Level pLevel, const char *pName, const char *pDescription, InputStream *pStream, unsigned int pSize)
+    void Log::addHex(Level pLevel, const char *pName, const char *pDescription, InputStream *pStream, stream_size pSize)
     {
         Log &theLog = log();
         if(theLog.startEntry(pLevel, pName))

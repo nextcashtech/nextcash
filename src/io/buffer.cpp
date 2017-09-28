@@ -38,7 +38,7 @@ namespace ArcMist
         *this = pCopy;
     }
 
-    Buffer::Buffer(unsigned int pSize)
+    Buffer::Buffer(stream_size pSize)
     {
         mSize = pSize;
         try
@@ -89,9 +89,9 @@ namespace ArcMist
         return *this;
     }
 
-    void Buffer::read(void *pOutput, unsigned int pSize)
+    void Buffer::read(void *pOutput, stream_size pSize)
     {
-        unsigned int toRead = pSize;
+        stream_size toRead = pSize;
         if(toRead > remaining())
             toRead = remaining();
         if(toRead > 0)
@@ -101,7 +101,7 @@ namespace ArcMist
         }
     }
 
-    void Buffer::write(const void *pInput, unsigned int pSize)
+    void Buffer::write(const void *pInput, stream_size pSize)
     {
         if(pSize == 0)
             return;
@@ -120,7 +120,7 @@ namespace ArcMist
 
     // Reuse the memory of the other buffer.
     //   Only use this function when the pInput buffer will not change until after this buffer is done
-    void Buffer::copyBuffer(Buffer &pInput, unsigned int pSize)
+    void Buffer::copyBuffer(Buffer &pInput, stream_size pSize)
     {
         clear();
         mSharing = true;
@@ -133,7 +133,7 @@ namespace ArcMist
     }
 
     // The same as writeStream except allocates exactly enough memory and no extra
-    void Buffer::writeStreamCompact(InputStream &pInput, unsigned int pSize)
+    void Buffer::writeStreamCompact(InputStream &pInput, stream_size pSize)
     {
         clear();
         mData = new uint8_t[pSize];
@@ -239,7 +239,7 @@ namespace ArcMist
         mSize = mEndOffset;
     }
 
-    void Buffer::setSize(unsigned int pSize)
+    void Buffer::setSize(stream_size pSize)
     {
         if(mSharing)
             unShare();
@@ -323,14 +323,14 @@ namespace ArcMist
     }
 
     // Reallocate to have at least pSize bytes additional memory
-    void Buffer::reallocate(unsigned int pSize)
+    void Buffer::reallocate(stream_size pSize)
     {
         if(mSharing)
             unShare();
 
         // Allocate new memory
-        unsigned int usedBytes;
-        unsigned int newSize = mSize;
+        stream_size usedBytes;
+        stream_size newSize = mSize;
 
         if(newSize < 1024)
             newSize = 1024;

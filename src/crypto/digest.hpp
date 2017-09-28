@@ -35,26 +35,26 @@ namespace ArcMist
         void getResult(RawOutputStream *pOutput);
 
         // Static digest calculation functions
-        static void crc32(InputStream *pInput, unsigned int pInputLength, OutputStream *pOutput); // 32 bit(4 byte) result
+        static void crc32(InputStream *pInput, stream_size pInputLength, OutputStream *pOutput); // 32 bit(4 byte) result
         static uint32_t crc32(const char *pText);
-        static uint32_t crc32(const uint8_t *pData, unsigned int pSize);
-        static void md5(InputStream *pInput, unsigned int pInputLength, OutputStream *pOutput);  // 128 bit(16 byte) result
-        static void sha1(InputStream *pInput, unsigned int pInputLength, OutputStream *pOutput);  // 160 bit(20 byte) result
-        static void ripEMD160(InputStream *pInput, unsigned int pInputLength, OutputStream *pOutput);  // 160 bit(20 bytes) result
-        static void sha256(InputStream *pInput, unsigned int pInputLength, OutputStream *pOutput);  // 256 bit(32 bytes) result
-        //TODO fix endian issues //static void sha512(InputStream *pInput, unsigned int pInputLength, OutputStream *pOutput);  // 512 bit(64 bytes) result
-        static uint64_t sipHash24(uint8_t *pData, unsigned int pLength, uint64_t pKey0, uint64_t pKey1);
+        static uint32_t crc32(const uint8_t *pData, stream_size pSize);
+        static void md5(InputStream *pInput, stream_size pInputLength, OutputStream *pOutput);  // 128 bit(16 byte) result
+        static void sha1(InputStream *pInput, stream_size pInputLength, OutputStream *pOutput);  // 160 bit(20 byte) result
+        static void ripEMD160(InputStream *pInput, stream_size pInputLength, OutputStream *pOutput);  // 160 bit(20 bytes) result
+        static void sha256(InputStream *pInput, stream_size pInputLength, OutputStream *pOutput);  // 256 bit(32 bytes) result
+        //TODO fix endian issues //static void sha512(InputStream *pInput, stream_size pInputLength, OutputStream *pOutput);  // 512 bit(64 bytes) result
+        static uint64_t sipHash24(uint8_t *pData, stream_size pLength, uint64_t pKey0, uint64_t pKey1);
 
         // Virtual overloaded functions
-        unsigned int writeOffset() const { return mByteCount; }
-        void write(const void *pInput, unsigned int pSize);
+        stream_size writeOffset() const { return mByteCount; }
+        void write(const void *pInput, stream_size pSize);
 
         static bool test();
 
     private:
 
         Type mType;
-        unsigned int mByteCount;
+        stream_size mByteCount;
         Buffer mInput;
         unsigned int mBlockSize;
         uint32_t *mBlockData, *mResultData;

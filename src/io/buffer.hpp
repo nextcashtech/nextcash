@@ -22,22 +22,22 @@ namespace ArcMist
 
         Buffer();
         Buffer(const Buffer &pCopy);
-        Buffer(unsigned int pSize);
+        Buffer(stream_size pSize);
         ~Buffer();
 
         // InputStream virtual functions
-        unsigned int readOffset() const { return mReadOffset; }
-        unsigned int length() const { return mEndOffset; }
-        void read(void *pOutput, unsigned int pSize);
+        stream_size readOffset() const { return mReadOffset; }
+        stream_size length() const { return mEndOffset; }
+        void read(void *pOutput, stream_size pSize);
 
         // OutputStream virtual functions
-        unsigned int writeOffset() const { return mWriteOffset; }
-        void write(const void *pInput, unsigned int pSize);
+        stream_size writeOffset() const { return mWriteOffset; }
+        void write(const void *pInput, stream_size pSize);
 
-        uint8_t operator [](unsigned int pOffset) { return mData[mReadOffset + pOffset]; }
+        uint8_t operator [](stream_size pOffset) { return mData[mReadOffset + pOffset]; }
         void moveReadOffset(int pOffset);
-        void setReadOffset(int pOffset) { mReadOffset = pOffset; } // Only safe when auto flush is false
-        void setWriteOffset(int pOffset) { mWriteOffset = pOffset; } // Only safe when auto flush is false
+        bool setReadOffset(stream_size pOffset) { mReadOffset = pOffset; return true; } // Only safe when auto flush is false
+        bool setWriteOffset(stream_size pOffset) { mWriteOffset = pOffset; return true; } // Only safe when auto flush is false
 
         const uint8_t *startPointer() { return mData; }
         const uint8_t *readPointer() { return mData + mReadOffset; }
@@ -50,14 +50,15 @@ namespace ArcMist
         void zeroize();
         void clear(); // Clear all data
         void compact(); // Reduce memory footprint. Flush first if you want to remove read data
-        void setSize(unsigned int pSize); // Sets the allocated memory size (flushes if readOffset is not zero and autoFlush is true)
+        void setSize(stream_size pSize); // Sets the allocated memory size (flushes if readOffset is not zero and autoFlush is true)
+        void reset() { mReadOffset = 0; mEndOffset = 0; mWriteOffset = 0; }
 
         // Reuse the memory of the other buffer.
         //   Only use this function when the pInput buffer will not change until after this buffer is done
-        void copyBuffer(Buffer &pInput, unsigned int pSize);
+        void copyBuffer(Buffer &pInput, stream_size pSize);
 
         // The same as writeStream except allocates exactly enough memory and no extra
-        void writeStreamCompact(InputStream &pInput, unsigned int pSize);
+        void writeStreamCompact(InputStream &pInput, stream_size pSize);
 
         const Buffer &operator = (const Buffer &pRight);
 
@@ -83,14 +84,14 @@ namespace ArcMist
     private:
 
         uint8_t *mData;
-        unsigned int mSize, mReadOffset, mWriteOffset, mEndOffset;
+        stream_size mSize, mReadOffset, mWriteOffset, mEndOffset;
         bool mAutoFlush;
         bool mSharing;
 
         // Copy data to unshared memory
         void unShare();
 
-        void reallocate(unsigned int pSize);
+        void reallocate(stream_size pSize);
     };
 }
 
