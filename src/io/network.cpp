@@ -407,25 +407,35 @@ namespace ArcMist
             if(!pWait)
                 flags |= MSG_DONTWAIT;
 
-            int bytesCount;
-            //Log::add(Log::VERBOSE, NETWORK_LOG_NAME, "Starting Receive");
-            if((bytesCount = recv(mSocketID, mBuffer, NETWORK_BUFFER_SIZE-1, flags)) == -1)
+            int result = 0, bytesCount;
+            while(true)
             {
-                //Log::add(Log::VERBOSE, NETWORK_LOG_NAME, "Failed Receive");
-                if(errno != 11) // Resource temporarily unavailable because of MSG_DONTWAIT
+                //Log::add(Log::VERBOSE, NETWORK_LOG_NAME, "Starting Receive");
+                bytesCount = recv(mSocketID, mBuffer, NETWORK_BUFFER_SIZE, flags);
+                if(bytesCount == -1)
                 {
-                    Log::addFormatted(Log::VERBOSE, NETWORK_LOG_NAME, "[%d] Receive failed : %s", mSocketID, std::strerror(errno));
-                    close();
+                    //Log::add(Log::VERBOSE, NETWORK_LOG_NAME, "Failed Receive");
+                    if(errno != 11) // Resource temporarily unavailable because of MSG_DONTWAIT
+                    {
+                        Log::addFormatted(Log::VERBOSE, NETWORK_LOG_NAME, "[%d] Receive failed : %s", mSocketID, std::strerror(errno));
+                        close();
+                    }
+                    break;
                 }
-                return 0;
-            }
-            //Log::add(Log::VERBOSE, NETWORK_LOG_NAME, "Finished Receive");
+                else if(bytesCount == 0)
+                    break;
+                //Log::add(Log::VERBOSE, NETWORK_LOG_NAME, "Finished Receive");
 
-            mBytesReceived += bytesCount;
-            pStream->write(mBuffer, bytesCount);
-            //if(bytesCount > 0)
-            //    Log::addFormatted(Log::DEBUG, NETWORK_LOG_NAME, "Received %d bytes", bytesCount);
-            return bytesCount;
+                result += bytesCount;
+                mBytesReceived += bytesCount;
+                pStream->write(mBuffer, bytesCount);
+                if(bytesCount < NETWORK_BUFFER_SIZE-1)
+                    break;
+            }
+
+            //if(result > 0)
+            //    Log::addFormatted(Log::DEBUG, NETWORK_LOG_NAME, "Received %d bytes", result);
+            return result;
         }
 
         bool Connection::send(InputStream *pStream)

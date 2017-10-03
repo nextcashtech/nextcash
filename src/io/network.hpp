@@ -89,7 +89,7 @@ namespace ArcMist
             uint8_t mIPv4[INET_ADDRLEN];
             uint8_t mIPv6[INET6_ADDRLEN];
             uint16_t mPort;
-            unsigned char mBuffer[NETWORK_BUFFER_SIZE];
+            uint8_t mBuffer[NETWORK_BUFFER_SIZE];
 
             uint64_t mBytesReceived;
             uint64_t mBytesSent;
