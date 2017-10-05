@@ -15,15 +15,15 @@
 
 #define ARCMIST_STRING_LOG_NAME "String"
 
+
+namespace ArcMist
+{
 #ifdef _WIN32
     static const char *PATH_SEPARATOR __attribute__ ((unused)) = "\\";
 #else
     static const char *PATH_SEPARATOR __attribute__ ((unused)) = "/";
 #endif
 
-
-namespace ArcMist
-{
     class String
     {
     public:
