@@ -11,6 +11,7 @@
 #include "arcmist/io/stream.hpp"
 
 #include <ctime>
+#include <chrono>
 #include <cstring>
 #include <vector>
 
@@ -21,26 +22,24 @@ namespace ArcMist
     {
     public:
 
-        ProfilerData(const char *pName) : hits(0), seconds(0.0f)
-        {
-            name = pName;
-        }
+        ProfilerData(const char *pName) : hits(0), seconds(0.0) { name = pName; started = false; }
 
-        void start()
-        {
-            hits++;
-            begin = clock();
-        }
+        void start() { hits++; begin = std::chrono::steady_clock::now(); started = true; }
         void stop()
         {
-            seconds += float(clock() - begin) / CLOCKS_PER_SEC;
+            if(!started)
+                return;
+            seconds += std::chrono::duration_cast<std::chrono::duration<double>>(std::chrono::steady_clock::now() - begin).count();
+            started = false;
         }
         void write(OutputStream *pStream);
 
         const char *name;
-        std::clock_t begin;
+        std::chrono::steady_clock::time_point begin;
         unsigned long hits;
-        float seconds;
+        bool started;
+        double seconds;
+
     };
 
     class ProfilerManager
@@ -73,6 +72,7 @@ namespace ArcMist
         static ProfilerManager &instance();
 
         std::vector<ProfilerData *> mProfilers;
+
     };
 
     class Profiler
@@ -81,23 +81,18 @@ namespace ArcMist
         Profiler(const char *pName, bool pStart = true)
         {
             mData = ProfilerManager::profilerData(pName);
-            mStarted = pStart;
             if(pStart)
                 mData->start();
         }
-        ~Profiler()
-        {
-            if(mStarted)
-                mData->stop();
-        }
+        ~Profiler() { mData->stop(); }
 
         void start() { mData->start(); }
         void stop() { mData->stop(); }
 
+        double seconds() { return mData->seconds; }
+
     private:
         ProfilerData *mData;
-        bool mStarted;
-
     };
 }
 

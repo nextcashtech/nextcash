@@ -7,6 +7,10 @@
  **************************************************************************/
 #include "mutex.hpp"
 
+#ifdef PROFILER_ON
+#include "arcmist/dev/profiler.hpp"
+#endif
+
 #include "arcmist/base/log.hpp"
 
 #include <unistd.h>

@@ -7,8 +7,10 @@
  **************************************************************************/
 #include "arcmist/base/string.hpp"
 #include "arcmist/base/log.hpp"
+#include "arcmist/base/thread.hpp"
 #include "arcmist/io/buffer.hpp"
 #include "arcmist/crypto/digest.hpp"
+#include "arcmist/dev/profiler.hpp"
 
 
 int main(int pArgumentCount, char **pArguments)
@@ -25,6 +27,11 @@ int main(int pArgumentCount, char **pArguments)
 
     if(!ArcMist::Digest::test())
         failed++;
+
+    ArcMist::Profiler testProfiler("Test");
+    ArcMist::Thread::sleep(100);
+    testProfiler.stop();
+    ArcMist::Log::addFormatted(ArcMist::Log::DEBUG, "Test", "Profiler test : %f s", testProfiler.seconds());
 
     ArcMist::Log::add(ArcMist::Log::DEBUG, "Test", "Debug Color Test");
     ArcMist::Log::add(ArcMist::Log::VERBOSE, "Test", "Verbose Color Test");
