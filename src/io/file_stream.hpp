@@ -37,6 +37,14 @@ namespace ArcMist
         return result >= 0;
     }
 
+    inline bool removeDirectory(const char *pPathDirectoryName)
+    {
+        String command = "rm -r ";
+        command += pPathDirectoryName;
+        int result = system(command.text());
+        return result >= 0;
+    }
+
     class FileInputStream : public InputStream
     {
     public:
@@ -80,7 +88,7 @@ namespace ArcMist
         void read(void *pOutput, stream_size pSize)
         {
             mStream->read((char *)pOutput, pSize);
-            if(mReadOffset != 0xffffffff)
+            if(mReadOffset != INVALID_STREAM_SIZE)
             {
                 mReadOffset += pSize;
                 if(mEndOffset < mReadOffset)
@@ -95,8 +103,8 @@ namespace ArcMist
         {
             if(mStream->tellg() == -1)
             {
-                mReadOffset = 0xffffffff;
-                mEndOffset = 0xffffffff;
+                mReadOffset = INVALID_STREAM_SIZE;
+                mEndOffset = INVALID_STREAM_SIZE;
                 return;
             }
 
@@ -159,7 +167,7 @@ namespace ArcMist
         void write(const void *pInput, stream_size pSize)
         {
             mStream->write((const char *)pInput, pSize);
-            if(mWriteOffset != 0xffffffff)
+            if(mWriteOffset != INVALID_STREAM_SIZE)
             {
                 mWriteOffset += pSize;
                 if(mEndOffset < mWriteOffset)
@@ -175,8 +183,8 @@ namespace ArcMist
         {
             if(mStream->tellp() == -1)
             {
-                mWriteOffset = 0xffffffff;
-                mEndOffset = 0xffffffff;
+                mWriteOffset = INVALID_STREAM_SIZE;
+                mEndOffset = INVALID_STREAM_SIZE;
                 return;
             }
 
@@ -191,6 +199,112 @@ namespace ArcMist
         std::ostream *mStream;
         stream_size mWriteOffset, mEndOffset;
     };
+
+    // Note: Seems to corrupt the read buffer after some writes and then attempting to read again
+    // class FileStream : public InputStream, public OutputStream
+    // {
+    // public:
+
+        // FileStream(const char *pFilePathName, bool pTruncate = false, bool pAppend = false)
+        // {
+            // if(!fileExists(pFilePathName)) // Create the file so it can be successfully opened with std::ios::in
+                // std::fstream createFile(pFilePathName, std::ios::out | std::ios::binary);
+            // std::ios_base::openmode mode = std::ios::out | std::ios::in | std::ios::binary;
+            // if(pTruncate)
+                // mode |= std::ios::trunc;
+            // else if(pAppend)
+                // mode |= std::ios::app;
+            // mStream.open(pFilePathName, mode);
+            // mValid = mStream.is_open();
+            // initialize();
+        // }
+        // ~FileStream() { mStream.flush(); }
+
+        // void close() { mStream.flush(); mStream.close();}
+
+        // bool isValid()
+        // {
+            // if(mValid && mStream.fail())
+                // mValid = false;
+            // return mValid;
+        // }
+        // stream_size length() const { return mEndOffset; }
+
+        // // Output Stream
+        // stream_size writeOffset() const { return mWriteOffset; }
+        // bool setWriteOffset(stream_size pOffset)
+        // {
+            // if(pOffset <= mEndOffset)
+            // {
+                // flush();
+                // mStream.seekp(pOffset);
+                // mWriteOffset = mStream.tellp();
+                // return true;
+            // }
+            // return false;
+        // }
+        // void write(const void *pInput, stream_size pSize)
+        // {
+            // mStream.write((const char *)pInput, pSize);
+            // if(mWriteOffset != INVALID_STREAM_SIZE)
+            // {
+                // mWriteOffset += pSize;
+                // if(mEndOffset < mWriteOffset)
+                    // mEndOffset = mWriteOffset;
+            // }
+        // }
+        // void flush() { mStream.flush(); }
+
+        // // Input Stream
+        // stream_size readOffset() const { return mReadOffset; }
+        // bool setReadOffset(stream_size pOffset)
+        // {
+            // if(pOffset <= mEndOffset)
+            // {
+                // if(mStream.eof())
+                    // mStream.clear(); // Clear eof flag
+                // mStream.seekg(pOffset);
+                // mReadOffset = mStream.tellg();
+                // return true;
+            // }
+            // return false;
+        // }
+        // operator bool() const { return mStream.good() && (mReadOffset == (stream_size)-1 || mReadOffset < mEndOffset); }
+        // bool operator !() const { return !mStream.good(); }
+        // void read(void *pOutput, stream_size pSize)
+        // {
+            // mStream.read((char *)pOutput, pSize);
+            // if(mReadOffset != INVALID_STREAM_SIZE)
+            // {
+                // mReadOffset += pSize;
+                // if(mEndOffset < mReadOffset)
+                    // mEndOffset = mReadOffset;
+            // }
+        // }
+
+    // private:
+
+        // // Setup offsets
+        // void initialize()
+        // {
+            // if(mStream.tellp() == -1)
+            // {
+                // mWriteOffset = INVALID_STREAM_SIZE;
+                // mEndOffset = INVALID_STREAM_SIZE;
+                // return;
+            // }
+
+            // mReadOffset = 0;
+            // mWriteOffset = mStream.tellp();
+            // mStream.seekg(0, std::ios::end);
+            // mEndOffset = mStream.tellg();
+            // mStream.seekg(mReadOffset, std::ios::beg);
+        // }
+
+        // bool mValid;
+        // std::fstream mStream;
+        // stream_size mReadOffset, mWriteOffset, mEndOffset;
+    // };
 }
 
 #endif

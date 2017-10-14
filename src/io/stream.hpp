@@ -13,6 +13,7 @@
 
 #include <cstdarg>
 #include <cstdint>
+#include <limits>
 
 
 namespace ArcMist
@@ -20,7 +21,8 @@ namespace ArcMist
     class OutputStream;
     class InputStream;
 
-    typedef uint64_t stream_size;
+    typedef size_t stream_size;
+    static const stream_size INVALID_STREAM_SIZE = std::numeric_limits<size_t>::max(); // 0xffffffffffffffff;
 
     // Basic abstract for a class that can be written to
     class RawOutputStream
