@@ -6,6 +6,7 @@
  * file license.txt or http://www.opensource.org/licenses/mit-license.php *
  **************************************************************************/
 #include "arcmist/base/string.hpp"
+#include "arcmist/base/distributed_vector.hpp"
 #include "arcmist/base/log.hpp"
 #include "arcmist/base/thread.hpp"
 #include "arcmist/io/buffer.hpp"
@@ -21,6 +22,9 @@ int main(int pArgumentCount, char **pArguments)
     ArcMist::Log::setLevel(ArcMist::Log::DEBUG);
 
     if(!ArcMist::String::test())
+        failed++;
+
+    if(!ArcMist::testDistributedVector())
         failed++;
 
     if(!ArcMist::Buffer::test())
