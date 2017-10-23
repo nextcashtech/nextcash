@@ -389,6 +389,9 @@ namespace ArcMist
 
     bool Buffer::test()
     {
+        Log::add(ArcMist::Log::INFO, ARCMIST_BUFFER_LOG_NAME,
+          "------------- Starting Buffer Tests -------------");
+
         bool result = true;
 
         /******************************************************************************************

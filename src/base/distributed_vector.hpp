@@ -376,15 +376,11 @@ namespace ArcMist
             // Add to end of previous set
             std::vector<tType> *set = pBefore.set - 1;
             set->push_back(pValue);
-            if(set > mLastPushSet)
-                mLastPushSet = set;
             ++mSize;
         }
         else
         {
             pBefore.set->insert(pBefore.item, pValue);
-            if(pBefore.set > mLastPushSet)
-                mLastPushSet = pBefore.set;
             ++mSize;
         }
     }
@@ -392,19 +388,10 @@ namespace ArcMist
     template <class tType>
     void DistributedVector<tType>::push_back(const tType &pValue)
     {
-        // Check if there is available capacity in the last push set
-        if(mLastPushSet->size() < mLastPushSet->capacity())
+        while(true)
         {
-            mLastPushSet->push_back(pValue);
-            ++mSize;
-            return;
-        }
-
-        // Find the next set with available capacity
-        ++mLastPushSet;
-        while(mLastPushSet < mEndSet)
-        {
-            if(mLastPushSet->size() < mLastPushSet->capacity())
+            if(mLastPushSet->size() < mLastPushSet->capacity() || // This set has more capacity available
+              mLastPushSet == (mEndSet - 1)) // This is the last set
             {
                 mLastPushSet->push_back(pValue);
                 ++mSize;
@@ -413,10 +400,6 @@ namespace ArcMist
             else
                 ++mLastPushSet;
         }
-
-        // Add to last set
-        mSets[mSetCount - 1].push_back(pValue);
-        ++mSize;
     }
 
     template <class tType>

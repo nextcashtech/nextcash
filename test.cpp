@@ -33,6 +33,8 @@ int main(int pArgumentCount, char **pArguments)
     if(!ArcMist::Digest::test())
         failed++;
 
+    ArcMist::Log::add(ArcMist::Log::INFO, "Test", "------------- Starting General Tests -------------");
+
     ArcMist::Profiler testProfiler("Test");
     ArcMist::Thread::sleep(100);
     testProfiler.stop();

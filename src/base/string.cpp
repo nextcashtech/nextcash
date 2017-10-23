@@ -354,6 +354,9 @@ namespace ArcMist
 
     bool String::test()
     {
+        Log::add(ArcMist::Log::INFO, ARCMIST_STRING_LOG_NAME,
+          "------------- Starting String Tests -------------");
+
         bool result = true;
 
         /******************************************************************************************

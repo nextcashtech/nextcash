@@ -16,7 +16,7 @@ namespace ArcMist
 {
     bool testDistributedVector()
     {
-        ArcMist::Log::add(ArcMist::Log::INFO, ARCMIST_DISTRIBUTED_VECTOR_LOG_NAME,
+        Log::add(Log::INFO, ARCMIST_DISTRIBUTED_VECTOR_LOG_NAME,
           "------------- Starting Distributed Vector Tests -------------");
 
         bool success = true;
@@ -45,10 +45,10 @@ namespace ArcMist
 
         item = testVector.begin() + 10;
         if(*item == 51)
-            ArcMist::Log::addFormatted(ArcMist::Log::INFO, ARCMIST_DISTRIBUTED_VECTOR_LOG_NAME, "Passed insert end of previous");
+            Log::addFormatted(Log::INFO, ARCMIST_DISTRIBUTED_VECTOR_LOG_NAME, "Passed insert end of previous");
         else
         {
-            ArcMist::Log::addFormatted(ArcMist::Log::ERROR, ARCMIST_DISTRIBUTED_VECTOR_LOG_NAME,
+            Log::addFormatted(Log::ERROR, ARCMIST_DISTRIBUTED_VECTOR_LOG_NAME,
               "Failed insert end of previous : %d != 51", *item);
             success = false;
         }
@@ -66,10 +66,10 @@ namespace ArcMist
 
         item = testVector.begin() + 12;
         if(*item == 56)
-            ArcMist::Log::addFormatted(ArcMist::Log::INFO, ARCMIST_DISTRIBUTED_VECTOR_LOG_NAME, "Passed insert in set");
+            Log::addFormatted(Log::INFO, ARCMIST_DISTRIBUTED_VECTOR_LOG_NAME, "Passed insert in set");
         else
         {
-            ArcMist::Log::addFormatted(ArcMist::Log::ERROR, ARCMIST_DISTRIBUTED_VECTOR_LOG_NAME,
+            Log::addFormatted(Log::ERROR, ARCMIST_DISTRIBUTED_VECTOR_LOG_NAME,
               "Failed insert in set : %d != 56", *item);
             success = false;
         }
@@ -82,10 +82,10 @@ namespace ArcMist
 
         item = --testVector.end();
         if(*item == 501)
-            ArcMist::Log::addFormatted(ArcMist::Log::INFO, ARCMIST_DISTRIBUTED_VECTOR_LOG_NAME, "Passed push back end");
+            Log::addFormatted(Log::INFO, ARCMIST_DISTRIBUTED_VECTOR_LOG_NAME, "Passed push back end");
         else
         {
-            ArcMist::Log::addFormatted(ArcMist::Log::ERROR, ARCMIST_DISTRIBUTED_VECTOR_LOG_NAME,
+            Log::addFormatted(Log::ERROR, ARCMIST_DISTRIBUTED_VECTOR_LOG_NAME,
               "Failed push back end : %d != 501", *item);
             success = false;
         }
@@ -95,10 +95,10 @@ namespace ArcMist
          ***********************************************************************************************/
         item = testVector.begin() + (testVector.size() / 2);
         if(*item == 250)
-            ArcMist::Log::addFormatted(ArcMist::Log::INFO, ARCMIST_DISTRIBUTED_VECTOR_LOG_NAME, "Passed middle item");
+            Log::addFormatted(Log::INFO, ARCMIST_DISTRIBUTED_VECTOR_LOG_NAME, "Passed middle item");
         else
         {
-            ArcMist::Log::addFormatted(ArcMist::Log::ERROR, ARCMIST_DISTRIBUTED_VECTOR_LOG_NAME,
+            Log::addFormatted(Log::ERROR, ARCMIST_DISTRIBUTED_VECTOR_LOG_NAME,
               "Failed middle item : %d != 250", *item);
             success = false;
         }
@@ -108,10 +108,10 @@ namespace ArcMist
          ***********************************************************************************************/
         item = testVector.end() - (testVector.size() / 2);
         if(*item == 255)
-            ArcMist::Log::addFormatted(ArcMist::Log::INFO, ARCMIST_DISTRIBUTED_VECTOR_LOG_NAME, "Passed middle item from end");
+            Log::addFormatted(Log::INFO, ARCMIST_DISTRIBUTED_VECTOR_LOG_NAME, "Passed middle item from end");
         else
         {
-            ArcMist::Log::addFormatted(ArcMist::Log::ERROR, ARCMIST_DISTRIBUTED_VECTOR_LOG_NAME,
+            Log::addFormatted(Log::ERROR, ARCMIST_DISTRIBUTED_VECTOR_LOG_NAME,
               "Failed middle item from end : %d != 255", *item);
             success = false;
         }
@@ -121,10 +121,10 @@ namespace ArcMist
          ***********************************************************************************************/
         item = testVector.begin() + 10;
         if(*item == 51)
-            ArcMist::Log::addFormatted(ArcMist::Log::INFO, ARCMIST_DISTRIBUTED_VECTOR_LOG_NAME, "Passed 10 after begin");
+            Log::addFormatted(Log::INFO, ARCMIST_DISTRIBUTED_VECTOR_LOG_NAME, "Passed 10 after begin");
         else
         {
-            ArcMist::Log::addFormatted(ArcMist::Log::ERROR, ARCMIST_DISTRIBUTED_VECTOR_LOG_NAME,
+            Log::addFormatted(Log::ERROR, ARCMIST_DISTRIBUTED_VECTOR_LOG_NAME,
               "Failed 10 after begin : %d != 51", *item);
             success = false;
         }
@@ -134,10 +134,10 @@ namespace ArcMist
          ***********************************************************************************************/
         item = testVector.begin() + 11;
         if(*item == 55)
-            ArcMist::Log::addFormatted(ArcMist::Log::INFO, ARCMIST_DISTRIBUTED_VECTOR_LOG_NAME, "Passed 11 after begin");
+            Log::addFormatted(Log::INFO, ARCMIST_DISTRIBUTED_VECTOR_LOG_NAME, "Passed 11 after begin");
         else
         {
-            ArcMist::Log::addFormatted(ArcMist::Log::ERROR, ARCMIST_DISTRIBUTED_VECTOR_LOG_NAME,
+            Log::addFormatted(Log::ERROR, ARCMIST_DISTRIBUTED_VECTOR_LOG_NAME,
               "Failed 11 after begin : %d != 55", *item);
             success = false;
         }
@@ -147,10 +147,10 @@ namespace ArcMist
          ***********************************************************************************************/
         item = testVector.begin() + 12;
         if(*item == 56)
-            ArcMist::Log::addFormatted(ArcMist::Log::INFO, ARCMIST_DISTRIBUTED_VECTOR_LOG_NAME, "Passed 12 after begin");
+            Log::addFormatted(Log::INFO, ARCMIST_DISTRIBUTED_VECTOR_LOG_NAME, "Passed 12 after begin");
         else
         {
-            ArcMist::Log::addFormatted(ArcMist::Log::ERROR, ARCMIST_DISTRIBUTED_VECTOR_LOG_NAME,
+            Log::addFormatted(Log::ERROR, ARCMIST_DISTRIBUTED_VECTOR_LOG_NAME,
               "Failed 12 after begin : %d != 56", *item);
             success = false;
         }
@@ -160,10 +160,10 @@ namespace ArcMist
          ***********************************************************************************************/
         item = testVector.end() - 11;
         if(*item == 455)
-            ArcMist::Log::addFormatted(ArcMist::Log::INFO, ARCMIST_DISTRIBUTED_VECTOR_LOG_NAME, "Passed 11 before end");
+            Log::addFormatted(Log::INFO, ARCMIST_DISTRIBUTED_VECTOR_LOG_NAME, "Passed 11 before end");
         else
         {
-            ArcMist::Log::addFormatted(ArcMist::Log::ERROR, ARCMIST_DISTRIBUTED_VECTOR_LOG_NAME,
+            Log::addFormatted(Log::ERROR, ARCMIST_DISTRIBUTED_VECTOR_LOG_NAME,
               "Failed 11 before end : %d != 455", *item);
             success = false;
         }
@@ -173,16 +173,16 @@ namespace ArcMist
          ***********************************************************************************************/
         item = testVector.end() - 12;
         if(*item == 450)
-            ArcMist::Log::addFormatted(ArcMist::Log::INFO, ARCMIST_DISTRIBUTED_VECTOR_LOG_NAME, "Passed 12 before end");
+            Log::addFormatted(Log::INFO, ARCMIST_DISTRIBUTED_VECTOR_LOG_NAME, "Passed 12 before end");
         else
         {
-            ArcMist::Log::addFormatted(ArcMist::Log::ERROR, ARCMIST_DISTRIBUTED_VECTOR_LOG_NAME,
+            Log::addFormatted(Log::ERROR, ARCMIST_DISTRIBUTED_VECTOR_LOG_NAME,
               "Failed 12 before end : %d != 450", *item);
             success = false;
         }
 
-        for(item=testVector.begin();item!=testVector.end();++item)
-            ArcMist::Log::addFormatted(ArcMist::Log::INFO, ARCMIST_DISTRIBUTED_VECTOR_LOG_NAME, "Vector : %3d", *item);
+        // for(item=testVector.begin();item!=testVector.end();++item)
+            // Log::addFormatted(Log::INFO, ARCMIST_DISTRIBUTED_VECTOR_LOG_NAME, "Vector : %3d", *item);
 
         return success;
     }
