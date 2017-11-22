@@ -107,8 +107,9 @@ namespace ArcMist
 
             void decrement()
             {
-                if(item == set->begin()) // Find last in previous set
-                    *this = enclosing->previousLast(set);
+                if(item == set->begin() || // First item of set
+                  set->size() == 0) // Set is empty
+                    *this = enclosing->previousLast(set); // Find last item in previous set
                 else
                     --item;
             }
@@ -158,10 +159,7 @@ namespace ArcMist
         // Remove specified item and return the item after it
         iterator erase(iterator pItem);
 
-        std::vector<tType> *dataSet(unsigned int pOffset)
-        {
-            return mSets + pOffset;
-        }
+        std::vector<tType> *dataSet(unsigned int pOffset) { return mSets + pOffset; }
 
         void refresh();
 
@@ -176,7 +174,7 @@ namespace ArcMist
         unsigned int mSize;
         std::vector<tType> *mSets;
         std::vector<tType> *mEndSet;
-        std::vector<tType> *mLastPushSet; // Highest set that has items in it
+        std::vector<tType> *mLastSet; // Last set that has items in it
 
     };
 
@@ -186,7 +184,7 @@ namespace ArcMist
         mSetCount = pSetCount;
         mSets = new std::vector<tType>[mSetCount];
         mEndSet = mSets + mSetCount;
-        mLastPushSet = mSets;
+        mLastSet = mSets;
         mSize = 0;
     }
 
@@ -211,7 +209,7 @@ namespace ArcMist
     {
         for(std::vector<tType> *set=mSets;set<mEndSet;++set)
             set->clear();
-        mLastPushSet = mSets;
+        mLastSet = mSets;
         mSize = 0;
     }
 
@@ -342,7 +340,7 @@ namespace ArcMist
     template <class tType>
     typename DistributedVector<tType>::iterator DistributedVector<tType>::end()
     {
-        std::vector<tType> *set = mSets + (mSetCount - 1);
+        std::vector<tType> *set = mSets + mSetCount - 1;
         return iterator(this, set, set->end());
     }
 
@@ -359,7 +357,7 @@ namespace ArcMist
     template <class tType>
     tType &DistributedVector<tType>::back()
     {
-        return mLastPushSet->back();
+        return mLastSet->back();
     }
 
     template <class tType>
@@ -371,15 +369,19 @@ namespace ArcMist
     template <class tType>
     void DistributedVector<tType>::insert(iterator pBefore, const tType &pValue)
     {
-        if(pBefore.set != mSets && pBefore.item == pBefore.set->begin())
+        if(pBefore.set != mSets && // Not first set
+          pBefore.item == pBefore.set->begin()) // Inserting before first item of set
         {
             // Add to end of previous set
             std::vector<tType> *set = pBefore.set - 1;
             set->push_back(pValue);
             ++mSize;
         }
+        else if(pBefore == end()) // Inserting as last item
+            push_back(pValue);
         else
         {
+            // Normal insert into this set
             pBefore.set->insert(pBefore.item, pValue);
             ++mSize;
         }
@@ -390,15 +392,15 @@ namespace ArcMist
     {
         while(true)
         {
-            if(mLastPushSet->size() < mLastPushSet->capacity() || // This set has more capacity available
-              mLastPushSet == (mEndSet - 1)) // This is the last set
+            if(mLastSet->size() < mLastSet->capacity() || // This set has more capacity available
+              mLastSet == (mEndSet - 1)) // This is the last possible set
             {
-                mLastPushSet->push_back(pValue);
+                mLastSet->push_back(pValue);
                 ++mSize;
                 return;
             }
             else
-                ++mLastPushSet;
+                ++mLastSet;
         }
     }
 
@@ -408,7 +410,17 @@ namespace ArcMist
         set_iterator nextItem = pItem.set->erase(pItem.item);
         --mSize;
         if(nextItem == pItem.set->end())
-            return nextBegin(pItem.set); // Return first item in next set
+        {
+            if(pItem.set == mLastSet)
+            {
+                // Update last set
+                while(mLastSet->size() == 0 && mLastSet > mSets)
+                    --mLastSet;
+                return end();
+            }
+            else
+                return nextBegin(pItem.set); // Return first item in next set
+        }
         else
             return iterator(this, pItem.set, nextItem); // Return next item in this set
     }
@@ -416,12 +428,12 @@ namespace ArcMist
     template <class tType>
     void DistributedVector<tType>::refresh()
     {
-        mLastPushSet = mSets;
+        mLastSet = mSets;
         mSize = 0;
         for(std::vector<tType> *set=mSets;set<mEndSet;++set)
             if(set->size() > 0)
             {
-                mLastPushSet = set;
+                mLastSet = set;
                 mSize += set->size();
             }
     }
