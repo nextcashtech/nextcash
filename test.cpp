@@ -6,6 +6,7 @@
  * file license.txt or http://www.opensource.org/licenses/mit-license.php *
  **************************************************************************/
 #include "arcmist/base/string.hpp"
+#include "arcmist/base/hash.hpp"
 #include "arcmist/base/distributed_vector.hpp"
 #include "arcmist/base/log.hpp"
 #include "arcmist/base/thread.hpp"
@@ -31,6 +32,9 @@ int main(int pArgumentCount, char **pArguments)
         failed++;
 
     if(!ArcMist::Digest::test())
+        failed++;
+
+    if(!ArcMist::Hash::test())
         failed++;
 
     ArcMist::Log::add(ArcMist::Log::INFO, "Test", "------------- Starting General Tests -------------");
