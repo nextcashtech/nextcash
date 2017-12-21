@@ -88,12 +88,8 @@ namespace ArcMist
         void read(void *pOutput, stream_size pSize)
         {
             mStream->read((char *)pOutput, pSize);
-            if(mReadOffset != INVALID_STREAM_SIZE)
-            {
+            if(mReadOffset != INVALID_STREAM_SIZE && mReadOffset < mEndOffset)
                 mReadOffset += pSize;
-                if(mEndOffset < mReadOffset)
-                    mEndOffset = mReadOffset;
-            }
         }
 
     private:

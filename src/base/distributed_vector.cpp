@@ -35,7 +35,7 @@ namespace ArcMist
          * DistributedVector insert end of previous
          ***********************************************************************************************/
         int insertValue = 51;
-        DistributedVector<int>::iterator item;
+        DistributedVector<int>::Iterator item;
         for(item=testVector.begin();item!=testVector.end();++item)
             if(*item > insertValue)
             {

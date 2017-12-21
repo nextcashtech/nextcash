@@ -45,13 +45,13 @@ namespace ArcMist
     void ProfilerData::write(OutputStream *pStream)
     {
         //float seconds = ((float)time) / CLOCKS_PER_SEC;
-        pStream->writeFormatted("  %-32s %12d %9.6f %9.6f\n", name, hits, seconds, seconds / (float)hits);
+        pStream->writeFormatted("  %-40s %12d %14.6f %9.6f\n", name, hits, seconds, seconds / (float)hits);
     }
 
     void ProfilerManager::write(OutputStream *pStream)
     {
         pStream->writeString("Profiler:\n");
-        pStream->writeString("  Name                                     Hits      Time       Avg\n");
+        pStream->writeString("  Name                                             Hits           Time       Avg\n");
 
         std::vector<ProfilerData *> &profilers = instance().mProfilers;
         for(std::vector<ProfilerData *>::iterator iter = profilers.begin();iter!=profilers.end();++iter)

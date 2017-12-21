@@ -33,23 +33,23 @@ namespace ArcMist
         // Reserve total capacity. Capacity will be distributed amoung sets
         void reserve(unsigned int pCount);
 
-        typedef typename std::vector<tType>::iterator set_iterator;
+        typedef typename std::vector<tType>::iterator SetIterator;
 
-        class iterator
+        class Iterator
         {
         public:
-            iterator()
+            Iterator()
             {
                 enclosing = NULL;
                 set = NULL;
             }
-            iterator(const iterator &pCopy)
+            Iterator(const Iterator &pCopy)
             {
                 enclosing = pCopy.enclosing;
                 set = pCopy.set;
                 item = pCopy.item;
             }
-            iterator(DistributedVector *pEnclosing, std::vector<tType> *pSet, set_iterator pItem)
+            Iterator(DistributedVector *pEnclosing, std::vector<tType> *pSet, const SetIterator &pItem)
             {
                 enclosing = pEnclosing;
                 set = pSet;
@@ -59,17 +59,17 @@ namespace ArcMist
             tType &operator *() { return *item; }
             tType *operator ->() { return &(*item); }
 
-            bool operator ==(const iterator &pRight)
+            bool operator ==(const Iterator &pRight)
             {
                 return set == pRight.set && item == pRight.item;
             }
 
-            bool operator !=(const iterator &pRight)
+            bool operator !=(const Iterator &pRight)
             {
                 return set != pRight.set || item != pRight.item;
             }
 
-            iterator &operator =(const iterator &pRight)
+            Iterator &operator =(const Iterator &pRight)
             {
                 enclosing = pRight.enclosing;
                 set = pRight.set;
@@ -84,23 +84,23 @@ namespace ArcMist
                     *this = enclosing->nextBegin(set);
             }
 
-            iterator &operator +=(unsigned int pCount)
+            Iterator &operator +=(unsigned int pCount)
             {
                 *this = *this + pCount;
                 return *this;
             }
 
             // Prefix increment
-            iterator &operator ++()
+            Iterator &operator ++()
             {
                 increment();
                 return *this;
             }
 
             // Postfix increment
-            iterator operator ++(int)
+            Iterator operator ++(int)
             {
-                iterator result = *this;
+                Iterator result = *this;
                 increment();
                 return result;
             }
@@ -114,50 +114,50 @@ namespace ArcMist
                     --item;
             }
 
-            iterator &operator -=(unsigned int pCount)
+            Iterator &operator -=(unsigned int pCount)
             {
                 *this = *this - pCount;
                 return *this;
             }
 
             // Prefix decrement
-            iterator &operator --()
+            Iterator &operator --()
             {
                 decrement();
                 return *this;
             }
 
             // Postfix decrement
-            iterator operator --(int)
+            Iterator operator --(int)
             {
-                iterator result = *this;
+                Iterator result = *this;
                 decrement();
                 return result;
             }
 
-            iterator &operator +(unsigned int pCount);
-            iterator &operator -(unsigned int pCount);
+            Iterator operator +(unsigned int pCount) const;
+            Iterator operator -(unsigned int pCount) const;
 
             DistributedVector *enclosing;
             std::vector<tType> *set;
-            set_iterator item;
+            SetIterator item;
         };
 
-        iterator begin();
-        iterator end();
+        Iterator begin();
+        Iterator end();
 
         tType &front();
         tType &back();
         tType &operator [](unsigned int pOffset);
 
         // Insert new item before specified item
-        void insert(iterator pBefore, const tType &pValue);
+        void insert(Iterator pBefore, const tType &pValue);
 
         // Add a new item to the end
         void push_back(const tType &pValue);
 
         // Remove specified item and return the item after it
-        iterator erase(iterator pItem);
+        Iterator erase(Iterator pItem);
 
         std::vector<tType> *dataSet(unsigned int pOffset) { return mSets + pOffset; }
 
@@ -165,10 +165,10 @@ namespace ArcMist
 
     private:
 
-        // Return the next iterator after the specified set
-        iterator nextBegin(std::vector<tType> *pAfterSet);
-        // Return the previous iterator before the specified set
-        iterator previousLast(std::vector<tType> *pAfterSet);
+        // Return the next Iterator after the specified set
+        Iterator nextBegin(std::vector<tType> *pAfterSet);
+        // Return the previous Iterator before the specified set
+        Iterator previousLast(std::vector<tType> *pAfterSet);
 
         unsigned int mSetCount;
         unsigned int mSize;
@@ -214,46 +214,31 @@ namespace ArcMist
     }
 
     template <class tType>
-    typename DistributedVector<tType>::iterator &DistributedVector<tType>::iterator::operator +(unsigned int pCount)
+    typename DistributedVector<tType>::Iterator DistributedVector<tType>::Iterator::operator +(unsigned int pCount) const
     {
         unsigned int currentOffset = item - set->begin();
         unsigned int remainingInThisSet = set->size() - currentOffset;
         if(remainingInThisSet == pCount)
-        {
-            *this = enclosing->nextBegin(set);
-            return *this;
-        }
+            return enclosing->nextBegin(set);
         else if(remainingInThisSet > pCount)
-        {
-            item += pCount;
-            return *this;
-        }
+            return Iterator(enclosing, set, item + pCount);
         else if(set == enclosing->mEndSet - 1)
-        {
-            // Result would be past the end
-            *this = enclosing->end();
-            return *this;
-        }
+            return enclosing->end(); // Result would be past the end
 
         unsigned int remaining = pCount - remainingInThisSet;
         for(std::vector<tType> *newSet=set+1;newSet<enclosing->mEndSet;++newSet)
         {
             if(newSet->size() > remaining)
-            {
-                set = newSet;
-                item = newSet->begin() + remaining;
-                return *this;
-            }
+                return Iterator(enclosing, newSet, newSet->begin() + remaining);
             else
                 remaining -= newSet->size();
         }
 
-        *this = enclosing->end();
-        return *this;
+        return enclosing->end();
     }
 
     template <class tType>
-    typename DistributedVector<tType>::iterator &DistributedVector<tType>::iterator::operator -(unsigned int pCount)
+    typename DistributedVector<tType>::Iterator DistributedVector<tType>::Iterator::operator -(unsigned int pCount) const
     {
         unsigned int currentOffset;
         if(item == set->end())
@@ -262,58 +247,39 @@ namespace ArcMist
             currentOffset = item - set->begin();
 
         if(currentOffset == pCount)
-        {
-            item = set->begin();
-            return *this;
-        }
+            return Iterator(enclosing, set, set->begin());
         else if(currentOffset > pCount)
-        {
-            item -= pCount;
-            return *this;
-        }
+            return Iterator(enclosing, set, item - pCount);
         else if(set == enclosing->mSets)
-        {
-            // Result would be past the beginning
-            *this = enclosing->begin();
-            return *this;
-        }
+            return enclosing->begin(); // Result would be past the beginning
 
         unsigned int remaining = pCount - currentOffset;
         for(std::vector<tType> *newSet=set-1;newSet>=enclosing->mSets;--newSet)
         {
             if(newSet->size() > remaining)
-            {
-                set = newSet;
-                item = newSet->begin() + (newSet->size() - remaining);
-                return *this;
-            }
+                return Iterator(enclosing, newSet, newSet->begin() + (newSet->size() - remaining));
             else if(newSet->size() == remaining)
-            {
-                set = newSet;
-                item = newSet->begin();
-                return *this;
-            }
+                return Iterator(enclosing, newSet, newSet->begin());
             else
                 remaining -= newSet->size();
         }
 
-        *this = enclosing->end();
-        return *this;
+        return enclosing->end();
     }
 
     template <class tType>
-    typename DistributedVector<tType>::iterator DistributedVector<tType>::nextBegin(std::vector<tType> *pAfterSet)
+    typename DistributedVector<tType>::Iterator DistributedVector<tType>::nextBegin(std::vector<tType> *pAfterSet)
     {
         std::vector<tType> *set = pAfterSet + 1;
         for(;set<mEndSet;++set)
             if(set->size() > 0)
-                return iterator(this, set, set->begin());
+                return Iterator(this, set, set->begin());
         --set;
-        return iterator(this, set, set->end());
+        return Iterator(this, set, set->end());
     }
 
     template <class tType>
-    typename DistributedVector<tType>::iterator DistributedVector<tType>::previousLast(std::vector<tType> *pBeforeSet)
+    typename DistributedVector<tType>::Iterator DistributedVector<tType>::previousLast(std::vector<tType> *pBeforeSet)
     {
         if(pBeforeSet == mSets)
             return end();
@@ -321,27 +287,27 @@ namespace ArcMist
         std::vector<tType> *set = pBeforeSet - 1;
         for(;set>=mSets;--set)
             if(set->size() > 0)
-                return iterator(this, set, --set->end());
+                return Iterator(this, set, --set->end());
 
         return end();
     }
 
     template <class tType>
-    typename DistributedVector<tType>::iterator DistributedVector<tType>::begin()
+    typename DistributedVector<tType>::Iterator DistributedVector<tType>::begin()
     {
         std::vector<tType> *set = mSets;
         for(;set<mEndSet;++set)
             if(set->size() > 0)
-                return iterator(this, set, set->begin());
+                return Iterator(this, set, set->begin());
         --set;
-        return iterator(this, set, set->begin());
+        return Iterator(this, set, set->begin());
     }
 
     template <class tType>
-    typename DistributedVector<tType>::iterator DistributedVector<tType>::end()
+    typename DistributedVector<tType>::Iterator DistributedVector<tType>::end()
     {
         std::vector<tType> *set = mSets + mSetCount - 1;
-        return iterator(this, set, set->end());
+        return Iterator(this, set, set->end());
     }
 
     template <class tType>
@@ -367,7 +333,7 @@ namespace ArcMist
     }
 
     template <class tType>
-    void DistributedVector<tType>::insert(iterator pBefore, const tType &pValue)
+    void DistributedVector<tType>::insert(Iterator pBefore, const tType &pValue)
     {
         if(pBefore.set != mSets && // Not first set
           pBefore.item == pBefore.set->begin()) // Inserting before first item of set
@@ -405,9 +371,9 @@ namespace ArcMist
     }
 
     template <class tType>
-    typename DistributedVector<tType>::iterator DistributedVector<tType>::erase(iterator pItem)
+    typename DistributedVector<tType>::Iterator DistributedVector<tType>::erase(Iterator pItem)
     {
-        set_iterator nextItem = pItem.set->erase(pItem.item);
+        SetIterator nextItem = pItem.set->erase(pItem.item);
         --mSize;
         if(nextItem == pItem.set->end())
         {
@@ -422,7 +388,7 @@ namespace ArcMist
                 return nextBegin(pItem.set); // Return first item in next set
         }
         else
-            return iterator(this, pItem.set, nextItem); // Return next item in this set
+            return Iterator(this, pItem.set, nextItem); // Return next item in this set
     }
 
     template <class tType>

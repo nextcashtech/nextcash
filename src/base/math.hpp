@@ -21,6 +21,12 @@
 
 namespace ArcMist
 {
+    // Seconds since epoch
+    inline int32_t getTime()
+    {
+        return std::time(NULL);
+    }
+
     namespace Math
     {
         inline double square(double pValue)
@@ -37,7 +43,7 @@ namespace ArcMist
 
         inline void seedRandom()
         {
-            std::srand(std::time(NULL));
+            std::srand(getTime());
         }
 
         inline uint32_t randomInt()
@@ -62,7 +68,7 @@ namespace ArcMist
 
         inline uint64_t randomLong()
         {
-            std::srand(std::time(NULL));
+            std::srand(getTime());
             return ((uint64_t)rand() << 32) + (uint64_t)rand();
         }
 

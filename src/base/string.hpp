@@ -123,6 +123,23 @@ namespace ArcMist
         bool operator != (const char *pRight) const { return !(*this == pRight); }
         bool operator != (const String &pRight) const { return !(*this == pRight.text()); }
 
+        int compare(const char *pRight)
+        {
+            // This is empty
+            if(mData == NULL)
+            {
+                if(pRight == NULL || *pRight == 0)
+                    return 0; // Right is empty
+                else
+                    return -1; // Right is not empty
+            }
+
+            if(pRight == NULL || *pRight == 0)
+                return 1; // Right is empty
+
+            return std::strcmp(mData, pRight);
+        }
+
         bool operator < (const char *pRight) const
         {
             if(mData == NULL)

@@ -2351,6 +2351,7 @@ namespace ArcMist
         uint64_t check;
         uint8_t *byte;
         uint8_t sipHash24Data[64];
+        bool sipSuccess = true;
 
         for(unsigned int i=0;i<64;++i)
         {
@@ -2362,16 +2363,17 @@ namespace ArcMist
             for(unsigned int j=0;j<8;++j)
                 check |= (uint64_t)*byte++ << (j * 8);
 
-            if(sipResult == check)
-                Log::addFormatted(Log::INFO, ARCMIST_DIGEST_LOG_NAME, "Passed SipHash24 %d 0x%08x%08x == 0x%08x%08x",
-                  i, sipResult >> 32, sipResult & 0xffffffff, check >> 32, check & 0xffffffff);
-            else
+            if(sipResult != check)
             {
                 Log::addFormatted(Log::ERROR, ARCMIST_DIGEST_LOG_NAME, "Failed SipHash24 %d 0x%08x%08x == 0x%08x%08x",
                   i, sipResult >> 32, sipResult & 0xffffffff, check >> 32, check & 0xffffffff);
                 result = false;
+                sipSuccess = false;
             }
         }
+
+        if(sipSuccess)
+            Log::add(Log::INFO, ARCMIST_DIGEST_LOG_NAME, "Passed SipHash24 test set");
 
         return result;
     }

@@ -7,6 +7,7 @@
  **************************************************************************/
 #include "arcmist/base/string.hpp"
 #include "arcmist/base/hash.hpp"
+#include "arcmist/base/hash_data_set.hpp"
 #include "arcmist/base/distributed_vector.hpp"
 #include "arcmist/base/log.hpp"
 #include "arcmist/base/thread.hpp"
@@ -25,16 +26,19 @@ int main(int pArgumentCount, char **pArguments)
     if(!ArcMist::String::test())
         failed++;
 
-    if(!ArcMist::testDistributedVector())
-        failed++;
-
     if(!ArcMist::Buffer::test())
         failed++;
 
-    if(!ArcMist::Digest::test())
+    if(!ArcMist::testDistributedVector())
         failed++;
 
     if(!ArcMist::Hash::test())
+        failed++;
+
+    if(!ArcMist::testHashDataSet())
+        failed++;
+
+    if(!ArcMist::Digest::test())
         failed++;
 
     ArcMist::Log::add(ArcMist::Log::INFO, "Test", "------------- Starting General Tests -------------");
