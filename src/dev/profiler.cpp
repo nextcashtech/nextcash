@@ -59,4 +59,12 @@ namespace ArcMist
 
         pStream->flush();
     }
+
+    void ProfilerManager::reset()
+    {
+        std::vector<ProfilerData *> &profilers = instance().mProfilers;
+        for(std::vector<ProfilerData *>::iterator iter = profilers.begin();iter!=profilers.end();++iter)
+            delete *iter;
+        instance().mProfilers.clear();
+    }
 }

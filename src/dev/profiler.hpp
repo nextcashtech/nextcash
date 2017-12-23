@@ -61,6 +61,8 @@ namespace ArcMist
         // Write text results that were collected by profiler
         static void write(OutputStream *pStream);
 
+        static void reset();
+
     private:
 
         static ProfilerManager *mInstance;
