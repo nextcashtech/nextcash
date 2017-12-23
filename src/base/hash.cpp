@@ -357,9 +357,9 @@ namespace ArcMist
     }
 
     // Big endian (most significant bytes first, i.e. leading zeroes for block hashes)
-    ArcMist::String Hash::hex() const
+    String Hash::hex() const
     {
-        ArcMist::String result;
+        String result;
         if(mSize == 0)
             return result;
         result.writeReverseHex(mData, mSize);
@@ -367,9 +367,9 @@ namespace ArcMist
     }
 
     // Little endian (least significant bytes first)
-    ArcMist::String Hash::littleHex() const
+    String Hash::littleHex() const
     {
-        ArcMist::String result;
+        String result;
         if(mSize == 0)
             return result;
         result.writeHex(mData, mSize);
@@ -390,11 +390,11 @@ namespace ArcMist
         {
             if(second)
             {
-                (*byte) |= ArcMist::Math::hexToNibble(*hexChar) << 4;
+                (*byte) |= Math::hexToNibble(*hexChar) << 4;
                 ++byte;
             }
             else
-                (*byte) = ArcMist::Math::hexToNibble(*hexChar);
+                (*byte) = Math::hexToNibble(*hexChar);
 
             second = !second;
             --hexChar;
@@ -415,11 +415,11 @@ namespace ArcMist
         {
             if(second)
             {
-                (*byte) |= ArcMist::Math::hexToNibble(*hexChar);
+                (*byte) |= Math::hexToNibble(*hexChar);
                 ++byte;
             }
             else
-                (*byte) = ArcMist::Math::hexToNibble(*hexChar) << 4;
+                (*byte) = Math::hexToNibble(*hexChar) << 4;
 
             second = !second;
             ++hexChar;

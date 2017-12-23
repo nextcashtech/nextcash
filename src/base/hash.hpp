@@ -19,7 +19,7 @@
 
 namespace ArcMist
 {
-    class Hash : public RawOutputStream // So ArcMist::Digest can write results to it
+    class Hash : public RawOutputStream // So Digest can write results to it
     {
     public:
 
@@ -45,10 +45,10 @@ namespace ArcMist
         const uint8_t *value() const { return mData; }
 
         // Big endian (most significant bytes first, i.e. leading zeroes for block hashes)
-        ArcMist::String hex() const;
+        String hex() const;
 
         // Little endian (least significant bytes first)
-        ArcMist::String littleHex() const;
+        String littleHex() const;
 
         void setSize(unsigned int pSize)
         {
@@ -156,7 +156,7 @@ namespace ArcMist
             uint32_t random;
             for(unsigned int i=0;i<mSize;i+=4)
             {
-                random = ArcMist::Math::randomInt();
+                random = Math::randomInt();
                 std::memcpy(mData + i, &random, 4);
             }
         }
@@ -212,7 +212,7 @@ namespace ArcMist
             return *this;
         }
 
-        void write(ArcMist::OutputStream *pStream) const
+        void write(OutputStream *pStream) const
         {
             if(mSize == 0)
                 return;
@@ -220,7 +220,7 @@ namespace ArcMist
             pStream->write(mData, mSize);
         }
 
-        bool read(ArcMist::InputStream *pStream)
+        bool read(InputStream *pStream)
         {
             if(mSize == 0)
                 return true;
@@ -232,14 +232,14 @@ namespace ArcMist
             return true;
         }
 
-        bool read(ArcMist::InputStream *pStream, ArcMist::stream_size pSize)
+        bool read(InputStream *pStream, stream_size pSize)
         {
             setSize(pSize);
             return read(pStream);
         }
 
-        // ArcMist::RawOutputStream virtual
-        void write(const void *pInput, ArcMist::stream_size pSize)
+        // RawOutputStream virtual
+        void write(const void *pInput, stream_size pSize)
         {
             setSize(pSize);
             std::memcpy(mData, pInput, pSize);
@@ -563,7 +563,7 @@ namespace ArcMist
     typename HashContainerList<tType>::SubIterator HashContainerList<tType>::findInsertBefore(const Hash &pHash, bool pFirst)
     {
 #ifdef PROFILER_ON
-        ArcMist::Profiler profiler("Hash Container Find Insert Before");
+        Profiler profiler("Hash Container Find Insert Before");
 #endif
         if(mList.size() == 0)
             return mList.end(); // Insert at the end (as only item)
@@ -644,12 +644,12 @@ namespace ArcMist
     void HashContainerList<tType>::insert(const Hash &pHash, tType &pData)
     {
 #ifdef PROFILER_ON
-        ArcMist::Profiler profiler("Hash Container Insert");
+        Profiler profiler("Hash Container Insert");
 #endif
         SubIterator insertBefore = findInsertBefore(pHash, false);
 
 #ifdef PROFILER_ON
-        ArcMist::Profiler profilerCheck("Hash Container Insert Push");
+        Profiler profilerCheck("Hash Container Insert Push");
 #endif
         if(insertBefore == mList.end())
             mList.push_back(new Data(pHash, pData)); // Insert at the end
@@ -669,12 +669,12 @@ namespace ArcMist
       bool (*pValuesMatch)(tType &pLeft, tType &pRight))
     {
 #ifdef PROFILER_ON
-        ArcMist::Profiler profiler("Hash Container Insert Not Matching");
+        Profiler profiler("Hash Container Insert Not Matching");
 #endif
         SubIterator item = findInsertBefore(pHash, true);
 
 #ifdef PROFILER_ON
-        ArcMist::Profiler profilerCheck("Hash Container Insert Check Match");
+        Profiler profilerCheck("Hash Container Insert Check Match");
 #endif
         // Iterate through any matching hashes to check for a matching value
         bool wasIncremented = false;
@@ -690,7 +690,7 @@ namespace ArcMist
 #endif
 
 #ifdef PROFILER_ON
-        ArcMist::Profiler profilerPush("Hash Container Insert Push");
+        Profiler profilerPush("Hash Container Insert Push");
 #endif
         // No items with matching hash and value, so insert
         // This will insert after all values with matching hashes
