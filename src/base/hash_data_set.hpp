@@ -143,6 +143,25 @@ namespace ArcMist
         public:
             Hash hash;
             stream_size offset;
+
+            bool load(InputStream *pIndexFile, InputStream *pDataFile)
+            {
+                if(hash.isEmpty())
+                {
+                    pIndexFile->setReadOffset(offset);
+                    stream_size dataOffset;
+                    pIndexFile->read(&dataOffset, sizeof(stream_size));
+
+                    pDataFile->setReadOffset(dataOffset);
+                    if(!hash.read(pDataFile, tHashSize))
+                    {
+                        Log::addFormatted(Log::ERROR, ARCMIST_HASH_DATA_SET_LOG_NAME,
+                          "Failed to read sample index hash at offset %llu", offset);
+                        return false;
+                    }
+                }
+                return true;
+            }
         };
 
         typedef typename HashContainerList<HashData *>::Iterator SubSetIterator;
@@ -181,12 +200,18 @@ namespace ArcMist
 #ifdef PROFILER_ON
                 ArcMist::Profiler profiler("Hash SubSet Save Pull Hash");
 #endif
+                if(!pDataFile->setReadOffset(pFileOffset))
+                {
+                    Log::addFormatted(Log::ERROR, ARCMIST_HASH_DATA_SET_LOG_NAME,
+                      "Failed to pull hash at index offset %d/%d", pFileOffset, pDataFile->length());
+                    return NULL;
+                }
+
                 Hash *result = new Hash(tHashSize);
-                pDataFile->setReadOffset(pFileOffset);
                 if(!result->read(pDataFile))
                 {
                     Log::addFormatted(Log::ERROR, ARCMIST_HASH_DATA_SET_LOG_NAME,
-                      "Failed to read header at index offset %d", pFileOffset);
+                      "Failed to pull hash at index offset %d/%d", pFileOffset, pDataFile->length());
                     delete result;
                     return NULL;
                 }
@@ -194,7 +219,6 @@ namespace ArcMist
             }
 
             void loadSamples(InputStream *pIndexFile);
-            bool loadSample(InputStream *pIndexFile, InputStream *pDataFile, unsigned int pSampleOffset);
 
             // Find offsets into indices that contain the specified hash, based on samples
             bool findSample(const Hash &pHash, InputStream *pIndexFile, InputStream *pDataFile,
@@ -570,12 +594,13 @@ namespace ArcMist
         if(mSamples != NULL)
         {
             if(!findSample(pLookupValue, &indexFile, &dataFile, begin, end))
-                return false; // Lookup is not within set
-        }
-        else
-        {
-            // Not enough items for a full sample set
+                return false; // Failed
 
+            if(begin == INVALID_STREAM_SIZE)
+                return false; // Not within subset
+        }
+        else // Not enough items for a full sample set
+        {
             // Setup index binary search on all indices
             begin = first;
             end = last;
@@ -592,7 +617,7 @@ namespace ArcMist
                 return false; // Lookup is before first item
             else if(compare == 0)
                 end = begin;
-            else
+            else if(mFileSize > 1)
             {
                 // Check last item
                 indexFile.setReadOffset(end);
@@ -607,10 +632,12 @@ namespace ArcMist
                 else if(compare == 0)
                     begin = end;
             }
+            else
+                return false; // Not within subset
         }
 
         if(begin == end)
-            current = begin; // Lookup is in sample set
+            current = begin; // Lookup matches a sample
         else
         {
             // Binary search the file indices
@@ -726,56 +753,48 @@ namespace ArcMist
     }
 
     template <class tHashDataType, uint8_t tHashSize, uint16_t tSampleSize, uint16_t tSetCount>
-    bool HashDataSet<tHashDataType, tHashSize, tSampleSize, tSetCount>::SubSet::loadSample(InputStream *pIndexFile,
-      InputStream *pDataFile, unsigned int pSampleOffset)
-    {
-        SampleEntry &sample = mSamples[pSampleOffset];
-        if(sample.hash.isEmpty())
-        {
-            pIndexFile->setReadOffset(sample.offset);
-            stream_size dataOffset;
-            pIndexFile->read(&dataOffset, sizeof(stream_size));
-
-            pDataFile->setReadOffset(dataOffset);
-            if(!sample.hash.read(pDataFile, tHashSize))
-            {
-                Log::addFormatted(Log::ERROR, ARCMIST_HASH_DATA_SET_LOG_NAME,
-                  "Failed to read sample index hash at offset %llu", sample.offset);
-                return false;
-            }
-        }
-        return true;
-    }
-
-    template <class tHashDataType, uint8_t tHashSize, uint16_t tSampleSize, uint16_t tSetCount>
     bool HashDataSet<tHashDataType, tHashSize, tSampleSize, tSetCount>::SubSet::findSample(const Hash &pHash,
       InputStream *pIndexFile, InputStream *pDataFile, stream_size &pBegin, stream_size &pEnd)
     {
         // Check first entry
-        if(!loadSample(pIndexFile, pDataFile, 0))
+        SampleEntry *sample = mSamples;
+        if(!sample->load(pIndexFile, pDataFile))
             return false;
-        int compare = mSamples[0].hash.compare(pHash);
+        int compare = sample->hash.compare(pHash);
         if(compare > 0)
-            return false;
+        {
+            // Hash is before the first entry of subset
+            pBegin = INVALID_STREAM_SIZE;
+            pEnd   = INVALID_STREAM_SIZE;
+            return true;
+        }
         else if(compare == 0)
         {
-            pBegin = mSamples[0].offset;
-            pEnd   = mSamples[0].offset;
+            // Hash is the first entry of subset
+            pBegin = sample->offset;
+            pEnd   = sample->offset;
             return true;
         }
         // Log::addFormatted(Log::VERBOSE, ARCMIST_HASH_DATA_SET_LOG_NAME,
           // "First : %s", mSamples[0].hash.hex().text());
 
         // Check last entry
-        if(!loadSample(pIndexFile, pDataFile, tSampleSize-1))
+        sample = mSamples + (tSampleSize - 1);
+        if(!sample->load(pIndexFile, pDataFile))
             return false;
-        compare = mSamples[tSampleSize-1].hash.compare(pHash);
+        compare = sample->hash.compare(pHash);
         if(compare < 0)
-            return false;
+        {
+            // Hash is after the last entry of subset
+            pBegin = INVALID_STREAM_SIZE;
+            pEnd   = INVALID_STREAM_SIZE;
+            return true;
+        }
         else if(compare == 0)
         {
-            pBegin = mSamples[tSampleSize-1].offset;
-            pEnd   = mSamples[tSampleSize-1].offset;
+            // Hash is the after last entry of subset
+            pBegin = sample->offset;
+            pEnd   = sample->offset;
             return true;
         }
         // Log::addFormatted(Log::VERBOSE, ARCMIST_HASH_DATA_SET_LOG_NAME,
@@ -796,14 +815,15 @@ namespace ArcMist
             if(sampleCurrent == sampleBegin || sampleCurrent == sampleEnd)
                 done = true;
 
-            if(!loadSample(pIndexFile, pDataFile, sampleCurrent))
+            sample = mSamples + sampleCurrent;
+            if(!sample->load(pIndexFile, pDataFile))
                 return false;
 
             // Determine which half the desired item is in
-            compare = pHash.compare(mSamples[sampleCurrent].hash);
-            if(compare > 0)
+            compare = sample->hash.compare(pHash);
+            if(compare < 0)
                 sampleBegin = sampleCurrent;
-            else if(compare < 0)
+            else if(compare > 0)
                 sampleEnd = sampleCurrent;
             else
             {
