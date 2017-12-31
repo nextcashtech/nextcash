@@ -71,7 +71,7 @@ namespace ArcMist
             unsigned int receive(OutputStream *pStream, bool pWait = false);
             bool send(InputStream *pStream);
 
-            // Tracking of bytes sent and recieved
+            // Tracking of bytes sent and received
             uint64_t bytesReceived() const { return mBytesReceived; }
             uint64_t bytesSent() const { return mBytesSent; }
             void resetByteCounts() { mBytesReceived = 0; mBytesSent = 0; }

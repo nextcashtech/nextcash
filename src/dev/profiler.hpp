@@ -8,6 +8,7 @@
 #ifndef ARCMIST_PROFILER_HPP
 #define ARCMIST_PROFILER_HPP
 
+#include "arcmist/base/string.hpp"
 #include "arcmist/io/stream.hpp"
 
 #include <ctime>
@@ -34,7 +35,7 @@ namespace ArcMist
         }
         void write(OutputStream *pStream);
 
-        const char *name;
+        String name;
         std::chrono::steady_clock::time_point begin;
         unsigned long hits;
         bool started;
@@ -50,7 +51,7 @@ namespace ArcMist
         {
             std::vector<ProfilerData *> &profilers = instance().mProfilers;
             for(std::vector<ProfilerData *>::iterator iter = profilers.begin();iter!=profilers.end();++iter)
-                if(std::strcmp((*iter)->name, pName) == 0)
+                if((*iter)->name == pName)
                     return *iter;
 
             ProfilerData *newProfiler = new ProfilerData(pName);

@@ -45,7 +45,7 @@ namespace ArcMist
     void ProfilerData::write(OutputStream *pStream)
     {
         //float seconds = ((float)time) / CLOCKS_PER_SEC;
-        pStream->writeFormatted("  %-40s %12d %14.6f %9.6f\n", name, hits, seconds, seconds / (float)hits);
+        pStream->writeFormatted("  %-40s %12d %14.6f %9.6f\n", name.text(), hits, seconds, seconds / (float)hits);
     }
 
     void ProfilerManager::write(OutputStream *pStream)
