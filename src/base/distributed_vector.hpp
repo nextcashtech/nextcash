@@ -59,7 +59,7 @@ namespace ArcMist
             tType &operator *() { return *item; }
             tType *operator ->() { return &(*item); }
 
-            bool operator ==(const Iterator &pRight)
+            bool operator ==(const Iterator &pRight) const
             {
                 return set == pRight.set && item == pRight.item;
             }
@@ -151,13 +151,13 @@ namespace ArcMist
         tType &operator [](unsigned int pOffset);
 
         // Insert new item before specified item
-        void insert(Iterator pBefore, const tType &pValue);
+        void insert(const Iterator &pBefore, const tType &pValue);
 
         // Add a new item to the end
         void push_back(const tType &pValue);
 
         // Remove specified item and return the item after it
-        Iterator erase(Iterator pItem);
+        Iterator erase(const Iterator &pItem);
 
         std::vector<tType> *dataSet(unsigned int pOffset) { return mSets + pOffset; }
 
@@ -285,6 +285,7 @@ namespace ArcMist
             return end();
 
         std::vector<tType> *set = pBeforeSet - 1;
+        --set;
         for(;set>=mSets;--set)
             if(set->size() > 0)
                 return Iterator(this, set, --set->end());
@@ -333,13 +334,14 @@ namespace ArcMist
     }
 
     template <class tType>
-    void DistributedVector<tType>::insert(Iterator pBefore, const tType &pValue)
+    void DistributedVector<tType>::insert(const Iterator &pBefore, const tType &pValue)
     {
         if(pBefore.set != mSets && // Not first set
           pBefore.item == pBefore.set->begin()) // Inserting before first item of set
         {
             // Add to end of previous set
-            std::vector<tType> *set = pBefore.set - 1;
+            std::vector<tType> *set = pBefore.set;
+            --set;
             set->push_back(pValue);
             ++mSize;
         }
@@ -371,7 +373,7 @@ namespace ArcMist
     }
 
     template <class tType>
-    typename DistributedVector<tType>::Iterator DistributedVector<tType>::erase(Iterator pItem)
+    typename DistributedVector<tType>::Iterator DistributedVector<tType>::erase(const Iterator &pItem)
     {
         SetIterator nextItem = pItem.set->erase(pItem.item);
         --mSize;

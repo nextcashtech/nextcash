@@ -16,49 +16,213 @@
 
 namespace ArcMist
 {
+    unsigned int Hash::mCount = 0;
+
     Hash::Hash(const char *pHex)
     {
-        mSize = 0;
         mData = NULL;
         setHex(pHex);
     }
 
+    Hash::Hash(const Hash &pCopy)
+    {
+        mData = pCopy.mData;
+        if(mData != NULL)
+            mData->references++;
+    }
+
+    Hash::Hash(unsigned int pSize, int64_t pValue)
+    {
+        mData = NULL;
+        allocate(pSize);
+
+        // Assign value
+        zeroize();
+        for(unsigned int i=0;i<8&&i<mData->size;++i)
+            mData->data[i] = pValue >> (i * 8);
+
+        if(pValue < 0)
+            for(unsigned int i=8;i<mData->size;++i)
+                mData->data[i] = 0xff;
+    }
+
+    void Hash::makeExclusive()
+    {
+        if(mData == NULL || mData->references == 1)
+            return; // Already exclusive
+
+        // Create new exclusive data
+        ++mCount;
+        // if(mCount % 100 == 0)
+            // Log::addFormatted(Log::DEBUG, ARCMIST_HASH_LOG_NAME, "Allocating hash : count %d", mCount);
+        Data *newData = new Data(mData->size);
+        std::memcpy(newData->data, mData->data, mData->size);
+
+        deallocate();
+
+        mData = newData;
+    }
+
+    void Hash::allocate(unsigned int pSize)
+    {
+        if(mData != NULL)
+        {
+            if(mData->size == pSize)
+                return;
+            deallocate();
+        }
+
+        if(pSize == 0)
+            mData = NULL;
+        else
+        {
+            ++mCount;
+            // if(mCount % 100 == 0)
+                // Log::addFormatted(Log::DEBUG, ARCMIST_HASH_LOG_NAME, "Allocating hash : count %d", mCount);
+            mData = new Data(pSize);
+        }
+    }
+
+    void Hash::deallocate()
+    {
+        if(mData == NULL)
+            return;
+
+        // Dereference data
+        if(mData->references == 0)
+            Log::add(Log::ERROR, ARCMIST_HASH_LOG_NAME, "Deallocating zero reference hash");
+
+        mData->references--;
+        if(mData->references == 0)
+        {
+            // No more references to this data
+            --mCount;
+            // if(mCount % 100 == 0)
+                // Log::addFormatted(Log::DEBUG, ARCMIST_HASH_LOG_NAME, "Deallocating hash : count %d", mCount);
+            delete mData;
+        }
+        mData = NULL;
+    }
+
+    const Hash &Hash::operator = (const Hash &pRight)
+    {
+        deallocate();
+        mData = pRight.mData;
+        if(mData != NULL)
+            mData->references++;
+        return *this;
+    }
+
+    bool Hash::isZero() const
+    {
+        if(mData == NULL)
+            return false; // Empty is not zero
+        for(unsigned int i=0;i<mData->size;i++)
+            if(mData->data[i] != 0)
+                return false;
+        return true;
+    }
+
+    void Hash::zeroize()
+    {
+        if(mData == NULL)
+            return;
+        makeExclusive();
+        std::memset(mData->data, 0, mData->size);
+    }
+
+    void Hash::setMax()
+    {
+        if(mData == NULL)
+            return;
+        makeExclusive();
+        std::memset(mData->data, 0xff, mData->size);
+    }
+
+    void Hash::randomize()
+    {
+        if(mData == NULL)
+            return;
+        makeExclusive();
+        uint32_t random;
+        for(unsigned int i=0;i<mData->size-3;i+=4)
+        {
+            random = Math::randomInt();
+            std::memcpy(mData->data + i, &random, 4);
+        }
+    }
+
+    int Hash::compare(const Hash &pRight) const
+    {
+        if(mData == NULL)
+        {
+            if(pRight.mData == NULL)
+                return 0;
+            else
+                return -1;
+        }
+
+        if(pRight.mData == NULL)
+        {
+            if(mData == NULL)
+                return 0;
+            else
+                return 1;
+        }
+
+        if(mData->size < pRight.mData->size)
+            return -1;
+        if(mData->size > pRight.mData->size)
+            return 1;
+
+        const uint8_t *left = mData->data + mData->size - 1;
+        const uint8_t *right = pRight.mData->data + mData->size - 1;
+        for(unsigned int i=0;i<mData->size;++i,--left,--right)
+        {
+            if(*left < *right)
+                return -1;
+            else if(*left > *right)
+                return 1;
+        }
+        return 0;
+    }
+
     bool Hash::getShortID(Hash &pHash, const Hash &pHeaderHash)
     {
-        pHash.clear();
-
-        if(mSize != 32 || pHeaderHash.size() != 32)
+        if(mData == NULL || mData->size != 32 || pHeaderHash.size() != 32)
+        {
+            pHash.clear();
             return false;
+        }
 
         // Use first two little endian 64 bit integers from header hash as keys
         uint64_t key0 = 0;
         uint64_t key1 = 0;
         unsigned int i;
-        uint8_t *byte = pHeaderHash.mData;
+        const uint8_t *byte = pHeaderHash.mData->data;
         for(i=0;i<8;++i)
             key0 |= (uint64_t)*byte++ << (i * 8);
         for(i=0;i<8;++i)
             key1 |= (uint64_t)*byte++ << (i * 8);
 
-        uint64_t sipHash24Value = Digest::sipHash24(mData, 32, key0, key1);
+        uint64_t sipHash24Value = Digest::sipHash24(mData->data, 32, key0, key1);
 
         // Put 6 least significant bytes of sipHash24Value into result
         pHash.setSize(6);
         for(i=0;i<6;++i)
-            pHash.mData[i] = (sipHash24Value >> (i * 8)) & 0xff;
+            pHash.mData->data[i] = (sipHash24Value >> (i * 8)) & 0xff;
 
         return true;
     }
 
     unsigned int Hash::leadingZeroBits() const
     {
-        if(mSize == 0)
+        if(mData == NULL)
             return 0;
 
         unsigned int result = 0;
-        uint8_t *byte = mData + mSize - 1;
-
-        for(unsigned int i=0;i<mSize;++i,--byte)
+        const uint8_t *byte = mData->data + mData->size - 1;
+        for(unsigned int i=0;i<mData->size;++i,--byte)
         {
             if(*byte == 0)
                 result += 8;
@@ -74,7 +238,6 @@ namespace ArcMist
                 break;
             }
         }
-
         return result;
     }
 
@@ -88,18 +251,17 @@ namespace ArcMist
             else
                 ++result;
         }
-
         return result;
     }
 
     unsigned int Hash::leadingZeroBytes() const
     {
-        if(mSize == 0)
+        if(mData == NULL)
             return 0;
 
         unsigned int result = 0;
-        uint8_t *byte = mData + mSize - 1;
-        for(unsigned int i=0;i<mSize;++i,--byte)
+        const uint8_t *byte = mData->data + mData->size - 1;
+        for(unsigned int i=0;i<mData->size;++i,--byte)
         {
             if(*byte == 0)
                 ++result;
@@ -112,101 +274,128 @@ namespace ArcMist
 
     uint64_t Hash::shiftBytesDown(unsigned int pByteShift) const
     {
-        if(pByteShift >= mSize)
+        if(mData == NULL || pByteShift >= mData->size)
             return 0;
 
         // Get least significant byte of shifted value
-        uint8_t *byte = mData + mSize - pByteShift;
+        const uint8_t *byte = mData->data + mData->size - pByteShift;
         uint64_t result = 0;
 
         // Add all available bytes to value
-        for(unsigned int i=0;i<8 && byte>=mData;++i,--byte)
+        for(unsigned int i=0;i<8 && byte>=mData->data;++i,--byte)
             result &= (uint64_t)*byte << (i * 8);
 
         return result;
     }
 
+    const Hash &Hash::operator = (int64_t pValue)
+    {
+        if(mData == NULL)
+            return *this;
+
+        zeroize();
+        for(unsigned int i=0;i<8&&i<mData->size;++i)
+            mData->data[i] = pValue >> (i * 8);
+        if(pValue < 0)
+        {
+            for(unsigned int i=8;i<mData->size;++i)
+                mData->data[i] = 0xff;
+        }
+        return *this;
+    }
+
     Hash Hash::operator ~() const
     {
-        Hash result(mSize);
-        const uint8_t *byte = mData;
-        uint8_t *resultByte = result.mData;
-
-        for(unsigned int i=0;i<mSize;++i,++byte,++resultByte)
+        if(mData == NULL)
+            return Hash();
+        Hash result(mData->size);
+        const uint8_t *byte = mData->data;
+        uint8_t *resultByte = result.mData->data;
+        for(unsigned int i=0;i<mData->size;++i,++byte,++resultByte)
             *resultByte = ~*byte;
-
         return result;
     }
 
     Hash Hash::operator -() const
     {
+        if(mData == NULL)
+            return Hash();
         Hash result(*this);
-        const uint8_t *byte = mData;
-        uint8_t *resultByte = result.mData;
-
-        for(unsigned int i=0;i<mSize;++i,++byte,++resultByte)
+        result.makeExclusive();
+        const uint8_t *byte = mData->data;
+        uint8_t *resultByte = result.mData->data;
+        for(unsigned int i=0;i<mData->size;++i,++byte,++resultByte)
             *resultByte = ~*byte;
-
         ++result;
         return result;
     }
 
     Hash &Hash::operator ++()
     {
+        if(mData == NULL)
+            return *this;
+        makeExclusive();
         // Prefix operator
         unsigned int i = 0;
-        while(++mData[i] == 0 && i < mSize - 1)
+        while(++mData->data[i] == 0 && i < mData->size - 1)
             ++i;
         return *this;
     }
 
     Hash &Hash::operator --()
     {
+        if(mData == NULL)
+            return *this;
+        makeExclusive();
         // Prefix operator
         unsigned int i = 0;
-        while(--mData[i] == (uint8_t)-1 && i < mSize - 1)
+        while(--mData->data[i] == (uint8_t)-1 && i < mData->size - 1)
             ++i;
         return *this;
     }
 
     Hash &Hash::operator +=(const Hash &pValue)
     {
+        if(mData == NULL || pValue.mData == NULL)
+            return *this;
+        makeExclusive();
         uint64_t carry = 0;
-        uint8_t *byte = mData;
-        const uint8_t *valueByte = pValue.mData;
-
-        if(pValue.mSize != mSize)
+        uint8_t *byte = mData->data;
+        const uint8_t *valueByte = pValue.mData->data;
+        if(pValue.mData->size != mData->size)
             return *this; // Error
-
-        for(unsigned int i=0;i<mSize;++i,++byte,++valueByte)
+        for(unsigned int i=0;i<mData->size;++i,++byte,++valueByte)
         {
             uint64_t n = carry + *byte + *valueByte;
             *byte = n & 0xff;
             carry = n >> 8;
         }
-
         return *this;
     }
 
     Hash &Hash::operator *=(const Hash &pValue)
     {
-        Hash copy = *this;
-        const uint8_t *valueByte;
-        const uint8_t *copyByte = copy.mData;
+        if(mData == NULL || pValue.mData == NULL)
+            return *this;
 
-        if(pValue.mSize != mSize)
+        Hash copy = *this;
+
+        const uint8_t *valueByte;
+        const uint8_t *copyByte = copy.mData->data;
+
+        if(pValue.mData->size != mData->size)
             return *this; // Error
 
         zeroize();
 
-        for(unsigned int j=0;j<mSize;++j)
+        for(unsigned int j=0;j<mData->size;++j)
         {
             uint64_t carry = 0;
-            valueByte = pValue.mData;
-            for(int i=0;i+j<mSize;++i)
+            valueByte = pValue.mData->data;
+            for(int i=0;i+j<mData->size;++i)
             {
-                uint64_t n = (uint64_t)carry + (uint64_t)mData[i + j] + ((uint64_t)*copyByte * (uint64_t)*valueByte);
-                mData[i + j] = n & 0xff;
+                uint64_t n = (uint64_t)carry + (uint64_t)mData->data[i + j] + ((uint64_t)*copyByte * (uint64_t)*valueByte);
+                mData->data[i + j] = n & 0xff;
                 carry = n >> 8;
                 ++valueByte;
             }
@@ -218,14 +407,17 @@ namespace ArcMist
 
     Hash &Hash::operator /=(const Hash &pValue)
     {
+        if(mData == NULL || pValue.mData == NULL)
+            return *this;
+
         Hash div(pValue); // make a copy, so we can shift.
         Hash num(*this); // make a copy, so we can subtract.
 
         zeroize();
 
         // The quotient.
-        int numBits = (mSize * 8) - num.leadingZeroBits();
-        int divBits = (mSize * 8) - div.leadingZeroBits();
+        int numBits = (mData->size * 8) - num.leadingZeroBits();
+        int divBits = (mData->size * 8) - div.leadingZeroBits();
 
         if(divBits == 0)
             return *this; // Divide by zero
@@ -241,7 +433,7 @@ namespace ArcMist
             if(num.compare(div) >= 0)
             {
                 num -= div;
-                mData[shift / 8] |= (1 << (shift & 7)); // Set a bit of the result.
+                mData->data[shift / 8] |= (1 << (shift & 7)); // Set a bit of the result.
             }
 
             // Shift back.
@@ -255,18 +447,21 @@ namespace ArcMist
 
     Hash &Hash::operator <<=(unsigned int pShiftBits)
     {
+        if(mData == NULL || pShiftBits == 0)
+            return *this;
+
         Hash copy(*this);
         int offset = pShiftBits / 8;
 
         pShiftBits = pShiftBits % 8;
         zeroize();
 
-        for(unsigned int i=0;i<mSize;++i)
+        for(unsigned int i=0;i<mData->size;++i)
         {
-            if(i + offset + 1 < mSize && pShiftBits != 0)
-                mData[i + offset + 1] |= (copy.mData[i] >> (8 - pShiftBits));
-            if(i + offset < mSize)
-                mData[i + offset] |= (copy.mData[i] << pShiftBits);
+            if(i + offset + 1 < mData->size && pShiftBits != 0)
+                mData->data[i + offset + 1] |= (copy.mData->data[i] >> (8 - pShiftBits));
+            if(i + offset < mData->size)
+                mData->data[i + offset] |= (copy.mData->data[i] << pShiftBits);
         }
 
         return *this;
@@ -274,18 +469,21 @@ namespace ArcMist
 
     Hash &Hash::operator >>=(unsigned int pShiftBits)
     {
+        if(mData == NULL || pShiftBits == 0)
+            return *this;
+
         Hash copy(*this);
         int offset = pShiftBits / 8;
 
         pShiftBits = pShiftBits % 8;
         zeroize();
 
-        for(unsigned int i=0;i<mSize;++i)
+        for(unsigned int i=0;i<mData->size;++i)
         {
             if((int)i - offset - 1 >= 0 && pShiftBits != 0)
-                mData[(int)i - offset - 1] |= (copy.mData[i] << (8 - pShiftBits));
+                mData->data[(int)i - offset - 1] |= (copy.mData->data[i] << (8 - pShiftBits));
             if((int)i - offset >= 0)
-                mData[i - offset] |= (copy.mData[i] >> pShiftBits);
+                mData->data[i - offset] |= (copy.mData->data[i] >> pShiftBits);
         }
 
         return *this;
@@ -293,6 +491,9 @@ namespace ArcMist
 
     void Hash::setDifficulty(uint32_t pTargetBits)
     {
+        setSize(32);
+        zeroize();
+
         int length = ((pTargetBits >> 24) & 0xff) - 1;
 
         // Starts with zero so increase
@@ -302,26 +503,29 @@ namespace ArcMist
             pTargetBits <<= 8;
         }
 
-        setSize(32);
-        zeroize();
-
         if(length >= 0 && length < 32)
-            mData[length] = (pTargetBits >> 16) & 0xff;
+            mData->data[length] = (pTargetBits >> 16) & 0xff;
         if(length - 1 >= 0 && length - 1 < 32)
-            mData[length-1] = (pTargetBits >> 8) & 0xff;
+            mData->data[length-1] = (pTargetBits >> 8) & 0xff;
         if(length - 2 >= 0 && length - 2 < 32)
-            mData[length-2] = pTargetBits & 0xff;
+            mData->data[length-2] = pTargetBits & 0xff;
     }
 
-    void Hash::getDifficulty(uint32_t &pTargetBits, uint32_t pMax)
+    void Hash::getDifficulty(uint32_t &pTargetBits, uint32_t pMax) const
     {
-        uint8_t length = mSize - leadingZeroBytes();
+        if(mData == NULL)
+        {
+            pTargetBits = 0;
+            return;
+        }
+
+        uint8_t length = mData->size - leadingZeroBytes();
         uint32_t value = 0;
 
         for(int i=1;i<4;++i)
         {
             value <<= 8;
-            if((int)length - i < (int)mSize)
+            if((int)length - i < (int)mData->size)
                 value += getByte(length - i);
         }
 
@@ -360,9 +564,9 @@ namespace ArcMist
     String Hash::hex() const
     {
         String result;
-        if(mSize == 0)
+        if(mData == NULL)
             return result;
-        result.writeReverseHex(mData, mSize);
+        result.writeReverseHex(mData->data, mData->size);
         return result;
     }
 
@@ -370,9 +574,9 @@ namespace ArcMist
     String Hash::littleHex() const
     {
         String result;
-        if(mSize == 0)
+        if(mData == NULL)
             return result;
-        result.writeHex(mData, mSize);
+        result.writeHex(mData->data, mData->size);
         return result;
     }
 
@@ -380,10 +584,11 @@ namespace ArcMist
     void Hash::setHex(const char *pHex)
     {
         unsigned int length = std::strlen(pHex);
-
         setSize(length / 2);
+        makeExclusive();
+
         const char *hexChar = pHex + length - 1;
-        uint8_t *byte = mData;
+        uint8_t *byte = mData->data;
         bool second = false;
 
         while(hexChar >= pHex)
@@ -405,10 +610,11 @@ namespace ArcMist
     void Hash::setLittleHex(const char *pHex)
     {
         unsigned int length = std::strlen(pHex);
-
         setSize(length / 2);
+        makeExclusive();
+
         const char *hexChar = pHex;
-        uint8_t *byte = mData;
+        uint8_t *byte = mData->data;
         bool second = false;
 
         for(unsigned int i=0;i<length;++i)
@@ -426,46 +632,30 @@ namespace ArcMist
         }
     }
 
-    // Header hash must be <= target difficulty hash
-    bool Hash::operator <= (const Hash &pRight) const
-    {
-        if(mSize != pRight.mSize)
-            return false;
-
-        for(int i=mSize-1;i>=0;i--)
-            if(mData[i] < pRight.mData[i])
-                return true;
-            else if(mData[i] > pRight.mData[i])
-                return false;
-
-        // They are equal
-        return true;
-    }
-
     void HashList::insertSorted(const Hash &pHash)
     {
-        if(size() == 0 || back()->compare(pHash) < 0)
+        if(size() == 0 || back().compare(pHash) < 0)
         {
-            push_back(new Hash(pHash));
+            push_back(pHash);
             return;
         }
 
         int compare;
-        Hash **bottom = data();
-        Hash **top = data() + size() - 1;
-        Hash **current;
+        Hash *bottom = data();
+        Hash *top = data() + size() - 1;
+        Hash *current;
 
         while(true)
         {
             // Break the set in two halves
             current = bottom + ((top - bottom) / 2);
-            compare = pHash.compare(**current);
+            compare = pHash.compare(*current);
 
             if(current == bottom)
             {
-                if((*bottom)->compare(pHash) > 0)
+                if(bottom->compare(pHash) > 0)
                     current = bottom; // Insert before bottom
-                else if(current != top && (*top)->compare(pHash) > 0)
+                else if(current != top && top->compare(pHash) > 0)
                     current = top; // Insert before top
                 else
                     current = top + 1; // Insert after top
@@ -483,27 +673,27 @@ namespace ArcMist
 
         iterator after = begin();
         after += (current - data());
-        insert(after, new Hash(pHash));
+        insert(after, pHash);
     }
 
     bool HashList::containsSorted(const Hash &pHash)
     {
-        if(size() == 0 || back()->compare(pHash) < 0)
+        if(size() == 0 || back().compare(pHash) < 0)
             return false;
 
         int compare;
-        Hash **bottom = data();
-        Hash **top = data() + size() - 1;
-        Hash **current;
+        Hash *bottom = data();
+        Hash *top = data() + size() - 1;
+        Hash *current;
 
         while(true)
         {
             // Break the set in two halves
             current = bottom + ((top - bottom) / 2);
-            compare = pHash.compare(**current);
+            compare = pHash.compare(*current);
 
             if(current == bottom)
-                return **bottom == pHash;
+                return *bottom == pHash;
 
             // Determine which half the desired item is in
             if(compare > 0)
@@ -880,12 +1070,13 @@ namespace ArcMist
         }
 
         a = 1000;
-        if(a - b == answer)
+        Hash c = a - b;
+        if(c == answer)
             Log::add(Log::INFO, ARCMIST_HASH_LOG_NAME, "Passed subtract hash 995");
         else
         {
             Log::addFormatted(Log::ERROR, ARCMIST_HASH_LOG_NAME, "Failed subtract hash 995 : %s",
-              (a - b).hex().text());
+              c.hex().text());
             success = false;
         }
 

@@ -195,7 +195,7 @@ namespace ArcMist
 
         private:
 
-            Hash *pullHash(InputStream *pDataFile, stream_size pFileOffset)
+            Hash pullHash(InputStream *pDataFile, stream_size pFileOffset)
             {
 #ifdef PROFILER_ON
                 ArcMist::Profiler profiler("Hash SubSet Save Pull Hash");
@@ -204,16 +204,15 @@ namespace ArcMist
                 {
                     Log::addFormatted(Log::ERROR, ARCMIST_HASH_DATA_SET_LOG_NAME,
                       "Failed to pull hash at index offset %d/%d", pFileOffset, pDataFile->length());
-                    return NULL;
+                    return Hash();
                 }
 
-                Hash *result = new Hash(tHashSize);
-                if(!result->read(pDataFile))
+                Hash result(tHashSize);
+                if(!result.read(pDataFile))
                 {
                     Log::addFormatted(Log::ERROR, ARCMIST_HASH_DATA_SET_LOG_NAME,
                       "Failed to pull hash at index offset %d/%d", pFileOffset, pDataFile->length());
-                    delete result;
-                    return NULL;
+                    return Hash();
                 }
                 return result;
             }
@@ -1153,18 +1152,21 @@ namespace ArcMist
         // Read entire index file
         filePathName.writeFormatted("%s%s%04x.index", mFilePath.text(), PATH_SEPARATOR, mID);
         FileInputStream *indexFile = new FileInputStream(filePathName);
-        static const unsigned int INDICE_SET_COUNT = 256; // Number of sets to break indices into when rebuilding
         uint64_t previousSize = indexFile->length() / sizeof(stream_size);
-        DistributedVector<stream_size> indices(INDICE_SET_COUNT);
-        DistributedVector<Hash *> hashes(INDICE_SET_COUNT);
-        unsigned int indicesPerSet = (previousSize / INDICE_SET_COUNT) + 1;
+        DistributedVector<stream_size> indices(tSetCount);
+        DistributedVector<Hash> hashes(tSetCount);
+        unsigned int indicesPerSet = (previousSize / tSetCount) + 1;
         unsigned int readIndices = 0;
         std::vector<stream_size> *indiceSet;
-        std::vector<Hash *> *hashSet;
+        std::vector<Hash> *hashSet;
         unsigned int setOffset = 0;
+        uint64_t reserveSize = previousSize;
 
-        indices.reserve(previousSize);
-        hashes.reserve(previousSize);
+        if(reserveSize < tSetCount * 32)
+            reserveSize = tSetCount * 32;
+
+        indices.reserve(reserveSize);
+        hashes.reserve(reserveSize);
         indexFile->setReadOffset(0);
         while(indexFile->remaining())
         {
@@ -1176,10 +1178,9 @@ namespace ArcMist
             indiceSet->resize(indicesPerSet);
             indexFile->read(indiceSet->data(), indicesPerSet * sizeof(stream_size));
 
-            // Zeroize hash pointers
+            // Allocate empty hashes
             hashSet = hashes.dataSet(setOffset);
             hashSet->resize(indicesPerSet);
-            std::memset(hashSet->data(), 0, indicesPerSet * sizeof(HashData *));
 
             readIndices += indicesPerSet;
             ++setOffset;
@@ -1198,9 +1199,9 @@ namespace ArcMist
         ArcMist::Profiler profilerIndexInsertPush("Hash SubSet Save Index Insert Push", false);
 #endif
         // Update indices
-        DistributedVector<Hash *>::Iterator hash;
+        DistributedVector<Hash>::Iterator hash;
         DistributedVector<stream_size>::Iterator index;
-        Hash *currentHash;
+        Hash currentHash;
         int compare;
         bool found;
         unsigned int begin, end, current;
@@ -1261,7 +1262,7 @@ namespace ArcMist
 #endif
                     // Add as only item
                     indices.push_back((*item)->dataOffset());
-                    hashes.push_back(new Hash(item.hash()));
+                    hashes.push_back(item.hash());
 #ifdef PROFILER_ON
                     profilerIndexInsertPush.stop();
 #endif
@@ -1274,12 +1275,12 @@ namespace ArcMist
 
                 // Check first entry
                 currentHash = hashes.front();
-                if(currentHash == NULL)
+                if(currentHash.isEmpty())
                 {
                     // Fetch data
                     currentHash = pullHash(&dataFile, indices.front());
                     ++readHeadersCount;
-                    if(currentHash == NULL)
+                    if(currentHash.isEmpty())
                     {
                         success = false;
 #ifdef PROFILER_ON
@@ -1290,7 +1291,7 @@ namespace ArcMist
                     hashes.front() = currentHash;
                 }
 
-                compare = item.hash().compare(*currentHash);
+                compare = item.hash().compare(currentHash);
                 if(compare <= 0)
                 {
 #ifdef PROFILER_ON
@@ -1298,7 +1299,7 @@ namespace ArcMist
 #endif
                     // Insert as first
                     indices.insert(indices.begin(), (*item)->dataOffset());
-                    hashes.insert(hashes.begin(), new Hash(item.hash()));
+                    hashes.insert(hashes.begin(), item.hash());
                     (*item)->clearNew();
 #ifdef PROFILER_ON
                     profilerIndexInsertPush.stop();
@@ -1309,12 +1310,12 @@ namespace ArcMist
 
                 // Check last entry
                 currentHash = hashes.back();
-                if(currentHash == NULL)
+                if(currentHash.isEmpty())
                 {
                     // Fetch data
                     currentHash = pullHash(&dataFile, indices.back());
                     ++readHeadersCount;
-                    if(currentHash == NULL)
+                    if(currentHash.isEmpty())
                     {
                         success = false;
 #ifdef PROFILER_ON
@@ -1325,7 +1326,7 @@ namespace ArcMist
                     hashes.back() = currentHash;
                 }
 
-                compare = item.hash().compare(*currentHash);
+                compare = item.hash().compare(currentHash);
                 if(compare >= 0)
                 {
 #ifdef PROFILER_ON
@@ -1333,7 +1334,7 @@ namespace ArcMist
 #endif
                     // Add to end
                     indices.push_back((*item)->dataOffset());
-                    hashes.push_back(new Hash(item.hash()));
+                    hashes.push_back(item.hash());
                     (*item)->clearNew();
 #ifdef PROFILER_ON
                     profilerIndexInsertPush.stop();
@@ -1352,12 +1353,12 @@ namespace ArcMist
 
                     // Pull "current" entry (if it isn't already)
                     currentHash = hashes[current];
-                    if(currentHash == NULL)
+                    if(currentHash.isEmpty())
                     {
                         // Fetch data
                         currentHash = pullHash(&dataFile, indices[current]);
                         ++readHeadersCount;
-                        if(currentHash == NULL)
+                        if(currentHash.isEmpty())
                         {
                             success = false;
                             break;
@@ -1365,7 +1366,7 @@ namespace ArcMist
                         hashes[current] = currentHash;
                     }
 
-                    compare = item.hash().compare(*currentHash);
+                    compare = item.hash().compare(currentHash);
                     if(current == begin || compare == 0)
                     {
 #ifdef PROFILER_ON
@@ -1390,7 +1391,7 @@ namespace ArcMist
 
                             hash = hashes.begin();
                             hash += current;
-                            hashes.insert(hash, new Hash(item.hash()));
+                            hashes.insert(hash, item.hash());
 #ifdef PROFILER_ON
                             profilerIndexInsertPush.stop();
 #endif
@@ -1415,7 +1416,7 @@ namespace ArcMist
 
                             hash = hashes.begin();
                             hash += current + 1;
-                            hashes.insert(hash, new Hash(item.hash()));
+                            hashes.insert(hash, item.hash());
 #ifdef PROFILER_ON
                             profilerIndexInsertPush.stop();
 #endif
@@ -1437,12 +1438,6 @@ namespace ArcMist
         profilerUpdateIndex.stop();
 #endif
 
-        // Delete any allocated hashes
-        for(hash=hashes.begin();hash!=hashes.end();++hash)
-            if(*hash != NULL)
-                delete *hash;
-        hashes.clear();
-
         if(success)
         {
 #ifdef PROFILER_ON
@@ -1453,7 +1448,7 @@ namespace ArcMist
             FileOutputStream *indexOutFile = new FileOutputStream(filePathName, true);
 
             // Write the new index
-            for(setOffset=0;setOffset<INDICE_SET_COUNT;++setOffset)
+            for(setOffset=0;setOffset<tSetCount;++setOffset)
             {
                 // Write set of indices
                 indiceSet = indices.dataSet(setOffset);

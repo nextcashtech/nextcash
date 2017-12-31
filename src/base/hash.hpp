@@ -9,12 +9,15 @@
 #define ARCMIST_HASH_HPP
 
 #include "arcmist/io/stream.hpp"
+#include "arcmist/base/log.hpp"
 
 #ifdef PROFILER_ON
 #include "arcmist/dev/profiler.hpp"
 #endif
 
 #include <vector>
+
+#define ARCMIST_HASH_LOG_NAME "Hash"
 
 
 namespace ArcMist
@@ -23,212 +26,87 @@ namespace ArcMist
     {
     public:
 
-        Hash() { mSize = 0; mData = NULL; }
-        Hash(unsigned int pSize) { mSize = pSize; mData = new uint8_t[mSize]; zeroize(); }
-        Hash(unsigned int pSize, int64_t pValue)
+        Hash() { mData = NULL; } // Create empty
+        Hash(unsigned int pSize) { mData = NULL; allocate(pSize); } // Create specific size, zeroized
+        Hash(unsigned int pSize, int64_t pValue); // Create from integer value (arithmetic)
+        Hash(const char *pHex); // Create from hex text
+        Hash(const Hash &pCopy);
+        ~Hash() { deallocate(); }
+
+        const Hash &operator = (const Hash &pRight);
+
+        bool isEmpty() const { return mData == NULL; }
+        bool isZero() const;
+
+        unsigned int size() const
         {
-            mSize = pSize;
-            mData = new uint8_t[mSize];
-            zeroize();
-            for(unsigned int i=0;i<8&&i<mSize;++i)
-                mData[i] = pValue >> (i * 8);
-
-            if(pValue < 0)
-                for(unsigned int i=8;i<mSize;++i)
-                    mData[i] = 0xff;
+            if(mData == NULL)
+                return 0;
+            return mData->size;
         }
-        Hash(const char *pHex);
-        Hash(const Hash &pCopy) { mData = NULL; *this = pCopy; }
-        ~Hash() { if(mData != NULL) delete[] mData; }
+        const uint8_t *data() const
+        {
+            if(mData == NULL)
+                return NULL;
+            return mData->data;
+        }
 
-        unsigned int size() const { return mSize; }
-        const uint8_t *value() const { return mData; }
+        // Set the number of bytes in the hash
+        void setSize(unsigned int pSize)
+        {
+            if(pSize == 0)
+            {
+                deallocate();
+                return;
+            }
+
+            if(mData == NULL || mData->size != pSize)
+                allocate(pSize);
+        }
+
+        // Set to zero size. Makes hash "empty"
+        void clear() { setSize(0); }
+
+        void zeroize(); // Set all bytes to zero
+        void setMax(); // Set all bytes to 0xff
+        void randomize(); // Set all bytes to random values
 
         // Big endian (most significant bytes first, i.e. leading zeroes for block hashes)
         String hex() const;
-
         // Little endian (least significant bytes first)
         String littleHex() const;
-
-        void setSize(unsigned int pSize)
-        {
-            if(mSize == pSize)
-                return;
-            if(mData != NULL)
-                delete[] mData;
-            mSize = pSize;
-            if(mSize == 0)
-                mData = NULL;
-            else
-            {
-                mData = new uint8_t[mSize];
-                zeroize();
-            }
-        }
-
         // Big endian (most significant bytes first, i.e. leading zeroes for block hashes)
         void setHex(const char *pHex);
-
         // Little endian (least significant bytes first)
         void setLittleHex(const char *pHex);
 
         void setByte(unsigned int pOffset, uint8_t pValue)
         {
-            if(pOffset >= mSize)
+            if(mData == NULL || pOffset >= mData->size)
                 return;
-            mData[pOffset] = pValue;
+            makeExclusive();
+            mData->data[pOffset] = pValue;
         }
         uint8_t getByte(unsigned int pOffset) const
         {
-            if(pOffset >= mSize)
+            if(mData == NULL || pOffset >= mData->size)
                 return 0;
-            return mData[pOffset];
-        }
-
-        bool operator <= (const Hash &pRight) const;
-
-        int compare(const Hash &pRight) const
-        {
-            if(mSize < pRight.mSize)
-                return -1;
-            if(mSize > pRight.mSize)
-                return 1;
-            uint8_t *left = mData + mSize - 1;
-            uint8_t *right = pRight.mData + mSize - 1;
-            for(unsigned int i=0;i<mSize;++i,--left,--right)
-            {
-                if(*left < *right)
-                    return -1;
-                else if(*left > *right)
-                    return 1;
-            }
-            return 0;
-        }
-        bool operator < (const Hash &pRight) const { return compare(pRight) < 0; }
-        bool operator > (const Hash &pRight) const { return compare(pRight) > 0; }
-
-        // Set to zero size. Makes hash "empty"
-        void clear() { setSize(0); }
-
-        bool isEmpty() const { return mSize == 0; }
-
-        bool isZero() const
-        {
-            if(mSize == 0)
-                return false; // Empty is not zero
-            for(unsigned int i=0;i<mSize;i++)
-                if(mData[i] != 0)
-                    return false;
-            return true;
-        }
-
-        // Consecutive zero bits at most significant endian
-        unsigned int leadingZeroBits() const;
-
-        // Consecutive zero bytes at most significant endian
-        unsigned int leadingZeroBytes() const;
-        uint64_t shiftBytesDown(unsigned int pByteShift) const;
-
-        uint8_t lookup8() const // Used to split into 256 piles
-        {
-            if(mSize < 1)
-                return 0;
-            else
-                return mData[0];
-        }
-
-        uint16_t lookup16() const
-        {
-            if(mSize < 2)
-                return 0;
-            else
-                return (mData[0] << 8) + mData[1];
-        }
-
-        // Calculate the SipHash-2-4 "Short ID" and put it in pHash
-        bool getShortID(Hash &pHash, const Hash &pHeaderHash);
-
-        void zeroize() { if(mSize > 0) std::memset(mData, 0, mSize); }
-        void setMax() { if(mSize > 0) std::memset(mData, 0xff, mSize); }
-
-        void randomize()
-        {
-            uint32_t random;
-            for(unsigned int i=0;i<mSize;i+=4)
-            {
-                random = Math::randomInt();
-                std::memcpy(mData + i, &random, 4);
-            }
-        }
-
-        bool operator == (const Hash &pRight) const
-        {
-            if(mSize != pRight.mSize)
-                return false;
-
-            if(mSize == 0)
-                return true;
-
-            return std::memcmp(mData, pRight.mData, mSize) == 0;
-        }
-
-        bool operator != (const Hash &pRight) const
-        {
-            if(mSize != pRight.mSize)
-                return true;
-
-            if(mSize == 0)
-                return false;
-
-            return std::memcmp(mData, pRight.mData, mSize) != 0;
-        }
-
-        const Hash &operator = (const Hash &pRight)
-        {
-            if(mData != NULL)
-                delete[] mData;
-            mSize = pRight.mSize;
-            if(mSize > 0)
-            {
-                mData = new uint8_t[mSize];
-                std::memcpy(mData, pRight.mData, mSize);
-            }
-            else
-                mData = NULL;
-
-            return *this;
-        }
-
-        const Hash &operator = (int64_t pValue)
-        {
-            zeroize();
-            for(unsigned int i=0;i<8&&i<mSize;++i)
-                mData[i] = pValue >> (i * 8);
-
-            if(pValue < 0)
-                for(unsigned int i=8;i<mSize;++i)
-                    mData[i] = 0xff;
-
-            return *this;
+            return mData->data[pOffset];
         }
 
         void write(OutputStream *pStream) const
         {
-            if(mSize == 0)
+            if(mData == NULL)
                 return;
-
-            pStream->write(mData, mSize);
+            pStream->write(mData->data, mData->size);
         }
 
         bool read(InputStream *pStream)
         {
-            if(mSize == 0)
-                return true;
-
-            if(pStream->remaining() < mSize)
+            if(mData == NULL || pStream->remaining() < mData->size)
                 return false;
-
-            pStream->read(mData, mSize);
+            makeExclusive();
+            pStream->read(mData->data, mData->size);
             return true;
         }
 
@@ -242,14 +120,71 @@ namespace ArcMist
         void write(const void *pInput, stream_size pSize)
         {
             setSize(pSize);
-            std::memcpy(mData, pInput, pSize);
+            makeExclusive();
+            std::memcpy(mData->data, pInput, pSize);
         }
 
+        // Consecutive zero bits at most significant endian
+        unsigned int leadingZeroBits() const;
+
+        // Consecutive zero bytes at most significant endian
+        unsigned int leadingZeroBytes() const;
+        uint64_t shiftBytesDown(unsigned int pByteShift) const;
+
+        int compare(const Hash &pRight) const;
+
+        bool operator < (const Hash &pRight) const { return compare(pRight) < 0; }
+        bool operator > (const Hash &pRight) const { return compare(pRight) > 0; }
+        bool operator <= (const Hash &pRight) const { return compare(pRight) <= 0; }
+
+        bool operator == (const Hash &pRight) const
+        {
+            if(mData == NULL)
+                return pRight.mData != NULL;
+            if(pRight.mData == NULL)
+                return false;
+            if(mData->size != pRight.mData->size)
+                return false;
+            return std::memcmp(mData->data, pRight.mData->data, mData->size) == 0;
+        }
+
+        bool operator != (const Hash &pRight) const
+        {
+            if(mData == NULL)
+                return pRight.mData == NULL;
+            if(pRight.mData == NULL)
+                return true;
+            if(mData->size != pRight.mData->size)
+                return true;
+            return std::memcmp(mData->data, pRight.mData->data, mData->size) != 0;
+        }
+
+        uint8_t lookup8() const // Used to split into 256 piles
+        {
+            if(mData == NULL)
+                return 0;
+            else
+                return mData->data[0];
+        }
+
+        uint16_t lookup16() const
+        {
+            if(mData == NULL || mData->size < 2)
+                return 0;
+            else
+                return (mData->data[0] << 8) + mData->data[1];
+        }
+
+        // Calculate the SipHash-2-4 "Short ID" and put it in pHash
+        bool getShortID(Hash &pHash, const Hash &pHeaderHash);
+
         void setDifficulty(uint32_t pTargetBits);
-        void getDifficulty(uint32_t &pTargetBits, uint32_t pMax = 0x1d00ffff);
+        void getDifficulty(uint32_t &pTargetBits, uint32_t pMax = 0x1d00ffff) const;
         void getWork(Hash &pWork) const;
 
         // Arithmetic
+        const Hash &operator = (int64_t pValue);
+
         Hash operator -() const;
         Hash operator ~() const;
         Hash operator +(const Hash &pValue) const
@@ -280,11 +215,7 @@ namespace ArcMist
         Hash &operator ++();
         Hash &operator +=(const Hash &pValue);
         Hash &operator --();
-        Hash &operator -=(const Hash &pValue)
-        {
-            *this += -pValue;
-            return *this;
-        }
+        Hash &operator -=(const Hash &pValue) { *this += -pValue; return *this; }
         Hash &operator *=(const Hash &pValue);
         Hash &operator /=(const Hash &pValue);
         Hash &operator <<=(unsigned int pShiftBits);
@@ -292,49 +223,57 @@ namespace ArcMist
 
         Hash &operator +=(int64_t pValue)
         {
-            Hash value(mSize, pValue);
+            if(mData == NULL)
+                return *this;
+            Hash value(mData->size, pValue);
             *this += value;
             return *this;
         }
         Hash &operator -=(int64_t pValue)
         {
-            Hash value(mSize, pValue);
+            if(mData == NULL)
+                return *this;
+            Hash value(mData->size, pValue);
             *this -= value;
             return *this;
         }
         Hash &operator *=(int64_t pValue)
         {
-            Hash value(mSize, pValue);
+            if(mData == NULL)
+                return *this;
+            Hash value(mData->size, pValue);
             *this *= value;
             return *this;
         }
         Hash &operator /=(int64_t pValue)
         {
-            Hash value(mSize, pValue);
+            if(mData == NULL)
+                return *this;
+            Hash value(mData->size, pValue);
             *this /= value;
             return *this;
         }
         Hash operator +(int64_t pValue) const
         {
-            Hash result(mSize, pValue);
+            Hash result(size(), pValue);
             result += *this;
             return result;
         }
         Hash operator -(int64_t pValue) const
         {
-            Hash result(mSize, pValue);
+            Hash result(size(), pValue);
             result -= *this;
             return result;
         }
         Hash operator *(int64_t pValue) const
         {
-            Hash result(mSize, pValue);
+            Hash result(size(), pValue);
             result *= *this;
             return result;
         }
         Hash operator /(int64_t pValue) const
         {
-            Hash result(mSize, pValue);
+            Hash result(size(), pValue);
             result /= *this;
             return result;
         }
@@ -343,35 +282,45 @@ namespace ArcMist
 
     private:
 
-        unsigned int mSize;
-        uint8_t *mData;
+        class Data
+        {
+        public:
+
+            Data(unsigned int pSize)
+            {
+                size = pSize;
+                data = new uint8_t[pSize];
+                references = 1;
+                std::memset(data, 0, pSize); // Zeroize
+            }
+            ~Data() { delete[] data; }
+
+            unsigned int size;
+            uint8_t *data;
+            int references;
+
+        private:
+            Data(const Data &pCopy);
+            Data &operator = (const Data &pRight);
+        };
+
+        void makeExclusive();
+        void allocate(unsigned int pSize);
+        void deallocate();
+
+        Data *mData;
+        static unsigned int mCount;
 
     };
 
-    class HashList : public std::vector<Hash *>
+    class HashList : public std::vector<Hash>
     {
     public:
-        HashList() {}
-        ~HashList()
-        {
-            for(iterator hash=begin();hash!=end();++hash)
-                delete *hash;
-        }
-
-        void clear()
-        {
-            for(iterator hash=begin();hash!=end();++hash)
-                delete *hash;
-            std::vector<Hash *>::clear();
-        }
-
-        // Clear without deleting hashes (if they were reused by something else)
-        void clearNoDelete() { std::vector<Hash *>::clear(); }
 
         bool contains(const Hash &pHash) const
         {
             for(const_iterator hash=begin();hash!=end();++hash)
-                if(**hash == pHash)
+                if(*hash == pHash)
                     return true;
             return false;
         }
@@ -382,16 +331,7 @@ namespace ArcMist
         // Return true if the item exists in a sorted list
         bool containsSorted(const Hash &pHash);
 
-        void copyNoAllocate(const HashList &pOther)
-        {
-            reserve(pOther.size());
-            for(HashList::const_iterator other=pOther.begin();other!=pOther.end();++other)
-                push_back(*other);
-        }
-
     private:
-        HashList(HashList &pCopy);
-        HashList &operator = (HashList &pRight);
     };
 
     template <class tType>
