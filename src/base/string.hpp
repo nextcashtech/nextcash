@@ -1,5 +1,5 @@
 /**************************************************************************
- * Copyright 2017 ArcMist, LLC                                            *
+ * Copyright 2017-2018 ArcMist, LLC                                       *
  * Contributors :                                                         *
  *   Curtis Ellis <curtis@arcmist.com>                                    *
  * Distributed under the MIT software license, see the accompanying       *
@@ -78,14 +78,23 @@ namespace ArcMist
             }
         }
 
-        // Allocate memory for a string of specific length and return it to be written into
+        // Allocate memory for a string of specific length and return it to be written into.
         char *writeAddress(unsigned int pLength);
 
+        // Write binary data to string in hex text format.
         void writeHex(const void *pData, unsigned int pSize);
         void writeReverseHex(const void *pData, unsigned int pSize);
+
+        // Read hex text into binary data.
+        //   pData must have at least half as many bytes allocated as the string's length.
+        //   Returns number of bytes written.
+        unsigned int readHex(uint8_t *pData);
+        unsigned int readReverseHex(uint8_t *pData);
+
+        // Write binary data to string in base 58 text format.
         void writeBase58(const void *pData, unsigned int pSize);
 
-        // Append a file system path seperator and then path part to the string
+        // Append a file system path separator and then path part to the string.
         String &pathAppend(const char *pPart)
         {
             if(length() > 0 && mData[length()-1] != *PATH_SEPARATOR)
@@ -94,10 +103,10 @@ namespace ArcMist
             return *this;
         }
 
-        // Uses local time
+        // Uses local time.
         void writeFormattedTime(time_t pTime, const char *pFormat = "%F %T"); // YYYY-MM-DD HH:MM::SS
 
-        // Write with printf formatting codes
+        // Write with printf formatting codes.
         bool writeFormatted(const char *pFormatting, ...);
         bool writeFormattedList(const char *pFormatting, va_list &pList);
 

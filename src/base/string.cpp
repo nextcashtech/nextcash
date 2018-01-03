@@ -1,5 +1,5 @@
 /**************************************************************************
- * Copyright 2017 ArcMist, LLC                                            *
+ * Copyright 2017-2018 ArcMist, LLC                                       *
  * Contributors :                                                         *
  *   Curtis Ellis <curtis@arcmist.com>                                    *
  * Distributed under the MIT software license, see the accompanying       *
@@ -234,6 +234,60 @@ namespace ArcMist
             *hexChar++ = hexByte[1];
             --byte;
         }
+    }
+
+    unsigned int String::readHex(uint8_t *pData)
+    {
+        if(mData == NULL)
+            return 0;
+
+        bool firstNibble = true;
+        uint8_t byte;
+        const char *ptr = mData;
+        stream_size writtenCount = 0;
+        while(*ptr)
+        {
+            if(firstNibble)
+                byte = Math::hexToNibble(*ptr) << 4;
+            else
+            {
+                byte += Math::hexToNibble(*ptr);
+                *pData = byte;
+                ++pData;
+                ++writtenCount;
+            }
+            firstNibble = !firstNibble;
+            ptr++;
+        }
+
+        return writtenCount;
+    }
+
+    unsigned int String::readReverseHex(uint8_t *pData)
+    {
+        if(mData == NULL)
+            return 0;
+
+        bool firstNibble = true;
+        uint8_t byte;
+        const char *ptr = mData + length() - 1;
+        stream_size writtenCount = 0;
+        while(ptr >= mData)
+        {
+            if(firstNibble)
+                byte = Math::hexToNibble(*ptr);
+            else
+            {
+                byte += Math::hexToNibble(*ptr) << 4;
+                *pData = byte;
+                ++pData;
+                ++writtenCount;
+            }
+            firstNibble = !firstNibble;
+            ptr--;
+        }
+
+        return writtenCount;
     }
 
     void String::writeBase58(const void *pData, unsigned int pSize)
@@ -726,6 +780,81 @@ namespace ArcMist
         {
             Log::addFormatted(Log::ERROR, ARCMIST_STRING_LOG_NAME,
               "Failed format text : %s != Test 512 sample", formatText.text());
+            result = false;
+        }
+
+        /******************************************************************************************
+         * Write Hex text
+         ******************************************************************************************/
+        uint8_t hexData[8];
+        String hexString, reverseHexString;
+
+        for(int i=0;i<8;++i)
+            hexData[i] = i * 16;
+
+        hexString.writeHex(hexData, 8);
+
+        if(hexString == "0010203040506070")
+            Log::addFormatted(Log::INFO, ARCMIST_STRING_LOG_NAME, "Passed write hex text : %s", hexString.text());
+        else
+        {
+            Log::addFormatted(Log::ERROR, ARCMIST_STRING_LOG_NAME,
+              "Failed write hex text : %s != 0010203040506070", hexString.text());
+            result = false;
+        }
+
+        reverseHexString.writeReverseHex(hexData, 8);
+
+        if(reverseHexString == "7060504030201000")
+            Log::addFormatted(Log::INFO, ARCMIST_STRING_LOG_NAME, "Passed write reverse hex text : %s", reverseHexString.text());
+        else
+        {
+            Log::addFormatted(Log::ERROR, ARCMIST_STRING_LOG_NAME,
+              "Failed write reverse hex text : %s != 7060504030201000", reverseHexString.text());
+            result = false;
+        }
+
+        /******************************************************************************************
+         * Read Hex text
+         ******************************************************************************************/
+        uint8_t hexCheckData[8];
+        unsigned int hexReadSize = hexString.readHex(hexCheckData);
+
+        if(hexReadSize == 8)
+            Log::addFormatted(Log::INFO, ARCMIST_STRING_LOG_NAME, "Passed read hex size : %d", hexReadSize);
+        else
+        {
+            Log::addFormatted(Log::ERROR, ARCMIST_STRING_LOG_NAME,
+              "Failed read hex size : %d != 8", hexReadSize);
+            result = false;
+        }
+
+        if(std::memcmp(hexData, hexCheckData, 8) == 0)
+            Log::addFormatted(Log::INFO, ARCMIST_STRING_LOG_NAME, "Passed read hex text");
+        else
+        {
+            Log::addFormatted(Log::ERROR, ARCMIST_STRING_LOG_NAME,
+              "Failed read hex text");
+            result = false;
+        }
+
+        hexReadSize = reverseHexString.readReverseHex(hexCheckData);
+
+        if(hexReadSize == 8)
+            Log::addFormatted(Log::INFO, ARCMIST_STRING_LOG_NAME, "Passed read reverse hex size : %d", hexReadSize);
+        else
+        {
+            Log::addFormatted(Log::ERROR, ARCMIST_STRING_LOG_NAME,
+              "Failed read reverse hex size : %d != 8", hexReadSize);
+            result = false;
+        }
+
+        if(std::memcmp(hexData, hexCheckData, 8) == 0)
+            Log::addFormatted(Log::INFO, ARCMIST_STRING_LOG_NAME, "Passed read reverse hex text");
+        else
+        {
+            Log::addFormatted(Log::ERROR, ARCMIST_STRING_LOG_NAME,
+              "Failed read reverse hex text");
             result = false;
         }
 
