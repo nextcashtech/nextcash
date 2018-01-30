@@ -400,19 +400,20 @@ namespace ArcMist
             if(mSocketID == -1)
             {
                 Log::add(Log::VERBOSE, NETWORK_LOG_NAME, "Receive failed : socket closed");
-                return false;
+                return 0;
             }
 
             int flags = 0;
             if(!pWait)
                 flags |= MSG_DONTWAIT;
 
-            int result = 0, bytesCount;
+            unsigned int result = 0;
+            int bytesCount;
             while(true)
             {
                 //Log::add(Log::VERBOSE, NETWORK_LOG_NAME, "Starting Receive");
                 bytesCount = recv(mSocketID, mBuffer, NETWORK_BUFFER_SIZE, flags);
-                if(bytesCount == -1)
+                if(bytesCount < 0)
                 {
                     //Log::add(Log::VERBOSE, NETWORK_LOG_NAME, "Failed Receive");
                     if(errno != 11) // Resource temporarily unavailable because of MSG_DONTWAIT
@@ -426,7 +427,7 @@ namespace ArcMist
                     break;
                 //Log::add(Log::VERBOSE, NETWORK_LOG_NAME, "Finished Receive");
 
-                result += bytesCount;
+                result += (unsigned int)bytesCount;
                 mBytesReceived += bytesCount;
                 pStream->write(mBuffer, bytesCount);
                 if(bytesCount < NETWORK_BUFFER_SIZE-1)
