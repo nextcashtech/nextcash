@@ -28,7 +28,11 @@ namespace ArcMist
     {
         mData = pCopy.mData;
         if(mData != NULL)
+        {
+            mData->mutex.lock();
             mData->references++;
+            mData->mutex.unlock();
+        }
     }
 
     Hash::Hash(unsigned int pSize, int64_t pValue)
@@ -48,8 +52,16 @@ namespace ArcMist
 
     void Hash::makeExclusive()
     {
-        if(mData == NULL || mData->references == 1)
+        if(mData == NULL)
+            return;
+
+        mData->mutex.lock();
+
+        if(mData->references == 1)
+        {
+            mData->mutex.unlock();
             return; // Already exclusive
+        }
 
         // Create new exclusive data
         ++mCount;
@@ -57,6 +69,8 @@ namespace ArcMist
             // Log::addFormatted(Log::DEBUG, ARCMIST_HASH_LOG_NAME, "Allocating hash : count %d", mCount);
         Data *newData = new Data(mData->size);
         std::memcpy(newData->data, mData->data, mData->size);
+
+        mData->mutex.unlock();
 
         deallocate();
 
@@ -88,6 +102,8 @@ namespace ArcMist
         if(mData == NULL)
             return;
 
+        mData->mutex.lock();
+
         // Dereference data
         if(mData->references == 0)
             Log::add(Log::ERROR, ARCMIST_HASH_LOG_NAME, "Deallocating zero reference hash");
@@ -99,8 +115,11 @@ namespace ArcMist
             --mCount;
             // if(mCount % 100 == 0)
                 // Log::addFormatted(Log::DEBUG, ARCMIST_HASH_LOG_NAME, "Deallocating hash : count %d", mCount);
+            mData->mutex.unlock();
             delete mData;
         }
+        else
+            mData->mutex.unlock();
         mData = NULL;
     }
 
@@ -109,7 +128,11 @@ namespace ArcMist
         deallocate();
         mData = pRight.mData;
         if(mData != NULL)
+        {
+            mData->mutex.lock();
             mData->references++;
+            mData->mutex.unlock();
+        }
         return *this;
     }
 

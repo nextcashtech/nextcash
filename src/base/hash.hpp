@@ -10,6 +10,7 @@
 
 #include "arcmist/io/stream.hpp"
 #include "arcmist/base/log.hpp"
+#include "arcmist/base/mutex.hpp"
 
 #ifdef PROFILER_ON
 #include "arcmist/dev/profiler.hpp"
@@ -286,7 +287,7 @@ namespace ArcMist
         {
         public:
 
-            Data(unsigned int pSize)
+            Data(unsigned int pSize) : mutex("Hash")
             {
                 size = pSize;
                 data = new uint8_t[pSize];
@@ -298,6 +299,7 @@ namespace ArcMist
             unsigned int size;
             uint8_t *data;
             int references;
+            Mutex mutex;
 
         private:
             Data(const Data &pCopy);
@@ -601,7 +603,10 @@ namespace ArcMist
     void HashContainerList<tType>::remove(const Hash &pHash)
     {
         for(Iterator item=get(pHash);item!=end()&&item.hash() == pHash;)
+        {
+            delete *item;
             item = erase(item);
+        }
     }
 
     template <class tType>
