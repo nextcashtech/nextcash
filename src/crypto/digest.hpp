@@ -1,5 +1,5 @@
 /**************************************************************************
- * Copyright 2017 ArcMist, LLC                                            *
+ * Copyright 2017-2018 ArcMist, LLC                                       *
  * Contributors :                                                         *
  *   Curtis Ellis <curtis@arcmist.com>                                    *
  * Distributed under the MIT software license, see the accompanying       *
@@ -21,18 +21,19 @@ namespace ArcMist
     {
     public:
 
-        enum Type { CRC32, SHA1, RIPEMD160, SHA256, SHA256_SHA256, SHA256_RIPEMD160 }; //TODO Not yet supported - MD5, SHA512
+        enum Type { CRC32, SHA1, RIPEMD160, SHA256, SHA256_SHA256, SHA256_RIPEMD160, MURMUR3 }; //TODO Not yet supported - MD5, SHA512
 
         Digest(Type pType);
         ~Digest();
 
         // Set data to initial state. Automatically called by constructor
-        void initialize();
+        void initialize(uint32_t pSeed = 0); // Seed only used for MURMUR3
 
         // Note : Use write functions inherited from OutputStream to add data to the digest
 
         // Calculate result
         void getResult(RawOutputStream *pOutput);
+        unsigned int getResult();
 
         // Static digest calculation functions
         static void crc32(InputStream *pInput, stream_size pInputLength, OutputStream *pOutput); // 32 bit(4 byte) result

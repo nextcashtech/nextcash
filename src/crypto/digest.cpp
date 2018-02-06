@@ -1,5 +1,5 @@
 /**************************************************************************
- * Copyright 2017 ArcMist, LLC                                            *
+ * Copyright 2017-2018 ArcMist, LLC                                       *
  * Contributors :                                                         *
  *   Curtis Ellis <curtis@arcmist.com>                                    *
  * Distributed under the MIT software license, see the accompanying       *
@@ -1161,6 +1161,58 @@ namespace ArcMist
         return SipHash24::finish(result, pData, pLength - offset, pLength);
     }
 
+    namespace MURMUR3
+    {
+        // Only 32 bit implemented
+        void initialize(uint32_t *pResult, uint32_t pSeed)
+        {
+            pResult[0] = pSeed;
+        }
+
+        // Process 4 bytes
+        void process(uint32_t *pResult, uint8_t *pBlock)
+        {
+            // Grab 4 bytes from pBlock and convert to uint64_t
+            uint32_t block = 0;
+            uint8_t *byte = pBlock;
+            for(unsigned int i=0;i<4;++i)
+                block |= (uint32_t)*byte++ << (i * 8);
+
+            block *= 0xcc9e2d51;
+            block = (block << 15) | (block >> 17);
+            block *= 0x1b873593;
+
+            *pResult ^= block;
+            *pResult = (*pResult << 13) | (*pResult >> 19);
+            *pResult = (*pResult * 5) + 0xe6546b64;
+        }
+
+        // Process less than 4 bytes and length
+        void finish(uint32_t *pResult, uint8_t *pBlock, unsigned int pBlockLength, uint64_t pTotalLength)
+        {
+            if(pBlockLength > 0)
+            {
+                uint32_t block = 0;
+                uint8_t *byte = pBlock;
+                for(unsigned int i=0;i<pBlockLength;++i)
+                    block |= (uint32_t)*byte++ << (i * 8);
+
+                block *= 0xcc9e2d51;
+                block = (block << 15) | (block >> 17);
+                block *= 0x1b873593;
+
+                *pResult ^= block;
+            }
+
+            *pResult ^= pTotalLength;
+            *pResult ^= *pResult >> 16;
+            *pResult *= 0x85ebca6b;
+            *pResult ^= *pResult >> 13;
+            *pResult *= 0xc2b2ae35;
+            *pResult ^= *pResult >> 16;
+        }
+    }
+
     Digest::Digest(Type pType)
     {
         mType = pType;
@@ -1188,6 +1240,11 @@ namespace ArcMist
         case SHA256_RIPEMD160:
             mBlockSize = 64;
             mResultData = new uint32_t[8];
+            mBlockData  = new uint32_t[mBlockSize / 4];
+            break;
+        case MURMUR3:
+            mBlockSize = 4;
+            mResultData = new uint32_t[1];
             mBlockData  = new uint32_t[mBlockSize / 4];
             break;
         //case SHA512:
@@ -1218,7 +1275,7 @@ namespace ArcMist
         process();
     }
 
-    void Digest::initialize()
+    void Digest::initialize(uint32_t pSeed)
     {
         mByteCount = 0;
         mInput.clear();
@@ -1240,6 +1297,9 @@ namespace ArcMist
         case SHA256_SHA256:
         case SHA256_RIPEMD160:
             SHA256::initialize(mResultData);
+            break;
+        case MURMUR3:
+            MURMUR3::initialize(mResultData, pSeed);
             break;
         //case SHA512:
         //    break;
@@ -1279,11 +1339,43 @@ namespace ArcMist
                 SHA256::process(mResultData, mBlockData);
             }
             break;
+        case MURMUR3:
+            while(mInput.remaining() >= mBlockSize)
+            {
+                mInput.read(mBlockData, mBlockSize);
+                MURMUR3::process(mResultData, (uint8_t *)mBlockData);
+            }
+            break;
         //case SHA512:
         //    break;
         }
 
         mInput.flush();
+    }
+
+    unsigned int Digest::getResult()
+    {
+        switch(mType)
+        {
+        case CRC32:
+            // Finalize result
+            *mResultData ^= 0xffffffff;
+            *mResultData = Endian::convert(*mResultData, Endian::BIG);
+            return *mResultData;
+
+        case MURMUR3:
+        {
+            // Get last partial block (must be less than 4 bytes)
+            unsigned int lastBlockSize = mInput.remaining();
+            mInput.read(mBlockData, lastBlockSize);
+
+            MURMUR3::finish(mResultData, (uint8_t *)mBlockData, lastBlockSize, mByteCount);
+
+            return *mResultData;
+        }
+        default:
+            return 0;
+        }
     }
 
     void Digest::getResult(RawOutputStream *pOutput)
@@ -1370,6 +1462,18 @@ namespace ArcMist
 
             // Output result
             pOutput->writeStream(&ripEMD160Data, 20);
+            break;
+        }
+        case MURMUR3:
+        {
+            // Get last partial block (must be less than 4 bytes)
+            unsigned int lastBlockSize = mInput.remaining();
+            mInput.read(mBlockData, lastBlockSize);
+
+            MURMUR3::finish(mResultData, (uint8_t *)mBlockData, lastBlockSize, mByteCount);
+
+            // Output result
+            pOutput->write(mResultData, 4);
             break;
         }
         //case SHA512:
@@ -2374,6 +2478,304 @@ namespace ArcMist
 
         if(sipSuccess)
             Log::add(Log::INFO, ARCMIST_DIGEST_LOG_NAME, "Passed SipHash24 test set");
+
+
+        /*****************************************************************************************
+         * MurMur3 empty 0
+         *****************************************************************************************/
+        input.clear();
+        Digest murmur3Digest(MURMUR3);
+        murmur3Digest.initialize(0);
+        murmur3Digest.writeStream(&input, input.length());
+        murmur3Digest.getResult(&resultDigest);
+        correctDigest.writeUnsignedInt(0x00000000);
+
+        if(buffersMatch(correctDigest, resultDigest))
+            Log::add(Log::INFO, ARCMIST_DIGEST_LOG_NAME, "Passed MURMUR3 empty 0");
+        else
+        {
+            Log::add(Log::ERROR, ARCMIST_DIGEST_LOG_NAME, "Failed MURMUR3 empty 0");
+            logResults("Correct Digest", correctDigest);
+            logResults("Result Digest ", resultDigest);
+            result = false;
+        }
+
+        correctDigest.clear();
+        resultDigest.clear();
+
+        /*****************************************************************************************
+         * MurMur3 empty 1
+         *****************************************************************************************/
+        input.clear();
+        murmur3Digest.initialize(1);
+        murmur3Digest.writeStream(&input, input.length());
+        murmur3Digest.getResult(&resultDigest);
+        correctDigest.writeUnsignedInt(0x514E28B7);
+
+        if(buffersMatch(correctDigest, resultDigest))
+            Log::add(Log::INFO, ARCMIST_DIGEST_LOG_NAME, "Passed MURMUR3 empty 1");
+        else
+        {
+            Log::add(Log::ERROR, ARCMIST_DIGEST_LOG_NAME, "Failed MURMUR3 empty 1");
+            logResults("Correct Digest", correctDigest);
+            logResults("Result Digest ", resultDigest);
+            result = false;
+        }
+
+        correctDigest.clear();
+        resultDigest.clear();
+
+        /*****************************************************************************************
+         * MurMur3 empty ffffffff
+         *****************************************************************************************/
+        input.clear();
+        murmur3Digest.initialize(0xffffffff);
+        murmur3Digest.writeStream(&input, input.length());
+        murmur3Digest.getResult(&resultDigest);
+        correctDigest.writeUnsignedInt(0x81F16F39);
+
+        if(buffersMatch(correctDigest, resultDigest))
+            Log::add(Log::INFO, ARCMIST_DIGEST_LOG_NAME, "Passed MURMUR3 empty ffffffff");
+        else
+        {
+            Log::add(Log::ERROR, ARCMIST_DIGEST_LOG_NAME, "Failed MURMUR3 empty ffffffff");
+            logResults("Correct Digest", correctDigest);
+            logResults("Result Digest ", resultDigest);
+            result = false;
+        }
+
+        correctDigest.clear();
+        resultDigest.clear();
+
+        /*****************************************************************************************
+         * MurMur3 ffffffff 0
+         *****************************************************************************************/
+        input.clear();
+        input.writeUnsignedInt(0xffffffff);
+        murmur3Digest.initialize(0);
+        murmur3Digest.writeStream(&input, input.length());
+        murmur3Digest.getResult(&resultDigest);
+        correctDigest.writeUnsignedInt(0x76293B50);
+
+        if(buffersMatch(correctDigest, resultDigest))
+            Log::add(Log::INFO, ARCMIST_DIGEST_LOG_NAME, "Passed MURMUR3 ffffffff 0");
+        else
+        {
+            Log::add(Log::ERROR, ARCMIST_DIGEST_LOG_NAME, "Failed MURMUR3 ffffffff 0");
+            logResults("Correct Digest", correctDigest);
+            logResults("Result Digest ", resultDigest);
+            result = false;
+        }
+
+        correctDigest.clear();
+        resultDigest.clear();
+
+        /*****************************************************************************************
+         * MurMur3 87654321 0
+         *****************************************************************************************/
+        input.clear();
+        input.writeUnsignedInt(0x87654321);
+        murmur3Digest.initialize(0);
+        murmur3Digest.writeStream(&input, input.length());
+        murmur3Digest.getResult(&resultDigest);
+        correctDigest.writeUnsignedInt(0xF55B516B);
+
+        if(buffersMatch(correctDigest, resultDigest))
+            Log::add(Log::INFO, ARCMIST_DIGEST_LOG_NAME, "Passed MURMUR3 87654321 0");
+        else
+        {
+            Log::add(Log::ERROR, ARCMIST_DIGEST_LOG_NAME, "Failed MURMUR3 87654321 0");
+            logResults("Correct Digest", correctDigest);
+            logResults("Result Digest ", resultDigest);
+            result = false;
+        }
+
+        correctDigest.clear();
+        resultDigest.clear();
+
+        /*****************************************************************************************
+         * MurMur3 87654321 5082EDEE
+         *****************************************************************************************/
+        input.clear();
+        input.writeUnsignedInt(0x87654321);
+        murmur3Digest.initialize(0x5082EDEE);
+        murmur3Digest.writeStream(&input, input.length());
+        murmur3Digest.getResult(&resultDigest);
+        correctDigest.writeUnsignedInt(0x2362F9DE);
+
+        if(buffersMatch(correctDigest, resultDigest))
+            Log::add(Log::INFO, ARCMIST_DIGEST_LOG_NAME, "Passed MURMUR3 87654321 5082EDEE");
+        else
+        {
+            Log::add(Log::ERROR, ARCMIST_DIGEST_LOG_NAME, "Failed MURMUR3 87654321 5082EDEE");
+            logResults("Correct Digest", correctDigest);
+            logResults("Result Digest ", resultDigest);
+            result = false;
+        }
+
+        correctDigest.clear();
+        resultDigest.clear();
+
+        /*****************************************************************************************
+         * MurMur3 214365 0
+         *****************************************************************************************/
+        input.clear();
+        input.writeHex("214365");
+        murmur3Digest.initialize(0);
+        murmur3Digest.writeStream(&input, input.length());
+        murmur3Digest.getResult(&resultDigest);
+        correctDigest.writeUnsignedInt(0x7E4A8634);
+
+        if(buffersMatch(correctDigest, resultDigest))
+            Log::add(Log::INFO, ARCMIST_DIGEST_LOG_NAME, "Passed MURMUR3 214365 0");
+        else
+        {
+            Log::add(Log::ERROR, ARCMIST_DIGEST_LOG_NAME, "Failed MURMUR3 214365 0");
+            logResults("Correct Digest", correctDigest);
+            logResults("Result Digest ", resultDigest);
+            result = false;
+        }
+
+        correctDigest.clear();
+        resultDigest.clear();
+
+        /*****************************************************************************************
+         * MurMur3 2143 0
+         *****************************************************************************************/
+        input.clear();
+        input.writeHex("2143");
+        murmur3Digest.initialize(0);
+        murmur3Digest.writeStream(&input, input.length());
+        murmur3Digest.getResult(&resultDigest);
+        correctDigest.writeUnsignedInt(0xA0F7B07A);
+
+        if(buffersMatch(correctDigest, resultDigest))
+            Log::add(Log::INFO, ARCMIST_DIGEST_LOG_NAME, "Passed MURMUR3 2143 0");
+        else
+        {
+            Log::add(Log::ERROR, ARCMIST_DIGEST_LOG_NAME, "Failed MURMUR3 2143 0");
+            logResults("Correct Digest", correctDigest);
+            logResults("Result Digest ", resultDigest);
+            result = false;
+        }
+
+        correctDigest.clear();
+        resultDigest.clear();
+
+        /*****************************************************************************************
+         * MurMur3 21 0
+         *****************************************************************************************/
+        input.clear();
+        input.writeHex("21");
+        murmur3Digest.initialize(0);
+        murmur3Digest.writeStream(&input, input.length());
+        murmur3Digest.getResult(&resultDigest);
+        correctDigest.writeUnsignedInt(0x72661CF4);
+
+        if(buffersMatch(correctDigest, resultDigest))
+            Log::add(Log::INFO, ARCMIST_DIGEST_LOG_NAME, "Passed MURMUR3 21 0");
+        else
+        {
+            Log::add(Log::ERROR, ARCMIST_DIGEST_LOG_NAME, "Failed MURMUR3 21 0");
+            logResults("Correct Digest", correctDigest);
+            logResults("Result Digest ", resultDigest);
+            result = false;
+        }
+
+        correctDigest.clear();
+        resultDigest.clear();
+
+        /*****************************************************************************************
+         * MurMur3 00000000 0
+         *****************************************************************************************/
+        input.clear();
+        input.writeHex("00000000");
+        murmur3Digest.initialize(0);
+        murmur3Digest.writeStream(&input, input.length());
+        murmur3Digest.getResult(&resultDigest);
+        correctDigest.writeUnsignedInt(0x2362F9DE);
+
+        if(buffersMatch(correctDigest, resultDigest))
+            Log::add(Log::INFO, ARCMIST_DIGEST_LOG_NAME, "Passed MURMUR3 00000000 0");
+        else
+        {
+            Log::add(Log::ERROR, ARCMIST_DIGEST_LOG_NAME, "Failed MURMUR3 00000000 0");
+            logResults("Correct Digest", correctDigest);
+            logResults("Result Digest ", resultDigest);
+            result = false;
+        }
+
+        correctDigest.clear();
+        resultDigest.clear();
+
+        /*****************************************************************************************
+         * MurMur3 000000 0
+         *****************************************************************************************/
+        input.clear();
+        input.writeHex("000000");
+        murmur3Digest.initialize(0);
+        murmur3Digest.writeStream(&input, input.length());
+        murmur3Digest.getResult(&resultDigest);
+        correctDigest.writeUnsignedInt(0x85F0B427);
+
+        if(buffersMatch(correctDigest, resultDigest))
+            Log::add(Log::INFO, ARCMIST_DIGEST_LOG_NAME, "Passed MURMUR3 000000 0");
+        else
+        {
+            Log::add(Log::ERROR, ARCMIST_DIGEST_LOG_NAME, "Failed MURMUR3 000000 0");
+            logResults("Correct Digest", correctDigest);
+            logResults("Result Digest ", resultDigest);
+            result = false;
+        }
+
+        correctDigest.clear();
+        resultDigest.clear();
+
+        /*****************************************************************************************
+         * MurMur3 0000 0
+         *****************************************************************************************/
+        input.clear();
+        input.writeHex("0000");
+        murmur3Digest.initialize(0);
+        murmur3Digest.writeStream(&input, input.length());
+        murmur3Digest.getResult(&resultDigest);
+        correctDigest.writeUnsignedInt(0x30F4C306);
+
+        if(buffersMatch(correctDigest, resultDigest))
+            Log::add(Log::INFO, ARCMIST_DIGEST_LOG_NAME, "Passed MURMUR3 0000 0");
+        else
+        {
+            Log::add(Log::ERROR, ARCMIST_DIGEST_LOG_NAME, "Failed MURMUR3 0000 0");
+            logResults("Correct Digest", correctDigest);
+            logResults("Result Digest ", resultDigest);
+            result = false;
+        }
+
+        correctDigest.clear();
+        resultDigest.clear();
+
+        /*****************************************************************************************
+         * MurMur3 00 0
+         *****************************************************************************************/
+        input.clear();
+        input.writeHex("00");
+        murmur3Digest.initialize(0);
+        murmur3Digest.writeStream(&input, input.length());
+        murmur3Digest.getResult(&resultDigest);
+        correctDigest.writeUnsignedInt(0x514E28B7);
+
+        if(buffersMatch(correctDigest, resultDigest))
+            Log::add(Log::INFO, ARCMIST_DIGEST_LOG_NAME, "Passed MURMUR3 00 0");
+        else
+        {
+            Log::add(Log::ERROR, ARCMIST_DIGEST_LOG_NAME, "Failed MURMUR3 00 0");
+            logResults("Correct Digest", correctDigest);
+            logResults("Result Digest ", resultDigest);
+            result = false;
+        }
+
+        correctDigest.clear();
+        resultDigest.clear();
 
         return result;
     }
