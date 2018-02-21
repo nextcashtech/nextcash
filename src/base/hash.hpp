@@ -141,7 +141,7 @@ namespace ArcMist
         bool operator == (const Hash &pRight) const
         {
             if(mData == NULL)
-                return pRight.mData != NULL;
+                return pRight.mData == NULL;
             if(pRight.mData == NULL)
                 return false;
             if(mData->size != pRight.mData->size)
@@ -152,7 +152,7 @@ namespace ArcMist
         bool operator != (const Hash &pRight) const
         {
             if(mData == NULL)
-                return pRight.mData == NULL;
+                return pRight.mData != NULL;
             if(pRight.mData == NULL)
                 return true;
             if(mData->size != pRight.mData->size)
@@ -384,7 +384,7 @@ namespace ArcMist
         unsigned int size() const { return mList.size(); }
 
         void insert(const Hash &pHash, tType &pData);
-        void remove(const Hash &pHash);
+        bool remove(const Hash &pHash);
 
         // Returns true if the new item was inserted
         // Returns false if an item with a matching value and hash was found and no insert was done.
@@ -600,13 +600,16 @@ namespace ArcMist
     }
 
     template <class tType>
-    void HashContainerList<tType>::remove(const Hash &pHash)
+    bool HashContainerList<tType>::remove(const Hash &pHash)
     {
+        bool result = false;
         for(Iterator item=get(pHash);item!=end()&&item.hash() == pHash;)
         {
             delete *item;
             item = erase(item);
+            result = true;
         }
+        return result;
     }
 
     template <class tType>
