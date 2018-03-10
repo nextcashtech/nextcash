@@ -52,17 +52,29 @@ namespace ArcMist
 
         static bool test();
 
-    private:
+    protected:
+        unsigned int mBlockSize;
 
+    private:
         Type mType;
         stream_size mByteCount;
         Buffer mInput;
-        unsigned int mBlockSize;
         uint32_t *mBlockData, *mResultData;
 
         // Process as many blocks of data as possible
         void process();
 
+    };
+
+    class HMACDigest : public Digest
+    {
+    public:
+        HMACDigest(Type pType, InputStream *pKey);
+
+        // Calculate result
+        void getResult(RawOutputStream *pOutput);
+    private:
+        Buffer mOuterPaddedKey;
     };
 }
 

@@ -1322,6 +1322,60 @@ namespace ArcMist
             delete[] mResultData;
     }
 
+    HMACDigest::HMACDigest(Type pType, InputStream *pKey) : Digest(pType)
+    {
+        Buffer key;
+        pKey->readStream(&key, pKey->remaining());
+
+        if(key.length() > mBlockSize)
+        {
+            // Hash key
+            key.readStream(this, key.length());
+            key.clear(); // Clear key data
+            getResult(&key); // Read key hash into key
+            initialize(); // Reinitialize digest
+        }
+
+        // Pad key to block size
+        while(key.length() < mBlockSize)
+            key.writeByte(0);
+
+        // Create outer padded key
+        key.setReadOffset(0);
+        while(key.remaining())
+            mOuterPaddedKey.writeByte(0x5c ^ key.readByte());
+
+        // Create inner padded key
+        Buffer innerPaddedKey;
+        key.setReadOffset(0);
+        while(key.remaining())
+            innerPaddedKey.writeByte(0x36 ^ key.readByte());
+
+        // Write I Key Pad into digest
+        innerPaddedKey.setReadOffset(0);
+        innerPaddedKey.readStream(this, innerPaddedKey.length());
+    }
+
+    void HMACDigest::getResult(RawOutputStream *pOutput)
+    {
+        // Get digest result
+        Buffer firstResult;
+        Digest::getResult(&firstResult);
+
+        // Reinitialize digest
+        initialize();
+
+        // Write O Key Pad into digest
+        mOuterPaddedKey.setReadOffset(0);
+        mOuterPaddedKey.readStream(this, mOuterPaddedKey.length());
+
+        // Write previous digest result into digest
+        firstResult.readStream(this, firstResult.length());
+
+        // Get the final result
+        Digest::getResult(pOutput);
+    }
+
     void Digest::write(const void *pInput, stream_size pSize)
     {
         mInput.write(pInput, pSize);
@@ -1580,7 +1634,7 @@ namespace ArcMist
           "------------- Starting Digest Tests -------------");
 
         bool result = true;
-        Buffer input, correctDigest, resultDigest;
+        Buffer input, correctDigest, resultDigest, hmacKey;
 
         /******************************************************************************************
          * Test empty (All confirmed from outside sources)
@@ -1774,6 +1828,28 @@ namespace ArcMist
         resultDigest.clear();
 
         /*****************************************************************************************
+         * HMAC SHA256 digest empty
+         *****************************************************************************************/
+        input.setReadOffset(0);
+        HMACDigest hmacSHA256EmptyDigest(SHA256, &hmacKey);
+        hmacSHA256EmptyDigest.writeStream(&input, input.length());
+        hmacSHA256EmptyDigest.getResult(&resultDigest);
+        correctDigest.writeHex("b613679a0814d9ec772f95d778c35fc5ff1697c493715653c6c712144292c5ad");
+
+        if(buffersMatch(correctDigest, resultDigest))
+            Log::add(Log::INFO, ARCMIST_DIGEST_LOG_NAME, "Passed HMAC SHA256 digest empty");
+        else
+        {
+            Log::add(Log::ERROR, ARCMIST_DIGEST_LOG_NAME, "Failed HMAC SHA256 digest empty");
+            logResults("Correct Digest", correctDigest);
+            logResults("Result Digest ", resultDigest);
+            result = false;
+        }
+
+        correctDigest.clear();
+        resultDigest.clear();
+
+        /*****************************************************************************************
          * SHA512 digest empty
          *****************************************************************************************/
         input.setReadOffset(0);
@@ -1787,6 +1863,28 @@ namespace ArcMist
         else
         {
             Log::add(Log::ERROR, ARCMIST_DIGEST_LOG_NAME, "Failed SHA512 digest empty");
+            logResults("Correct Digest", correctDigest);
+            logResults("Result Digest ", resultDigest);
+            result = false;
+        }
+
+        correctDigest.clear();
+        resultDigest.clear();
+
+        /*****************************************************************************************
+         * HMAC SHA512 digest empty
+         *****************************************************************************************/
+        input.setReadOffset(0);
+        HMACDigest hmacSHA512EmptyDigest(SHA512, &hmacKey);
+        hmacSHA512EmptyDigest.writeStream(&input, input.length());
+        hmacSHA512EmptyDigest.getResult(&resultDigest);
+        correctDigest.writeHex("b936cee86c9f87aa5d3c6f2e84cb5a4239a5fe50480a6ec66b70ab5b1f4ac6730c6c515421b327ec1d69402e53dfb49ad7381eb067b338fd7b0cb22247225d47");
+
+        if(buffersMatch(correctDigest, resultDigest))
+            Log::add(Log::INFO, ARCMIST_DIGEST_LOG_NAME, "Passed HMAC SHA512 digest empty");
+        else
+        {
+            Log::add(Log::ERROR, ARCMIST_DIGEST_LOG_NAME, "Failed HMAC SHA512 digest empty");
             logResults("Correct Digest", correctDigest);
             logResults("Result Digest ", resultDigest);
             result = false;
@@ -2075,6 +2173,30 @@ namespace ArcMist
         resultDigest.clear();
 
         /*****************************************************************************************
+         * HMAC SHA256 digest quick brown fox
+         *****************************************************************************************/
+        input.setReadOffset(0);
+        hmacKey.clear();
+        hmacKey.writeString("key");
+        HMACDigest hmacSHA256QBFDigest(SHA256, &hmacKey);
+        hmacSHA256QBFDigest.writeStream(&input, input.length());
+        hmacSHA256QBFDigest.getResult(&resultDigest);
+        correctDigest.writeHex("f7bc83f430538424b13298e6aa6fb143ef4d59a14946175997479dbc2d1a3cd8");
+
+        if(buffersMatch(correctDigest, resultDigest))
+            Log::add(Log::INFO, ARCMIST_DIGEST_LOG_NAME, "Passed HMAC SHA256 digest quick brown fox");
+        else
+        {
+            Log::add(Log::ERROR, ARCMIST_DIGEST_LOG_NAME, "Failed HMAC SHA256 digest quick brown fox");
+            logResults("Correct Digest", correctDigest);
+            logResults("Result Digest ", resultDigest);
+            result = false;
+        }
+
+        correctDigest.clear();
+        resultDigest.clear();
+
+        /*****************************************************************************************
          * SHA512 quick brown fox
          *****************************************************************************************/
         input.setReadOffset(0);
@@ -2086,6 +2208,30 @@ namespace ArcMist
         else
         {
             Log::add(Log::ERROR, ARCMIST_DIGEST_LOG_NAME, "Failed SHA512 quick brown fox");
+            logResults("Correct Digest", correctDigest);
+            logResults("Result Digest ", resultDigest);
+            result = false;
+        }
+
+        correctDigest.clear();
+        resultDigest.clear();
+
+        /*****************************************************************************************
+         * HMAC SHA512 digest quick brown fox
+         *****************************************************************************************/
+        input.setReadOffset(0);
+        hmacKey.clear();
+        hmacKey.writeString("key");
+        HMACDigest hmacSHA512QBFDigest(SHA512, &hmacKey);
+        hmacSHA512QBFDigest.writeStream(&input, input.length());
+        hmacSHA512QBFDigest.getResult(&resultDigest);
+        correctDigest.writeHex("b42af09057bac1e2d41708e48a902e09b5ff7f12ab428a4fe86653c73dd248fb82f948a549f7b791a5b41915ee4d1ec3935357e4e2317250d0372afa2ebeeb3a");
+
+        if(buffersMatch(correctDigest, resultDigest))
+            Log::add(Log::INFO, ARCMIST_DIGEST_LOG_NAME, "Passed HMAC SHA512 digest quick brown fox");
+        else
+        {
+            Log::add(Log::ERROR, ARCMIST_DIGEST_LOG_NAME, "Failed HMAC SHA512 digest quick brown fox");
             logResults("Correct Digest", correctDigest);
             logResults("Result Digest ", resultDigest);
             result = false;
