@@ -69,10 +69,13 @@ namespace ArcMist
     class HMACDigest : public Digest
     {
     public:
+
+        HMACDigest(Type pType) : Digest(pType) {} // Must still be initialized with a key
         HMACDigest(Type pType, InputStream *pKey);
 
-        // Calculate result
+        void initialize(InputStream *pKey);
         void getResult(RawOutputStream *pOutput);
+
     private:
         Buffer mOuterPaddedKey;
     };

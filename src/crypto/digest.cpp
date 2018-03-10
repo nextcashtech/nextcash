@@ -818,8 +818,7 @@ namespace ArcMist
 
             // Put bit length in last 8 bytes of block
             pTotalLength *= 8;
-            pBlock[14] = pTotalLength & 0xffffffff;
-            pBlock[15] = (pTotalLength >> 32) & 0xffffffff;
+            ((uint64_t *)pBlock)[7] = Endian::convert(pTotalLength, Endian::LITTLE);
 
             // Process last block
             process(pResult, pBlock);
@@ -944,10 +943,7 @@ namespace ArcMist
 
             // Put bit length in last 8 bytes of block (Big Endian)
             pTotalLength *= 8;
-            uint32_t lower = pTotalLength & 0xffffffff;
-            pBlock[15] = Endian::convert(lower, Endian::BIG);
-            uint32_t upper = (pTotalLength >> 32) & 0xffffffff;
-            pBlock[14] = Endian::convert(upper, Endian::BIG);
+            ((uint64_t *)pBlock)[7] = Endian::convert(pTotalLength, Endian::BIG);
 
             // Process last block
             process(pResult, pBlock);
@@ -983,7 +979,6 @@ namespace ArcMist
 
     namespace SHA512
     {
-
         const uint64_t table[80] =
         {
             0x428a2f98d728ae22, 0x7137449123ef65cd, 0xb5c0fbcfec4d3b2f, 0xe9b5dba58189dbbc,
@@ -1072,7 +1067,8 @@ namespace ArcMist
         void finish(uint32_t *pResult, uint32_t *pBlock, unsigned int pBlockLength, uint64_t pTotalLength)
         {
             // Zeroize the end of the block
-            std::memset(((uint8_t *)pBlock) + pBlockLength, 0, 128 - pBlockLength);
+            if(pBlockLength < 128)
+                std::memset(((uint8_t *)pBlock) + pBlockLength, 0, 128 - pBlockLength);
 
             // Add 0x80 byte (basically a 1 bit at the end of the data)
             ((uint8_t *)pBlock)[pBlockLength] = 0x80;
@@ -1086,12 +1082,7 @@ namespace ArcMist
 
             // Put bit length in last 16 bytes of block (Big Endian)
             pTotalLength *= 8;
-            pBlock[29] = 0;
-            pBlock[28] = 0;
-            uint32_t lower = pTotalLength & 0xffffffff;
-            pBlock[31] = Endian::convert(lower, Endian::BIG);
-            uint32_t upper = (pTotalLength >> 32) & 0xffffffff;
-            pBlock[30] = Endian::convert(upper, Endian::BIG);
+            ((uint64_t *)pBlock)[15] = Endian::convert(pTotalLength, Endian::BIG);
 
             // Process last block
             process(pResult, pBlock);
@@ -1324,16 +1315,21 @@ namespace ArcMist
 
     HMACDigest::HMACDigest(Type pType, InputStream *pKey) : Digest(pType)
     {
+        initialize(pKey);
+    }
+
+    void HMACDigest::initialize(InputStream *pKey)
+    {
         Buffer key;
         pKey->readStream(&key, pKey->remaining());
 
         if(key.length() > mBlockSize)
         {
             // Hash key
-            key.readStream(this, key.length());
+            writeStream(&key, key.length());
             key.clear(); // Clear key data
-            getResult(&key); // Read key hash into key
-            initialize(); // Reinitialize digest
+            Digest::getResult(&key); // Read key hash into key
+            Digest::initialize(); // Reinitialize digest
         }
 
         // Pad key to block size
@@ -1363,7 +1359,7 @@ namespace ArcMist
         Digest::getResult(&firstResult);
 
         // Reinitialize digest
-        initialize();
+        Digest::initialize();
 
         // Write O Key Pad into digest
         mOuterPaddedKey.setReadOffset(0);
@@ -2471,6 +2467,58 @@ namespace ArcMist
         else
         {
             Log::add(Log::ERROR, ARCMIST_DIGEST_LOG_NAME, "Failed SHA512 random data 1024");
+            logResults("Correct Digest", correctDigest);
+            logResults("Result Digest ", resultDigest);
+            result = false;
+        }
+
+        correctDigest.clear();
+        resultDigest.clear();
+
+        /*****************************************************************************************
+         * HMAC SHA512 RFC4231 Text Case 4
+         *****************************************************************************************/
+        input.clear();
+        input.writeHex("cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd");
+        hmacKey.clear();
+        hmacKey.writeHex("0102030405060708090a0b0c0d0e0f10111213141516171819");
+        HMACDigest hmacSHA512RFC4231Test4Digest(SHA512);
+        hmacSHA512RFC4231Test4Digest.initialize(&hmacKey);
+        hmacSHA512RFC4231Test4Digest.writeStream(&input, input.length());
+        hmacSHA512RFC4231Test4Digest.getResult(&resultDigest);
+        correctDigest.writeHex("b0ba465637458c6990e5a8c5f61d4af7e576d97ff94b872de76f8050361ee3dba91ca5c11aa25eb4d679275cc5788063a5f19741120c4f2de2adebeb10a298dd");
+
+        if(buffersMatch(correctDigest, resultDigest))
+            Log::add(Log::INFO, ARCMIST_DIGEST_LOG_NAME, "Passed HMAC SHA512 RFC4231 Test Case 4");
+        else
+        {
+            Log::add(Log::ERROR, ARCMIST_DIGEST_LOG_NAME, "Failed HMAC SHA512 RFC4231 Test Case 4");
+            logResults("Correct Digest", correctDigest);
+            logResults("Result Digest ", resultDigest);
+            result = false;
+        }
+
+        correctDigest.clear();
+        resultDigest.clear();
+
+        /*****************************************************************************************
+         * HMAC SHA512 RFC4231 Text Case 7
+         *****************************************************************************************/
+        input.clear();
+        input.writeHex("5468697320697320612074657374207573696e672061206c6172676572207468616e20626c6f636b2d73697a65206b657920616e642061206c6172676572207468616e20626c6f636b2d73697a6520646174612e20546865206b6579206e6565647320746f20626520686173686564206265666f7265206265696e6720757365642062792074686520484d414320616c676f726974686d2e");
+        hmacKey.clear();
+        hmacKey.writeHex("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
+        HMACDigest hmacSHA512RFC4231Test7Digest(SHA512);
+        hmacSHA512RFC4231Test7Digest.initialize(&hmacKey);
+        hmacSHA512RFC4231Test7Digest.writeStream(&input, input.length());
+        hmacSHA512RFC4231Test7Digest.getResult(&resultDigest);
+        correctDigest.writeHex("e37b6a775dc87dbaa4dfa9f96e5e3ffddebd71f8867289865df5a32d20cdc944b6022cac3c4982b10d5eeb55c3e4de15134676fb6de0446065c97440fa8c6a58");
+
+        if(buffersMatch(correctDigest, resultDigest))
+            Log::add(Log::INFO, ARCMIST_DIGEST_LOG_NAME, "Passed HMAC SHA512 RFC4231 Test Case 7");
+        else
+        {
+            Log::add(Log::ERROR, ARCMIST_DIGEST_LOG_NAME, "Failed HMAC SHA512 RFC4231 Test Case 7");
             logResults("Correct Digest", correctDigest);
             logResults("Result Digest ", resultDigest);
             result = false;
