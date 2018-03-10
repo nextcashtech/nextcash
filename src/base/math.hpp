@@ -185,69 +185,9 @@ namespace ArcMist
             return rotateLeft(x, 32 - n);
         }
 
-        inline uint64_t shiftRight64(uint64_t x, int n)
-        {
-            unsigned int ms, ls;
-
-            std::memcpy(&ls, &x, 4);
-            std::memcpy(&ms,((uint8_t *)&x) + 4, 4);
-
-            if(n > 32)
-            {
-                ls = ms >>(n - 32);
-                ms = 0;
-            }
-            else if(n == 32)
-            {
-                ls = ms;
-                ms = 0;
-            }
-            else
-            {
-                ls = ms <<(32 - n) | ls >> n;
-                ms >>= n;
-            }
-
-            uint64_t result;
-            std::memcpy(&result, &ls, 4);
-            std::memcpy(((uint8_t *)&result) + 4, &ms, 4);
-
-            return result;
-        }
-
-        inline uint64_t shiftLeft64(uint64_t x, int n)
-        {
-            unsigned int ms, ls;
-
-            std::memcpy(&ls, &x, 4);
-            std::memcpy(&ms,((uint8_t *)&x) + 4, 4);
-
-            if(n > 32)
-            {
-                ms = ls << (n - 32);
-                ls = 0;
-            }
-            else if(n == 32)
-            {
-                ms = ls;
-                ls = 0;
-            }
-            else
-            {
-                ms = ls >> (32 - n) | ms << n;
-                ls <<= n;
-            }
-
-            uint64_t result;
-            std::memcpy(&result, &ls, 4);
-            std::memcpy(((uint8_t *)&result) + 4, &ms, 4);
-
-            return result;
-        }
-
         inline uint64_t rotateLeft64(uint64_t x, int n)
         {
-            return shiftLeft64(x, n) | shiftRight64(x, 64 - n);
+            return (x << n) | (x >> (64 - n));
         }
 
         inline uint64_t rotateRight64(uint64_t x, int n)

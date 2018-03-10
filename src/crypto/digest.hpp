@@ -21,7 +21,7 @@ namespace ArcMist
     {
     public:
 
-        enum Type { CRC32, SHA1, RIPEMD160, SHA256, SHA256_SHA256, SHA256_RIPEMD160, MURMUR3 }; //TODO Not yet supported - MD5, SHA512
+        enum Type { CRC32, SHA1, RIPEMD160, SHA256, SHA256_SHA256, SHA256_RIPEMD160, SHA512, MURMUR3 }; //TODO Not yet supported - MD5
 
         Digest(Type pType);
         ~Digest();
@@ -43,7 +43,7 @@ namespace ArcMist
         static void sha1(InputStream *pInput, stream_size pInputLength, OutputStream *pOutput);  // 160 bit(20 byte) result
         static void ripEMD160(InputStream *pInput, stream_size pInputLength, OutputStream *pOutput);  // 160 bit(20 bytes) result
         static void sha256(InputStream *pInput, stream_size pInputLength, OutputStream *pOutput);  // 256 bit(32 bytes) result
-        //TODO fix endian issues //static void sha512(InputStream *pInput, stream_size pInputLength, OutputStream *pOutput);  // 512 bit(64 bytes) result
+        static void sha512(InputStream *pInput, stream_size pInputLength, OutputStream *pOutput);  // 512 bit(64 bytes) result
         static uint64_t sipHash24(uint8_t *pData, stream_size pLength, uint64_t pKey0, uint64_t pKey1);
 
         // Virtual overloaded functions

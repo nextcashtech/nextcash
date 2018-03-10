@@ -24,22 +24,25 @@ namespace ArcMist
 {
     namespace CRC32
     {
-        const uint32_t table[256] = {0x00000000, 0x77073096, 0xee0e612c, 0x990951ba, 0x076dc419, 0x706af48f, 0xe963a535, 0x9e6495a3, 0x0edb8832, 0x79dcb8a4, 0xe0d5e91e, 0x97d2d988, 0x09b64c2b, 0x7eb17cbd, 0xe7b82d07, 0x90bf1d91,
-                                     0x1db71064, 0x6ab020f2, 0xf3b97148, 0x84be41de, 0x1adad47d, 0x6ddde4eb, 0xf4d4b551, 0x83d385c7, 0x136c9856, 0x646ba8c0, 0xfd62f97a, 0x8a65c9ec, 0x14015c4f, 0x63066cd9, 0xfa0f3d63, 0x8d080df5,
-                                     0x3b6e20c8, 0x4c69105e, 0xd56041e4, 0xa2677172, 0x3c03e4d1, 0x4b04d447, 0xd20d85fd, 0xa50ab56b, 0x35b5a8fa, 0x42b2986c, 0xdbbbc9d6, 0xacbcf940, 0x32d86ce3, 0x45df5c75, 0xdcd60dcf, 0xabd13d59,
-                                     0x26d930ac, 0x51de003a, 0xc8d75180, 0xbfd06116, 0x21b4f4b5, 0x56b3c423, 0xcfba9599, 0xb8bda50f, 0x2802b89e, 0x5f058808, 0xc60cd9b2, 0xb10be924, 0x2f6f7c87, 0x58684c11, 0xc1611dab, 0xb6662d3d,
-                                     0x76dc4190, 0x01db7106, 0x98d220bc, 0xefd5102a, 0x71b18589, 0x06b6b51f, 0x9fbfe4a5, 0xe8b8d433, 0x7807c9a2, 0x0f00f934, 0x9609a88e, 0xe10e9818, 0x7f6a0dbb, 0x086d3d2d, 0x91646c97, 0xe6635c01,
-                                     0x6b6b51f4, 0x1c6c6162, 0x856530d8, 0xf262004e, 0x6c0695ed, 0x1b01a57b, 0x8208f4c1, 0xf50fc457, 0x65b0d9c6, 0x12b7e950, 0x8bbeb8ea, 0xfcb9887c, 0x62dd1ddf, 0x15da2d49, 0x8cd37cf3, 0xfbd44c65,
-                                     0x4db26158, 0x3ab551ce, 0xa3bc0074, 0xd4bb30e2, 0x4adfa541, 0x3dd895d7, 0xa4d1c46d, 0xd3d6f4fb, 0x4369e96a, 0x346ed9fc, 0xad678846, 0xda60b8d0, 0x44042d73, 0x33031de5, 0xaa0a4c5f, 0xdd0d7cc9,
-                                     0x5005713c, 0x270241aa, 0xbe0b1010, 0xc90c2086, 0x5768b525, 0x206f85b3, 0xb966d409, 0xce61e49f, 0x5edef90e, 0x29d9c998, 0xb0d09822, 0xc7d7a8b4, 0x59b33d17, 0x2eb40d81, 0xb7bd5c3b, 0xc0ba6cad,
-                                     0xedb88320, 0x9abfb3b6, 0x03b6e20c, 0x74b1d29a, 0xead54739, 0x9dd277af, 0x04db2615, 0x73dc1683, 0xe3630b12, 0x94643b84, 0x0d6d6a3e, 0x7a6a5aa8, 0xe40ecf0b, 0x9309ff9d, 0x0a00ae27, 0x7d079eb1,
-                                     0xf00f9344, 0x8708a3d2, 0x1e01f268, 0x6906c2fe, 0xf762575d, 0x806567cb, 0x196c3671, 0x6e6b06e7, 0xfed41b76, 0x89d32be0, 0x10da7a5a, 0x67dd4acc, 0xf9b9df6f, 0x8ebeeff9, 0x17b7be43, 0x60b08ed5,
-                                     0xd6d6a3e8, 0xa1d1937e, 0x38d8c2c4, 0x4fdff252, 0xd1bb67f1, 0xa6bc5767, 0x3fb506dd, 0x48b2364b, 0xd80d2bda, 0xaf0a1b4c, 0x36034af6, 0x41047a60, 0xdf60efc3, 0xa867df55, 0x316e8eef, 0x4669be79,
-                                     0xcb61b38c, 0xbc66831a, 0x256fd2a0, 0x5268e236, 0xcc0c7795, 0xbb0b4703, 0x220216b9, 0x5505262f, 0xc5ba3bbe, 0xb2bd0b28, 0x2bb45a92, 0x5cb36a04, 0xc2d7ffa7, 0xb5d0cf31, 0x2cd99e8b, 0x5bdeae1d,
-                                     0x9b64c2b0, 0xec63f226, 0x756aa39c, 0x026d930a, 0x9c0906a9, 0xeb0e363f, 0x72076785, 0x05005713, 0x95bf4a82, 0xe2b87a14, 0x7bb12bae, 0x0cb61b38, 0x92d28e9b, 0xe5d5be0d, 0x7cdcefb7, 0x0bdbdf21,
-                                     0x86d3d2d4, 0xf1d4e242, 0x68ddb3f8, 0x1fda836e, 0x81be16cd, 0xf6b9265b, 0x6fb077e1, 0x18b74777, 0x88085ae6, 0xff0f6a70, 0x66063bca, 0x11010b5c, 0x8f659eff, 0xf862ae69, 0x616bffd3, 0x166ccf45,
-                                     0xa00ae278, 0xd70dd2ee, 0x4e048354, 0x3903b3c2, 0xa7672661, 0xd06016f7, 0x4969474d, 0x3e6e77db, 0xaed16a4a, 0xd9d65adc, 0x40df0b66, 0x37d83bf0, 0xa9bcae53, 0xdebb9ec5, 0x47b2cf7f, 0x30b5ffe9,
-                                     0xbdbdf21c, 0xcabac28a, 0x53b39330, 0x24b4a3a6, 0xbad03605, 0xcdd70693, 0x54de5729, 0x23d967bf, 0xb3667a2e, 0xc4614ab8, 0x5d681b02, 0x2a6f2b94, 0xb40bbe37, 0xc30c8ea1, 0x5a05df1b, 0x2d02ef8d};
+        const uint32_t table[256] =
+        {
+            0x00000000, 0x77073096, 0xee0e612c, 0x990951ba, 0x076dc419, 0x706af48f, 0xe963a535, 0x9e6495a3, 0x0edb8832, 0x79dcb8a4, 0xe0d5e91e, 0x97d2d988, 0x09b64c2b, 0x7eb17cbd, 0xe7b82d07, 0x90bf1d91,
+            0x1db71064, 0x6ab020f2, 0xf3b97148, 0x84be41de, 0x1adad47d, 0x6ddde4eb, 0xf4d4b551, 0x83d385c7, 0x136c9856, 0x646ba8c0, 0xfd62f97a, 0x8a65c9ec, 0x14015c4f, 0x63066cd9, 0xfa0f3d63, 0x8d080df5,
+            0x3b6e20c8, 0x4c69105e, 0xd56041e4, 0xa2677172, 0x3c03e4d1, 0x4b04d447, 0xd20d85fd, 0xa50ab56b, 0x35b5a8fa, 0x42b2986c, 0xdbbbc9d6, 0xacbcf940, 0x32d86ce3, 0x45df5c75, 0xdcd60dcf, 0xabd13d59,
+            0x26d930ac, 0x51de003a, 0xc8d75180, 0xbfd06116, 0x21b4f4b5, 0x56b3c423, 0xcfba9599, 0xb8bda50f, 0x2802b89e, 0x5f058808, 0xc60cd9b2, 0xb10be924, 0x2f6f7c87, 0x58684c11, 0xc1611dab, 0xb6662d3d,
+            0x76dc4190, 0x01db7106, 0x98d220bc, 0xefd5102a, 0x71b18589, 0x06b6b51f, 0x9fbfe4a5, 0xe8b8d433, 0x7807c9a2, 0x0f00f934, 0x9609a88e, 0xe10e9818, 0x7f6a0dbb, 0x086d3d2d, 0x91646c97, 0xe6635c01,
+            0x6b6b51f4, 0x1c6c6162, 0x856530d8, 0xf262004e, 0x6c0695ed, 0x1b01a57b, 0x8208f4c1, 0xf50fc457, 0x65b0d9c6, 0x12b7e950, 0x8bbeb8ea, 0xfcb9887c, 0x62dd1ddf, 0x15da2d49, 0x8cd37cf3, 0xfbd44c65,
+            0x4db26158, 0x3ab551ce, 0xa3bc0074, 0xd4bb30e2, 0x4adfa541, 0x3dd895d7, 0xa4d1c46d, 0xd3d6f4fb, 0x4369e96a, 0x346ed9fc, 0xad678846, 0xda60b8d0, 0x44042d73, 0x33031de5, 0xaa0a4c5f, 0xdd0d7cc9,
+            0x5005713c, 0x270241aa, 0xbe0b1010, 0xc90c2086, 0x5768b525, 0x206f85b3, 0xb966d409, 0xce61e49f, 0x5edef90e, 0x29d9c998, 0xb0d09822, 0xc7d7a8b4, 0x59b33d17, 0x2eb40d81, 0xb7bd5c3b, 0xc0ba6cad,
+            0xedb88320, 0x9abfb3b6, 0x03b6e20c, 0x74b1d29a, 0xead54739, 0x9dd277af, 0x04db2615, 0x73dc1683, 0xe3630b12, 0x94643b84, 0x0d6d6a3e, 0x7a6a5aa8, 0xe40ecf0b, 0x9309ff9d, 0x0a00ae27, 0x7d079eb1,
+            0xf00f9344, 0x8708a3d2, 0x1e01f268, 0x6906c2fe, 0xf762575d, 0x806567cb, 0x196c3671, 0x6e6b06e7, 0xfed41b76, 0x89d32be0, 0x10da7a5a, 0x67dd4acc, 0xf9b9df6f, 0x8ebeeff9, 0x17b7be43, 0x60b08ed5,
+            0xd6d6a3e8, 0xa1d1937e, 0x38d8c2c4, 0x4fdff252, 0xd1bb67f1, 0xa6bc5767, 0x3fb506dd, 0x48b2364b, 0xd80d2bda, 0xaf0a1b4c, 0x36034af6, 0x41047a60, 0xdf60efc3, 0xa867df55, 0x316e8eef, 0x4669be79,
+            0xcb61b38c, 0xbc66831a, 0x256fd2a0, 0x5268e236, 0xcc0c7795, 0xbb0b4703, 0x220216b9, 0x5505262f, 0xc5ba3bbe, 0xb2bd0b28, 0x2bb45a92, 0x5cb36a04, 0xc2d7ffa7, 0xb5d0cf31, 0x2cd99e8b, 0x5bdeae1d,
+            0x9b64c2b0, 0xec63f226, 0x756aa39c, 0x026d930a, 0x9c0906a9, 0xeb0e363f, 0x72076785, 0x05005713, 0x95bf4a82, 0xe2b87a14, 0x7bb12bae, 0x0cb61b38, 0x92d28e9b, 0xe5d5be0d, 0x7cdcefb7, 0x0bdbdf21,
+            0x86d3d2d4, 0xf1d4e242, 0x68ddb3f8, 0x1fda836e, 0x81be16cd, 0xf6b9265b, 0x6fb077e1, 0x18b74777, 0x88085ae6, 0xff0f6a70, 0x66063bca, 0x11010b5c, 0x8f659eff, 0xf862ae69, 0x616bffd3, 0x166ccf45,
+            0xa00ae278, 0xd70dd2ee, 0x4e048354, 0x3903b3c2, 0xa7672661, 0xd06016f7, 0x4969474d, 0x3e6e77db, 0xaed16a4a, 0xd9d65adc, 0x40df0b66, 0x37d83bf0, 0xa9bcae53, 0xdebb9ec5, 0x47b2cf7f, 0x30b5ffe9,
+            0xbdbdf21c, 0xcabac28a, 0x53b39330, 0x24b4a3a6, 0xbad03605, 0xcdd70693, 0x54de5729, 0x23d967bf, 0xb3667a2e, 0xc4614ab8, 0x5d681b02, 0x2a6f2b94, 0xb40bbe37, 0xc30c8ea1, 0x5a05df1b, 0x2d02ef8d
+        };
     }
 
     void Digest::crc32(InputStream *pInput, stream_size pInputLength, OutputStream *pOutput)
@@ -851,14 +854,17 @@ namespace ArcMist
 
     namespace SHA256
     {
-        const uint32_t table[64] = {0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5, 0x3956c25b, 0x59f111f1, 0x923f82a4, 0xab1c5ed5,
-                                    0xd807aa98, 0x12835b01, 0x243185be, 0x550c7dc3, 0x72be5d74, 0x80deb1fe, 0x9bdc06a7, 0xc19bf174,
-                                    0xe49b69c1, 0xefbe4786, 0x0fc19dc6, 0x240ca1cc, 0x2de92c6f, 0x4a7484aa, 0x5cb0a9dc, 0x76f988da,
-                                    0x983e5152, 0xa831c66d, 0xb00327c8, 0xbf597fc7, 0xc6e00bf3, 0xd5a79147, 0x06ca6351, 0x14292967,
-                                    0x27b70a85, 0x2e1b2138, 0x4d2c6dfc, 0x53380d13, 0x650a7354, 0x766a0abb, 0x81c2c92e, 0x92722c85,
-                                    0xa2bfe8a1, 0xa81a664b, 0xc24b8b70, 0xc76c51a3, 0xd192e819, 0xd6990624, 0xf40e3585, 0x106aa070,
-                                    0x19a4c116, 0x1e376c08, 0x2748774c, 0x34b0bcb5, 0x391c0cb3, 0x4ed8aa4a, 0x5b9cca4f, 0x682e6ff3,
-                                    0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208, 0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2};
+        const uint32_t table[64] =
+        {
+            0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5, 0x3956c25b, 0x59f111f1, 0x923f82a4, 0xab1c5ed5,
+            0xd807aa98, 0x12835b01, 0x243185be, 0x550c7dc3, 0x72be5d74, 0x80deb1fe, 0x9bdc06a7, 0xc19bf174,
+            0xe49b69c1, 0xefbe4786, 0x0fc19dc6, 0x240ca1cc, 0x2de92c6f, 0x4a7484aa, 0x5cb0a9dc, 0x76f988da,
+            0x983e5152, 0xa831c66d, 0xb00327c8, 0xbf597fc7, 0xc6e00bf3, 0xd5a79147, 0x06ca6351, 0x14292967,
+            0x27b70a85, 0x2e1b2138, 0x4d2c6dfc, 0x53380d13, 0x650a7354, 0x766a0abb, 0x81c2c92e, 0x92722c85,
+            0xa2bfe8a1, 0xa81a664b, 0xc24b8b70, 0xc76c51a3, 0xd192e819, 0xd6990624, 0xf40e3585, 0x106aa070,
+            0x19a4c116, 0x1e376c08, 0x2748774c, 0x34b0bcb5, 0x391c0cb3, 0x4ed8aa4a, 0x5b9cca4f, 0x682e6ff3,
+            0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208, 0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2
+        };
 
         void initialize(uint32_t *pResult)
         {
@@ -930,7 +936,7 @@ namespace ArcMist
             ((uint8_t *)pBlock)[pBlockLength] = 0x80;
 
             // Check if there is enough room for the total length in this block
-            if(pBlockLength > 55) // 55 because of the 0x80 byte already added
+            if(pBlockLength > 55) // 56 - 1 because of the 0x80 byte already added
             {
                 process(pResult, pBlock); // Process this block
                 std::memset(pBlock, 0, 64); // Clear the block
@@ -975,85 +981,79 @@ namespace ArcMist
         return;
     }
 
-    uint64_t SHA512_K[80] = {0x428a2f98d728ae22, 0x7137449123ef65cd, 0xb5c0fbcfec4d3b2f, 0xe9b5dba58189dbbc,
-                             0x3956c25bf348b538, 0x59f111f1b605d019, 0x923f82a4af194f9b, 0xab1c5ed5da6d8118,
-                             0xd807aa98a3030242, 0x12835b0145706fbe, 0x243185be4ee4b28c, 0x550c7dc3d5ffb4e2,
-                             0x72be5d74f27b896f, 0x80deb1fe3b1696b1, 0x9bdc06a725c71235, 0xc19bf174cf692694,
-                             0xe49b69c19ef14ad2, 0xefbe4786384f25e3, 0x0fc19dc68b8cd5b5, 0x240ca1cc77ac9c65,
-                             0x2de92c6f592b0275, 0x4a7484aa6ea6e483, 0x5cb0a9dcbd41fbd4, 0x76f988da831153b5,
-                             0x983e5152ee66dfab, 0xa831c66d2db43210, 0xb00327c898fb213f, 0xbf597fc7beef0ee4,
-                             0xc6e00bf33da88fc2, 0xd5a79147930aa725, 0x06ca6351e003826f, 0x142929670a0e6e70,
-                             0x27b70a8546d22ffc, 0x2e1b21385c26c926, 0x4d2c6dfc5ac42aed, 0x53380d139d95b3df,
-                             0x650a73548baf63de, 0x766a0abb3c77b2a8, 0x81c2c92e47edaee6, 0x92722c851482353b,
-                             0xa2bfe8a14cf10364, 0xa81a664bbc423001, 0xc24b8b70d0f89791, 0xc76c51a30654be30,
-                             0xd192e819d6ef5218, 0xd69906245565a910, 0xf40e35855771202a, 0x106aa07032bbd1b8,
-                             0x19a4c116b8d2d0c8, 0x1e376c085141ab53, 0x2748774cdf8eeb99, 0x34b0bcb5e19b48a8,
-                             0x391c0cb3c5c95a63, 0x4ed8aa4ae3418acb, 0x5b9cca4f7763e373, 0x682e6ff3d6b2b8a3,
-                             0x748f82ee5defb2fc, 0x78a5636f43172f60, 0x84c87814a1f0ab72, 0x8cc702081a6439ec,
-                             0x90befffa23631e28, 0xa4506cebde82bde9, 0xbef9a3f7b2c67915, 0xc67178f2e372532b,
-                             0xca273eceea26619c, 0xd186b8c721c0c207, 0xeada7dd6cde0eb1e, 0xf57d4f7fee6ed178,
-                             0x06f067aa72176fba, 0x0a637dc5a2c898a6, 0x113f9804bef90dae, 0x1b710b35131c471b,
-                             0x28db77f523047d84, 0x32caab7b40c72493, 0x3c9ebe0a15c9bebc, 0x431d67c49c100d4c,
-                             0x4cc5d4becb3e42b6, 0x597f299cfc657e2a, 0x5fcb6fab3ad6faec, 0x6c44198c4a475817};
-
-    /*void Digest::sha512(InputStream *pInput, stream_size pInputLength, OutputStream *pOutput) // 512 bit(64 byte) result
+    namespace SHA512
     {
-        Buffer message;
-        message.setEndian(Endian::LITTLE);
-        message.writeStream(pInput, pInputLength);
 
-        // Append a one bit
-        message.writeByte(0x80);
-
-        // Make message size congruent to 896(mod 1024) bits(56(mod 64) bytes)
-        while((message.length() + 16) % 128)
-            message.writeByte(0);
-
-        // Append message size
-        message.writeUnsignedLong(0);
-        message.writeUnsignedLong(pInputLength * 8);
-
-        std::vector<uint64_t> hash, chunk, state;
-        unsigned int i;
-        uint64_t s0, s1, t1, t2;
-
-        hash.push_back(0x6a09e667f3bcc908);
-        hash.push_back(0xbb67ae8584caa73b);
-        hash.push_back(0x3c6ef372fe94f82b);
-        hash.push_back(0xa54ff53a5f1d36f1);
-        hash.push_back(0x510e527fade682d1);
-        hash.push_back(0x9b05688c2b3e6c1f);
-        hash.push_back(0x1f83d9abfb41bd6b);
-        hash.push_back(0x5be0cd19137e2179);
-
-        while(message.remaining())
+        const uint64_t table[80] =
         {
-            // Get a chunk of 16(64 bit integers) 128 bytes(1024 bits)
-            chunk.clear();
+            0x428a2f98d728ae22, 0x7137449123ef65cd, 0xb5c0fbcfec4d3b2f, 0xe9b5dba58189dbbc,
+            0x3956c25bf348b538, 0x59f111f1b605d019, 0x923f82a4af194f9b, 0xab1c5ed5da6d8118,
+            0xd807aa98a3030242, 0x12835b0145706fbe, 0x243185be4ee4b28c, 0x550c7dc3d5ffb4e2,
+            0x72be5d74f27b896f, 0x80deb1fe3b1696b1, 0x9bdc06a725c71235, 0xc19bf174cf692694,
+            0xe49b69c19ef14ad2, 0xefbe4786384f25e3, 0x0fc19dc68b8cd5b5, 0x240ca1cc77ac9c65,
+            0x2de92c6f592b0275, 0x4a7484aa6ea6e483, 0x5cb0a9dcbd41fbd4, 0x76f988da831153b5,
+            0x983e5152ee66dfab, 0xa831c66d2db43210, 0xb00327c898fb213f, 0xbf597fc7beef0ee4,
+            0xc6e00bf33da88fc2, 0xd5a79147930aa725, 0x06ca6351e003826f, 0x142929670a0e6e70,
+            0x27b70a8546d22ffc, 0x2e1b21385c26c926, 0x4d2c6dfc5ac42aed, 0x53380d139d95b3df,
+            0x650a73548baf63de, 0x766a0abb3c77b2a8, 0x81c2c92e47edaee6, 0x92722c851482353b,
+            0xa2bfe8a14cf10364, 0xa81a664bbc423001, 0xc24b8b70d0f89791, 0xc76c51a30654be30,
+            0xd192e819d6ef5218, 0xd69906245565a910, 0xf40e35855771202a, 0x106aa07032bbd1b8,
+            0x19a4c116b8d2d0c8, 0x1e376c085141ab53, 0x2748774cdf8eeb99, 0x34b0bcb5e19b48a8,
+            0x391c0cb3c5c95a63, 0x4ed8aa4ae3418acb, 0x5b9cca4f7763e373, 0x682e6ff3d6b2b8a3,
+            0x748f82ee5defb2fc, 0x78a5636f43172f60, 0x84c87814a1f0ab72, 0x8cc702081a6439ec,
+            0x90befffa23631e28, 0xa4506cebde82bde9, 0xbef9a3f7b2c67915, 0xc67178f2e372532b,
+            0xca273eceea26619c, 0xd186b8c721c0c207, 0xeada7dd6cde0eb1e, 0xf57d4f7fee6ed178,
+            0x06f067aa72176fba, 0x0a637dc5a2c898a6, 0x113f9804bef90dae, 0x1b710b35131c471b,
+            0x28db77f523047d84, 0x32caab7b40c72493, 0x3c9ebe0a15c9bebc, 0x431d67c49c100d4c,
+            0x4cc5d4becb3e42b6, 0x597f299cfc657e2a, 0x5fcb6fab3ad6faec, 0x6c44198c4a475817
+        };
 
-            while(chunk.size() < 16)
-                chunk.push_back(message.readUnsignedLong());
+        void initialize(uint32_t *pResult)
+        {
+            ((uint64_t *)pResult)[0] = 0x6a09e667f3bcc908;
+            ((uint64_t *)pResult)[1] = 0xbb67ae8584caa73b;
+            ((uint64_t *)pResult)[2] = 0x3c6ef372fe94f82b;
+            ((uint64_t *)pResult)[3] = 0xa54ff53a5f1d36f1;
+            ((uint64_t *)pResult)[4] = 0x510e527fade682d1;
+            ((uint64_t *)pResult)[5] = 0x9b05688c2b3e6c1f;
+            ((uint64_t *)pResult)[6] = 0x1f83d9abfb41bd6b;
+            ((uint64_t *)pResult)[7] = 0x5be0cd19137e2179;
+        }
 
-            // Extend the sixteen 64-bit words into sixty-four 64-bit words:
-            for(i=16;i<80;i++)
+        void process(uint32_t *pResult, uint32_t *pBlock)
+        {
+            unsigned int i;
+            uint64_t s0, s1, t1, t2;
+            uint64_t extendedBlock[80];
+
+            std::memcpy(extendedBlock, pBlock, 128);
+
+            // Adjust for big endian
+            if(Endian::sSystemType != Endian::BIG)
+                for(i=0;i<16;++i)
+                    extendedBlock[i] = Endian::convert(extendedBlock[i], Endian::BIG);
+
+            // Extend the block to 80 64-bit words:
+            for(i=16;i<80;++i)
             {
-                s0 = chunk[i-15];
-                s0 = Math::rotateRight64(s0, 1) ^ Math::rotateRight64(s0, 8) ^ Math::shiftRight64(s0, 7);
+                s0 = extendedBlock[i-15];
+                s0 = Math::rotateRight64(s0, 1) ^ Math::rotateRight64(s0, 8) ^ (s0 >> 7);
 
-                s1 = chunk[i-2];
-                s1 = Math::rotateRight64(s1, 19) ^ Math::rotateRight64(s1, 61) ^ Math::shiftRight64(s1, 6);
+                s1 = extendedBlock[i-2];
+                s1 = Math::rotateRight64(s1, 19) ^ Math::rotateRight64(s1, 61) ^ (s1 >> 6);
 
-                chunk.push_back(chunk[i-16] + chunk[i-7] + s0 + s1);
+                extendedBlock[i] = extendedBlock[i-16] + extendedBlock[i-7] + s0 + s1;
             }
 
-            state = hash;
+            uint64_t state[8];
+            std::memcpy(state, pResult, 64);
 
-            for(i=0;i<80;i++)
+            for(i=0;i<80;++i)
             {
                 s0 = Math::rotateRight64(state[0], 28) ^ Math::rotateRight64(state[0], 34) ^ Math::rotateRight64(state[0], 39);
-                t2 = s0 +((state[0] & state[1]) ^(state[0] & state[2]) ^(state[1] & state[2]));
-                s1 = Math::rotateRight64(state[4], 14) ^ Math::rotateRight64(state [4], 18) ^ Math::rotateRight64(state[4], 41);
-                t1 = state[7] + s1 +((state[4] & state[5]) ^(~state[4] & state[6])) + SHA512_K[i] + chunk[i];
+                t2 = s0 +((state[0] & state[1]) ^ (state [0] & state[2]) ^ (state[1] & state[2]));
+                s1 = Math::rotateRight64(state[4], 14) ^ Math::rotateRight64(state[4], 18) ^ Math::rotateRight64(state[4], 41);
+                t1 = state[7] + s1 + ((state[4] & state[5]) ^ (~state[4] & state[6])) + table[i] + extendedBlock[i];
 
                 state[7] = state[6];
                 state[6] = state[5];
@@ -1065,13 +1065,65 @@ namespace ArcMist
                 state[0] = t1 + t2;
             }
 
-            for(i=0;i<8;i++)
-                hash[i] += state[i];
+            for(i=0;i<8;++i)
+                ((uint64_t *)pResult)[i] += state[i];
         }
 
-        for(i=0;i<8;i++)
-            pOutput->writeUnsignedLong(hash[i]);
-    }*/
+        void finish(uint32_t *pResult, uint32_t *pBlock, unsigned int pBlockLength, uint64_t pTotalLength)
+        {
+            // Zeroize the end of the block
+            std::memset(((uint8_t *)pBlock) + pBlockLength, 0, 128 - pBlockLength);
+
+            // Add 0x80 byte (basically a 1 bit at the end of the data)
+            ((uint8_t *)pBlock)[pBlockLength] = 0x80;
+
+            // Check if there is enough room for the total length in this block
+            if(pBlockLength > 111) // 112 - 1 because of the 0x80 byte already added
+            {
+                process(pResult, pBlock); // Process this block
+                std::memset(pBlock, 0, 128); // Clear the block
+            }
+
+            // Put bit length in last 16 bytes of block (Big Endian)
+            pTotalLength *= 8;
+            pBlock[29] = 0;
+            pBlock[28] = 0;
+            uint32_t lower = pTotalLength & 0xffffffff;
+            pBlock[31] = Endian::convert(lower, Endian::BIG);
+            uint32_t upper = (pTotalLength >> 32) & 0xffffffff;
+            pBlock[30] = Endian::convert(upper, Endian::BIG);
+
+            // Process last block
+            process(pResult, pBlock);
+
+            // Adjust for big endian
+            if(Endian::sSystemType != Endian::BIG)
+                for(unsigned int i=0;i<8;++i)
+                    ((uint64_t *)pResult)[i] = Endian::convert(((uint64_t *)pResult)[i], Endian::BIG);
+        }
+    }
+
+    void Digest::sha512(InputStream *pInput, stream_size pInputLength, OutputStream *pOutput) // 512 bit(64 byte) result
+    {
+        stream_size remaining = pInputLength;
+        uint32_t result[16];
+        uint32_t block[32];
+
+        SHA512::initialize(result);
+
+        while(remaining >= 128)
+        {
+            pInput->read(block, 128);
+            remaining -= 128;
+            SHA512::process(result, block);
+        }
+
+        pInput->read(block, remaining);
+        SHA512::finish(result, block, remaining, pInputLength);
+
+        pOutput->write(result, 64);
+        return;
+    }
 
     namespace SipHash24
     {
@@ -1247,9 +1299,11 @@ namespace ArcMist
             mResultData = new uint32_t[1];
             mBlockData  = new uint32_t[mBlockSize / 4];
             break;
-        //case SHA512:
-        //    mBlockSize = 128;
-        //    break;
+        case SHA512:
+            mBlockSize = 128;
+            mResultData = new uint32_t[16];
+            mBlockData  = new uint32_t[mBlockSize / 4];
+            break;
         default:
             mBlockSize = 0;
             mResultData = NULL;
@@ -1301,8 +1355,9 @@ namespace ArcMist
         case MURMUR3:
             MURMUR3::initialize(mResultData, pSeed);
             break;
-        //case SHA512:
-        //    break;
+        case SHA512:
+            SHA512::initialize(mResultData);
+            break;
         }
     }
 
@@ -1346,8 +1401,13 @@ namespace ArcMist
                 MURMUR3::process(mResultData, (uint8_t *)mBlockData);
             }
             break;
-        //case SHA512:
-        //    break;
+        case SHA512:
+            while(mInput.remaining() >= mBlockSize)
+            {
+                mInput.read(mBlockData, mBlockSize);
+                SHA512::process(mResultData, mBlockData);
+            }
+            break;
         }
 
         mInput.flush();
@@ -1476,8 +1536,18 @@ namespace ArcMist
             pOutput->write(mResultData, 4);
             break;
         }
-        //case SHA512:
-        //    break;
+        case SHA512:
+        {
+            // Get last partial block (must be less than 64 bytes)
+            unsigned int lastBlockSize = mInput.remaining();
+            mInput.read(mBlockData, lastBlockSize);
+
+            SHA512::finish(mResultData, mBlockData, lastBlockSize, mByteCount);
+
+            // Output result
+            pOutput->write(mResultData, 64);
+            break;
+        }
         }
     }
 
@@ -1686,22 +1756,44 @@ namespace ArcMist
         /*****************************************************************************************
          * SHA512 empty
          *****************************************************************************************/
-        // input.setReadOffset(0);
-        // sha512(&input, input.length(), &resultDigest);
-        // correctDigest.writeHex("cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e");
+        input.setReadOffset(0);
+        sha512(&input, input.length(), &resultDigest);
+        correctDigest.writeHex("cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e");
 
-        // if(buffersMatch(correctDigest, resultDigest))
-            // Log::add(Log::INFO, ARCMIST_DIGEST_LOG_NAME, "Passed SHA512 empty");
-        // else
-        // {
-            // Log::add(Log::ERROR, ARCMIST_DIGEST_LOG_NAME, "Failed SHA512 empty");
-            // logResults("Correct Digest", correctDigest);
-            // logResults("Result Digest ", resultDigest);
-            // result = false;
-        // }
+        if(buffersMatch(correctDigest, resultDigest))
+            Log::add(Log::INFO, ARCMIST_DIGEST_LOG_NAME, "Passed SHA512 empty");
+        else
+        {
+            Log::add(Log::ERROR, ARCMIST_DIGEST_LOG_NAME, "Failed SHA512 empty");
+            logResults("Correct Digest", correctDigest);
+            logResults("Result Digest ", resultDigest);
+            result = false;
+        }
 
-        // correctDigest.clear();
-        // resultDigest.clear();
+        correctDigest.clear();
+        resultDigest.clear();
+
+        /*****************************************************************************************
+         * SHA512 digest empty
+         *****************************************************************************************/
+        input.setReadOffset(0);
+        Digest sha512EmptyDigest(SHA512);
+        sha512EmptyDigest.writeStream(&input, input.length());
+        sha512EmptyDigest.getResult(&resultDigest);
+        correctDigest.writeHex("cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e");
+
+        if(buffersMatch(correctDigest, resultDigest))
+            Log::add(Log::INFO, ARCMIST_DIGEST_LOG_NAME, "Passed SHA512 digest empty");
+        else
+        {
+            Log::add(Log::ERROR, ARCMIST_DIGEST_LOG_NAME, "Failed SHA512 digest empty");
+            logResults("Correct Digest", correctDigest);
+            logResults("Result Digest ", resultDigest);
+            result = false;
+        }
+
+        correctDigest.clear();
+        resultDigest.clear();
 
         /******************************************************************************************
          * Test febooti.com (All confirmed from outside sources)
@@ -1837,22 +1929,44 @@ namespace ArcMist
         /*****************************************************************************************
          * SHA512 febooti.com
          *****************************************************************************************/
-        // input.setReadOffset(0);
-        // sha512(&input, input.length(), &resultDigest);
-        // correctDigest.writeHex("09fb898bc97319a243a63f6971747f8e102481fb8d5346c55cb44855adc2e0e98f304e552b0db1d4eeba8a5c8779f6a3010f0e1a2beb5b9547a13b6edca11e8a");
+        input.setReadOffset(0);
+        sha512(&input, input.length(), &resultDigest);
+        correctDigest.writeHex("09fb898bc97319a243a63f6971747f8e102481fb8d5346c55cb44855adc2e0e98f304e552b0db1d4eeba8a5c8779f6a3010f0e1a2beb5b9547a13b6edca11e8a");
 
-        // if(buffersMatch(correctDigest, resultDigest))
-            // Log::add(Log::INFO, ARCMIST_DIGEST_LOG_NAME, "Passed SHA512 febooti.com");
-        // else
-        // {
-            // Log::add(Log::ERROR, ARCMIST_DIGEST_LOG_NAME, "Failed SHA512 febooti.com");
-            // logResults("Correct Digest", correctDigest);
-            // logResults("Result Digest ", resultDigest);
-            // result = false;
-        // }
+        if(buffersMatch(correctDigest, resultDigest))
+            Log::add(Log::INFO, ARCMIST_DIGEST_LOG_NAME, "Passed SHA512 febooti.com");
+        else
+        {
+            Log::add(Log::ERROR, ARCMIST_DIGEST_LOG_NAME, "Failed SHA512 febooti.com");
+            logResults("Correct Digest", correctDigest);
+            logResults("Result Digest ", resultDigest);
+            result = false;
+        }
 
-        // correctDigest.clear();
-        // resultDigest.clear();
+        correctDigest.clear();
+        resultDigest.clear();
+
+        /*****************************************************************************************
+         * SHA512 digest febooti.com
+         *****************************************************************************************/
+        input.setReadOffset(0);
+        Digest sha512febootiDigest(SHA512);
+        sha512febootiDigest.writeStream(&input, input.length());
+        sha512febootiDigest.getResult(&resultDigest);
+        correctDigest.writeHex("09fb898bc97319a243a63f6971747f8e102481fb8d5346c55cb44855adc2e0e98f304e552b0db1d4eeba8a5c8779f6a3010f0e1a2beb5b9547a13b6edca11e8a");
+
+        if(buffersMatch(correctDigest, resultDigest))
+            Log::add(Log::INFO, ARCMIST_DIGEST_LOG_NAME, "Passed SHA512 digest febooti.com");
+        else
+        {
+            Log::add(Log::ERROR, ARCMIST_DIGEST_LOG_NAME, "Failed SHA512 digest febooti.com");
+            logResults("Correct Digest", correctDigest);
+            logResults("Result Digest ", resultDigest);
+            result = false;
+        }
+
+        correctDigest.clear();
+        resultDigest.clear();
 
         /******************************************************************************************
          * Test quick brown fox (All confirmed from outside sources)
@@ -1963,22 +2077,22 @@ namespace ArcMist
         /*****************************************************************************************
          * SHA512 quick brown fox
          *****************************************************************************************/
-        // input.setReadOffset(0);
-        // sha512(&input, input.length(), &resultDigest);
-        // correctDigest.writeHex("07e547d9586f6a73f73fbac0435ed76951218fb7d0c8d788a309d785436bbb642e93a252a954f23912547d1e8a3b5ed6e1bfd7097821233fa0538f3db854fee6");
+        input.setReadOffset(0);
+        sha512(&input, input.length(), &resultDigest);
+        correctDigest.writeHex("07e547d9586f6a73f73fbac0435ed76951218fb7d0c8d788a309d785436bbb642e93a252a954f23912547d1e8a3b5ed6e1bfd7097821233fa0538f3db854fee6");
 
-        // if(buffersMatch(correctDigest, resultDigest))
-            // Log::add(Log::INFO, ARCMIST_DIGEST_LOG_NAME, "Passed SHA512 quick brown fox");
-        // else
-        // {
-            // Log::add(Log::ERROR, ARCMIST_DIGEST_LOG_NAME, "Failed SHA512 quick brown fox");
-            // logResults("Correct Digest", correctDigest);
-            // logResults("Result Digest ", resultDigest);
-            // result = false;
-        // }
+        if(buffersMatch(correctDigest, resultDigest))
+            Log::add(Log::INFO, ARCMIST_DIGEST_LOG_NAME, "Passed SHA512 quick brown fox");
+        else
+        {
+            Log::add(Log::ERROR, ARCMIST_DIGEST_LOG_NAME, "Failed SHA512 quick brown fox");
+            logResults("Correct Digest", correctDigest);
+            logResults("Result Digest ", resultDigest);
+            result = false;
+        }
 
-        // correctDigest.clear();
-        // resultDigest.clear();
+        correctDigest.clear();
+        resultDigest.clear();
 
         /******************************************************************************************
          * Test random data 1024 (All confirmed from outside sources)
@@ -2202,22 +2316,22 @@ namespace ArcMist
         /*****************************************************************************************
          * SHA512 random data 1024
          *****************************************************************************************/
-        // input.setReadOffset(0);
-        // sha512(&input, input.length(), &resultDigest);
-        // correctDigest.writeHex("8c63c499586f24f3209acad229b043f02eddfc19ec04d41c2f0aeee60b3a95e87297b2de4cfaaaca9a6691bbc5f63a0453fa98b02742da313fa9075ef633a94c");
+        input.setReadOffset(0);
+        sha512(&input, input.length(), &resultDigest);
+        correctDigest.writeHex("8c63c499586f24f3209acad229b043f02eddfc19ec04d41c2f0aeee60b3a95e87297b2de4cfaaaca9a6691bbc5f63a0453fa98b02742da313fa9075ef633a94c");
 
-        // if(buffersMatch(correctDigest, resultDigest))
-            // Log::add(Log::INFO, ARCMIST_DIGEST_LOG_NAME, "Passed SHA512 random data 1024");
-        // else
-        // {
-            // Log::add(Log::ERROR, ARCMIST_DIGEST_LOG_NAME, "Failed SHA512 random data 1024");
-            // logResults("Correct Digest", correctDigest);
-            // logResults("Result Digest ", resultDigest);
-            // result = false;
-        // }
+        if(buffersMatch(correctDigest, resultDigest))
+            Log::add(Log::INFO, ARCMIST_DIGEST_LOG_NAME, "Passed SHA512 random data 1024");
+        else
+        {
+            Log::add(Log::ERROR, ARCMIST_DIGEST_LOG_NAME, "Failed SHA512 random data 1024");
+            logResults("Correct Digest", correctDigest);
+            logResults("Result Digest ", resultDigest);
+            result = false;
+        }
 
-        // correctDigest.clear();
-        // resultDigest.clear();
+        correctDigest.clear();
+        resultDigest.clear();
 
         /******************************************************************************************
          * Test 56 letters (All confirmed from outside sources)
