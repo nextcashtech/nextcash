@@ -1320,8 +1320,10 @@ namespace ArcMist
 
     void HMACDigest::initialize(InputStream *pKey)
     {
+        Digest::initialize();
+
         Buffer key;
-        pKey->readStream(&key, pKey->remaining());
+        key.writeStream(pKey, pKey->remaining());
 
         if(key.length() > mBlockSize)
         {
@@ -1338,6 +1340,7 @@ namespace ArcMist
 
         // Create outer padded key
         key.setReadOffset(0);
+        mOuterPaddedKey.setWriteOffset(0);
         while(key.remaining())
             mOuterPaddedKey.writeByte(0x5c ^ key.readByte());
 
@@ -1347,9 +1350,9 @@ namespace ArcMist
         while(key.remaining())
             innerPaddedKey.writeByte(0x36 ^ key.readByte());
 
-        // Write I Key Pad into digest
+        // Write inner padded key into digest
         innerPaddedKey.setReadOffset(0);
-        innerPaddedKey.readStream(this, innerPaddedKey.length());
+        writeStream(&innerPaddedKey, innerPaddedKey.length());
     }
 
     void HMACDigest::getResult(RawOutputStream *pOutput)
@@ -1361,12 +1364,12 @@ namespace ArcMist
         // Reinitialize digest
         Digest::initialize();
 
-        // Write O Key Pad into digest
+        // Write outer padded key into digest
         mOuterPaddedKey.setReadOffset(0);
-        mOuterPaddedKey.readStream(this, mOuterPaddedKey.length());
+        writeStream(&mOuterPaddedKey, mOuterPaddedKey.length());
 
         // Write previous digest result into digest
-        firstResult.readStream(this, firstResult.length());
+        writeStream(&firstResult, firstResult.length());
 
         // Get the final result
         Digest::getResult(pOutput);
