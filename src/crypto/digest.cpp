@@ -1502,6 +1502,9 @@ namespace ArcMist
 
             // Output result
             pOutput->write(mResultData, 4);
+
+            // Zeroize
+            *mResultData = 0;
             break;
         //case MD5:
         //    break;
@@ -1515,6 +1518,10 @@ namespace ArcMist
 
             // Output result
             pOutput->write(mResultData, 20);
+
+            // Zeroize
+            std::memset(mResultData, 0, 20);
+            std::memset(mBlockData, 0, mBlockSize);
             break;
         }
         case RIPEMD160:
@@ -1527,6 +1534,10 @@ namespace ArcMist
 
             // Output result
             pOutput->write(mResultData, 20);
+
+            // Zeroize
+            std::memset(mResultData, 0, 20);
+            std::memset(mBlockData, 0, mBlockSize);
             break;
         }
         case SHA256:
@@ -1539,6 +1550,10 @@ namespace ArcMist
 
             // Output result
             pOutput->write(mResultData, 32);
+
+            // Zeroize
+            std::memset(mResultData, 0, 32);
+            std::memset(mBlockData, 0, mBlockSize);
             break;
         }
         case SHA256_SHA256:
@@ -1557,6 +1572,10 @@ namespace ArcMist
 
             // Output result
             pOutput->writeStream(&secondSHA256Data, 32);
+
+            // Zeroize
+            std::memset(mResultData, 0, 32);
+            std::memset(mBlockData, 0, mBlockSize);
             break;
         }
         case SHA256_RIPEMD160:
@@ -1575,6 +1594,10 @@ namespace ArcMist
 
             // Output result
             pOutput->writeStream(&ripEMD160Data, 20);
+
+            // Zeroize
+            std::memset(mResultData, 0, 20);
+            std::memset(mBlockData, 0, mBlockSize);
             break;
         }
         case MURMUR3:
@@ -1587,6 +1610,10 @@ namespace ArcMist
 
             // Output result
             pOutput->write(mResultData, 4);
+
+            // Zeroize
+            std::memset(mResultData, 0, 4);
+            std::memset(mBlockData, 0, mBlockSize);
             break;
         }
         case SHA512:
@@ -1599,6 +1626,10 @@ namespace ArcMist
 
             // Output result
             pOutput->write(mResultData, 64);
+
+            // Zeroize
+            std::memset(mResultData, 0, 64);
+            std::memset(mBlockData, 0, mBlockSize);
             break;
         }
         }
