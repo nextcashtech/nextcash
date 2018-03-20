@@ -1,21 +1,21 @@
 /**************************************************************************
- * Copyright 2017-2018 ArcMist, LLC                                       *
+ * Copyright 2017-2018 NextCash, LLC                                       *
  * Contributors :                                                         *
- *   Curtis Ellis <curtis@arcmist.com>                                    *
+ *   Curtis Ellis <curtis@nextcash.com>                                    *
  * Distributed under the MIT software license, see the accompanying       *
  * file license.txt or http://www.opensource.org/licenses/mit-license.php *
  **************************************************************************/
-#ifndef ARCMIST_DIGEST_HPP
-#define ARCMIST_DIGEST_HPP
+#ifndef NEXTCASH_DIGEST_HPP
+#define NEXTCASH_DIGEST_HPP
 
-#include "arcmist/base/string.hpp"
-#include "arcmist/io/stream.hpp"
-#include "arcmist/io/buffer.hpp"
+#include "nextcash/base/string.hpp"
+#include "nextcash/io/stream.hpp"
+#include "nextcash/io/buffer.hpp"
 
 #include <cstdint>
 
 
-namespace ArcMist
+namespace NextCash
 {
     class Digest : public OutputStream
     {

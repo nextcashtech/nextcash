@@ -1,20 +1,20 @@
 /**************************************************************************
- * Copyright 2017 ArcMist, LLC                                            *
+ * Copyright 2017 NextCash, LLC                                            *
  * Contributors :                                                         *
- *   Curtis Ellis <curtis@arcmist.com>                                    *
+ *   Curtis Ellis <curtis@nextcash.com>                                    *
  * Distributed under the MIT software license, see the accompanying       *
  * file license.txt or http://www.opensource.org/licenses/mit-license.php *
  **************************************************************************/
 #include "hash.hpp"
 
-#include "arcmist/base/endian.hpp"
-#include "arcmist/base/log.hpp"
-#include "arcmist/crypto/digest.hpp"
+#include "nextcash/base/endian.hpp"
+#include "nextcash/base/log.hpp"
+#include "nextcash/crypto/digest.hpp"
 
-#define ARCMIST_HASH_LOG_NAME "Hash"
+#define NEXTCASH_HASH_LOG_NAME "Hash"
 
 
-namespace ArcMist
+namespace NextCash
 {
     unsigned int Hash::mCount = 0;
 
@@ -66,7 +66,7 @@ namespace ArcMist
         // Create new exclusive data
         ++mCount;
         // if(mCount % 100 == 0)
-            // Log::addFormatted(Log::DEBUG, ARCMIST_HASH_LOG_NAME, "Allocating hash : count %d", mCount);
+            // Log::addFormatted(Log::DEBUG, NEXTCASH_HASH_LOG_NAME, "Allocating hash : count %d", mCount);
         Data *newData = new Data(mData->size);
         std::memcpy(newData->data, mData->data, mData->size);
 
@@ -92,7 +92,7 @@ namespace ArcMist
         {
             ++mCount;
             // if(mCount % 100 == 0)
-                // Log::addFormatted(Log::DEBUG, ARCMIST_HASH_LOG_NAME, "Allocating hash : count %d", mCount);
+                // Log::addFormatted(Log::DEBUG, NEXTCASH_HASH_LOG_NAME, "Allocating hash : count %d", mCount);
             mData = new Data(pSize);
         }
     }
@@ -106,7 +106,7 @@ namespace ArcMist
 
         // Dereference data
         if(mData->references == 0)
-            Log::add(Log::ERROR, ARCMIST_HASH_LOG_NAME, "Deallocating zero reference hash");
+            Log::add(Log::ERROR, NEXTCASH_HASH_LOG_NAME, "Deallocating zero reference hash");
 
         mData->references--;
         if(mData->references == 0)
@@ -114,7 +114,7 @@ namespace ArcMist
             // No more references to this data
             --mCount;
             // if(mCount % 100 == 0)
-                // Log::addFormatted(Log::DEBUG, ARCMIST_HASH_LOG_NAME, "Deallocating hash : count %d", mCount);
+                // Log::addFormatted(Log::DEBUG, NEXTCASH_HASH_LOG_NAME, "Deallocating hash : count %d", mCount);
             mData->mutex.unlock();
             delete mData;
         }
@@ -735,7 +735,7 @@ namespace ArcMist
 
     bool Hash::test()
     {
-        Log::add(Log::INFO, ARCMIST_HASH_LOG_NAME, "------------- Starting Hash Tests -------------");
+        Log::add(Log::INFO, NEXTCASH_HASH_LOG_NAME, "------------- Starting Hash Tests -------------");
 
         bool success = true;
 
@@ -772,15 +772,15 @@ namespace ArcMist
         //    for(unsigned int j=0;j<16;j++)
         //        line.writeFormatted("%d, ", values[i+j]);
         //    String lineText = line.readString(line.length());
-        //    Log::add(Log::INFO, ARCMIST_HASH_LOG_NAME, lineText);
+        //    Log::add(Log::INFO, NEXTCASH_HASH_LOG_NAME, lineText);
         //}
 
         if(highestCount < 100 && zeroCount < 10)
-            Log::addFormatted(Log::INFO, ARCMIST_HASH_LOG_NAME,
+            Log::addFormatted(Log::INFO, NEXTCASH_HASH_LOG_NAME,
               "Passed hash lookup distribution : high %d, zeroes %d", highestCount, zeroCount);
         else
         {
-            Log::addFormatted(Log::ERROR, ARCMIST_HASH_LOG_NAME,
+            Log::addFormatted(Log::ERROR, NEXTCASH_HASH_LOG_NAME,
               "Failed hash lookup distribution : high %d, zeroes %d", highestCount, zeroCount);
             success = false;
         }
@@ -793,12 +793,12 @@ namespace ArcMist
         String hex = "4d085aa37e61a1bf2a6a53b72394f57a6b5ecaca0e2c385a27f96551ea92ad96";
 
         if(value.hex() == hex)
-            Log::add(Log::INFO, ARCMIST_HASH_LOG_NAME, "Passed Hash set hex");
+            Log::add(Log::INFO, NEXTCASH_HASH_LOG_NAME, "Passed Hash set hex");
         else
         {
-            Log::add(Log::ERROR, ARCMIST_HASH_LOG_NAME, "Failed Hash set hex");
-            Log::addFormatted(Log::ERROR, ARCMIST_HASH_LOG_NAME, "Hash    : %s", value.hex().text());
-            Log::addFormatted(Log::ERROR, ARCMIST_HASH_LOG_NAME, "Correct : %s", hex.text());
+            Log::add(Log::ERROR, NEXTCASH_HASH_LOG_NAME, "Failed Hash set hex");
+            Log::addFormatted(Log::ERROR, NEXTCASH_HASH_LOG_NAME, "Hash    : %s", value.hex().text());
+            Log::addFormatted(Log::ERROR, NEXTCASH_HASH_LOG_NAME, "Correct : %s", hex.text());
             success = false;
         }
 
@@ -808,12 +808,12 @@ namespace ArcMist
         value.setLittleHex("96ad92ea5165f9275a382c0ecaca5e6b7af59423b7536a2abfa1617ea35a084d");
 
         if(value.hex() == hex)
-            Log::add(Log::INFO, ARCMIST_HASH_LOG_NAME, "Passed Hash set little hex");
+            Log::add(Log::INFO, NEXTCASH_HASH_LOG_NAME, "Passed Hash set little hex");
         else
         {
-            Log::add(Log::ERROR, ARCMIST_HASH_LOG_NAME, "Failed Hash set little hex");
-            Log::addFormatted(Log::ERROR, ARCMIST_HASH_LOG_NAME, "Hash    : %s", value.hex().text());
-            Log::addFormatted(Log::ERROR, ARCMIST_HASH_LOG_NAME, "Correct : %s", hex.text());
+            Log::add(Log::ERROR, NEXTCASH_HASH_LOG_NAME, "Failed Hash set little hex");
+            Log::addFormatted(Log::ERROR, NEXTCASH_HASH_LOG_NAME, "Hash    : %s", value.hex().text());
+            Log::addFormatted(Log::ERROR, NEXTCASH_HASH_LOG_NAME, "Correct : %s", hex.text());
             success = false;
         }
 
@@ -823,12 +823,12 @@ namespace ArcMist
         hex = "96ad92ea5165f9275a382c0ecaca5e6b7af59423b7536a2abfa1617ea35a084d";
 
         if(value.littleHex() == hex)
-            Log::add(Log::INFO, ARCMIST_HASH_LOG_NAME, "Passed Hash little endian hex");
+            Log::add(Log::INFO, NEXTCASH_HASH_LOG_NAME, "Passed Hash little endian hex");
         else
         {
-            Log::add(Log::ERROR, ARCMIST_HASH_LOG_NAME, "Failed Hash little endian hex");
-            Log::addFormatted(Log::ERROR, ARCMIST_HASH_LOG_NAME, "Hash    : %s", value.littleHex().text());
-            Log::addFormatted(Log::ERROR, ARCMIST_HASH_LOG_NAME, "Correct : %s", hex.text());
+            Log::add(Log::ERROR, NEXTCASH_HASH_LOG_NAME, "Failed Hash little endian hex");
+            Log::addFormatted(Log::ERROR, NEXTCASH_HASH_LOG_NAME, "Hash    : %s", value.littleHex().text());
+            Log::addFormatted(Log::ERROR, NEXTCASH_HASH_LOG_NAME, "Correct : %s", hex.text());
             success = false;
         }
 
@@ -844,12 +844,12 @@ namespace ArcMist
         checkDifficulty.read(&testData);
 
         if(testDifficulty == checkDifficulty)
-            Log::add(Log::INFO, ARCMIST_HASH_LOG_NAME, "Passed Target Bits Decode 0x181bc330");
+            Log::add(Log::INFO, NEXTCASH_HASH_LOG_NAME, "Passed Target Bits Decode 0x181bc330");
         else
         {
-            Log::add(Log::ERROR, ARCMIST_HASH_LOG_NAME, "Failed Target Bits Decode 0x181bc330");
-            Log::addFormatted(Log::ERROR, ARCMIST_HASH_LOG_NAME, "Difficulty : %s", testDifficulty.hex().text());
-            Log::addFormatted(Log::ERROR, ARCMIST_HASH_LOG_NAME, "Correct    : %s", checkDifficulty.hex().text());
+            Log::add(Log::ERROR, NEXTCASH_HASH_LOG_NAME, "Failed Target Bits Decode 0x181bc330");
+            Log::addFormatted(Log::ERROR, NEXTCASH_HASH_LOG_NAME, "Difficulty : %s", testDifficulty.hex().text());
+            Log::addFormatted(Log::ERROR, NEXTCASH_HASH_LOG_NAME, "Correct    : %s", checkDifficulty.hex().text());
             success = false;
         }
 
@@ -862,12 +862,12 @@ namespace ArcMist
         checkDifficulty.read(&testData);
 
         if(testDifficulty == checkDifficulty)
-            Log::add(Log::INFO, ARCMIST_HASH_LOG_NAME, "Passed Target Bits Decode 0x1b0404cb");
+            Log::add(Log::INFO, NEXTCASH_HASH_LOG_NAME, "Passed Target Bits Decode 0x1b0404cb");
         else
         {
-            Log::add(Log::ERROR, ARCMIST_HASH_LOG_NAME, "Failed Target Bits Decode 0x1b0404cb");
-            Log::addFormatted(Log::ERROR, ARCMIST_HASH_LOG_NAME, "Difficulty : %s", testDifficulty.hex().text());
-            Log::addFormatted(Log::ERROR, ARCMIST_HASH_LOG_NAME, "Correct    : %s", checkDifficulty.hex().text());
+            Log::add(Log::ERROR, NEXTCASH_HASH_LOG_NAME, "Failed Target Bits Decode 0x1b0404cb");
+            Log::addFormatted(Log::ERROR, NEXTCASH_HASH_LOG_NAME, "Difficulty : %s", testDifficulty.hex().text());
+            Log::addFormatted(Log::ERROR, NEXTCASH_HASH_LOG_NAME, "Correct    : %s", checkDifficulty.hex().text());
             success = false;
         }
 
@@ -880,12 +880,12 @@ namespace ArcMist
         checkDifficulty.read(&testData);
 
         if(testDifficulty == checkDifficulty)
-            Log::add(Log::INFO, ARCMIST_HASH_LOG_NAME, "Passed Target Bits Decode 0x1d00ffff");
+            Log::add(Log::INFO, NEXTCASH_HASH_LOG_NAME, "Passed Target Bits Decode 0x1d00ffff");
         else
         {
-            Log::add(Log::ERROR, ARCMIST_HASH_LOG_NAME, "Failed Target Bits Decode 0x1d00ffff");
-            Log::addFormatted(Log::ERROR, ARCMIST_HASH_LOG_NAME, "Difficulty : %s", testDifficulty.hex().text());
-            Log::addFormatted(Log::ERROR, ARCMIST_HASH_LOG_NAME, "Correct    : %s", checkDifficulty.hex().text());
+            Log::add(Log::ERROR, NEXTCASH_HASH_LOG_NAME, "Failed Target Bits Decode 0x1d00ffff");
+            Log::addFormatted(Log::ERROR, NEXTCASH_HASH_LOG_NAME, "Difficulty : %s", testDifficulty.hex().text());
+            Log::addFormatted(Log::ERROR, NEXTCASH_HASH_LOG_NAME, "Correct    : %s", checkDifficulty.hex().text());
             success = false;
         }
 
@@ -897,10 +897,10 @@ namespace ArcMist
         testDifficulty.getDifficulty(checkTargetBits);
 
         if(checkTargetBits == 0x1b0404cb)
-            Log::add(Log::INFO, ARCMIST_HASH_LOG_NAME, "Passed Target Bits Encode 0x1b0404cb");
+            Log::add(Log::INFO, NEXTCASH_HASH_LOG_NAME, "Passed Target Bits Encode 0x1b0404cb");
         else
         {
-            Log::addFormatted(Log::ERROR, ARCMIST_HASH_LOG_NAME, "Failed Target Bits Encode 0x1b0404cb : 0x%08x", checkTargetBits);
+            Log::addFormatted(Log::ERROR, NEXTCASH_HASH_LOG_NAME, "Failed Target Bits Encode 0x1b0404cb : 0x%08x", checkTargetBits);
             success = false;
         }
 
@@ -911,10 +911,10 @@ namespace ArcMist
         testDifficulty.getDifficulty(checkTargetBits);
 
         if(checkTargetBits == 0x1d00ffff)
-            Log::add(Log::INFO, ARCMIST_HASH_LOG_NAME, "Passed Target Bits Encode 0x1d00ffff");
+            Log::add(Log::INFO, NEXTCASH_HASH_LOG_NAME, "Passed Target Bits Encode 0x1d00ffff");
         else
         {
-            Log::addFormatted(Log::ERROR, ARCMIST_HASH_LOG_NAME, "Failed Target Bits Encode 0x1d00ffff : 0x%08x", checkTargetBits);
+            Log::addFormatted(Log::ERROR, NEXTCASH_HASH_LOG_NAME, "Failed Target Bits Encode 0x1d00ffff : 0x%08x", checkTargetBits);
             success = false;
         }
 
@@ -925,10 +925,10 @@ namespace ArcMist
         testDifficulty.getDifficulty(checkTargetBits);
 
         if(checkTargetBits == 0x181bc330)
-            Log::add(Log::INFO, ARCMIST_HASH_LOG_NAME, "Passed Target Bits Encode 0x181bc330");
+            Log::add(Log::INFO, NEXTCASH_HASH_LOG_NAME, "Passed Target Bits Encode 0x181bc330");
         else
         {
-            Log::addFormatted(Log::ERROR, ARCMIST_HASH_LOG_NAME, "Failed Target Bits Encode 0x181bc330 : 0x%08x", checkTargetBits);
+            Log::addFormatted(Log::ERROR, NEXTCASH_HASH_LOG_NAME, "Failed Target Bits Encode 0x181bc330 : 0x%08x", checkTargetBits);
             success = false;
         }
 
@@ -941,12 +941,12 @@ namespace ArcMist
         checkDifficulty.read(&testData);
 
         if(checkDifficulty <= testDifficulty)
-            Log::add(Log::INFO, ARCMIST_HASH_LOG_NAME, "Passed Target Bits Check less than");
+            Log::add(Log::INFO, NEXTCASH_HASH_LOG_NAME, "Passed Target Bits Check less than");
         else
         {
-            Log::add(Log::ERROR, ARCMIST_HASH_LOG_NAME, "Failed Target Bits Check less than");
-            Log::addFormatted(Log::ERROR, ARCMIST_HASH_LOG_NAME, "Check   : %s", checkDifficulty.hex().text());
-            Log::addFormatted(Log::ERROR, ARCMIST_HASH_LOG_NAME, "Highest : %s", testDifficulty.hex().text());
+            Log::add(Log::ERROR, NEXTCASH_HASH_LOG_NAME, "Failed Target Bits Check less than");
+            Log::addFormatted(Log::ERROR, NEXTCASH_HASH_LOG_NAME, "Check   : %s", checkDifficulty.hex().text());
+            Log::addFormatted(Log::ERROR, NEXTCASH_HASH_LOG_NAME, "Highest : %s", testDifficulty.hex().text());
             success = false;
         }
 
@@ -957,12 +957,12 @@ namespace ArcMist
         checkDifficulty.setDifficulty(0x1d00ffff);
 
         if(checkDifficulty <= testDifficulty)
-            Log::add(Log::INFO, ARCMIST_HASH_LOG_NAME, "Passed Target Bits Check equal");
+            Log::add(Log::INFO, NEXTCASH_HASH_LOG_NAME, "Passed Target Bits Check equal");
         else
         {
-            Log::add(Log::ERROR, ARCMIST_HASH_LOG_NAME, "Failed Target Bits Check equal");
-            Log::addFormatted(Log::ERROR, ARCMIST_HASH_LOG_NAME, "Check   : %s", checkDifficulty.hex().text());
-            Log::addFormatted(Log::ERROR, ARCMIST_HASH_LOG_NAME, "Highest : %s", testDifficulty.hex().text());
+            Log::add(Log::ERROR, NEXTCASH_HASH_LOG_NAME, "Failed Target Bits Check equal");
+            Log::addFormatted(Log::ERROR, NEXTCASH_HASH_LOG_NAME, "Check   : %s", checkDifficulty.hex().text());
+            Log::addFormatted(Log::ERROR, NEXTCASH_HASH_LOG_NAME, "Highest : %s", testDifficulty.hex().text());
             success = false;
         }
 
@@ -976,13 +976,13 @@ namespace ArcMist
 
         if(checkDifficulty <= testDifficulty)
         {
-            Log::add(Log::ERROR, ARCMIST_HASH_LOG_NAME, "Failed Target Bits Check not less than");
-            Log::addFormatted(Log::ERROR, ARCMIST_HASH_LOG_NAME, "Check   : %s", checkDifficulty.hex().text());
-            Log::addFormatted(Log::ERROR, ARCMIST_HASH_LOG_NAME, "Highest : %s", testDifficulty.hex().text());
+            Log::add(Log::ERROR, NEXTCASH_HASH_LOG_NAME, "Failed Target Bits Check not less than");
+            Log::addFormatted(Log::ERROR, NEXTCASH_HASH_LOG_NAME, "Check   : %s", checkDifficulty.hex().text());
+            Log::addFormatted(Log::ERROR, NEXTCASH_HASH_LOG_NAME, "Highest : %s", testDifficulty.hex().text());
             success = false;
         }
         else
-            Log::add(Log::INFO, ARCMIST_HASH_LOG_NAME, "Passed Target Bits Check not less than");
+            Log::add(Log::INFO, NEXTCASH_HASH_LOG_NAME, "Passed Target Bits Check not less than");
 
         /***********************************************************************************************
          * Test hash compare equal
@@ -991,10 +991,10 @@ namespace ArcMist
         Hash rightHash("0010");
 
         if(leftHash.compare(rightHash) == 0)
-            Log::add(Log::INFO, ARCMIST_HASH_LOG_NAME, "Passed hash compare equal");
+            Log::add(Log::INFO, NEXTCASH_HASH_LOG_NAME, "Passed hash compare equal");
         else
         {
-            Log::add(Log::ERROR, ARCMIST_HASH_LOG_NAME, "Failed hash compare equal");
+            Log::add(Log::ERROR, NEXTCASH_HASH_LOG_NAME, "Failed hash compare equal");
             success = false;
         }
 
@@ -1005,10 +1005,10 @@ namespace ArcMist
         rightHash.setHex("0020");
 
         if(leftHash.compare(rightHash) < 0)
-            Log::add(Log::INFO, ARCMIST_HASH_LOG_NAME, "Passed hash compare less than");
+            Log::add(Log::INFO, NEXTCASH_HASH_LOG_NAME, "Passed hash compare less than");
         else
         {
-            Log::add(Log::ERROR, ARCMIST_HASH_LOG_NAME, "Failed hash compare less than");
+            Log::add(Log::ERROR, NEXTCASH_HASH_LOG_NAME, "Failed hash compare less than");
             success = false;
         }
 
@@ -1019,10 +1019,10 @@ namespace ArcMist
         rightHash.setHex("0010");
 
         if(leftHash.compare(rightHash) > 0)
-            Log::add(Log::INFO, ARCMIST_HASH_LOG_NAME, "Passed hash compare greater than");
+            Log::add(Log::INFO, NEXTCASH_HASH_LOG_NAME, "Passed hash compare greater than");
         else
         {
-            Log::add(Log::ERROR, ARCMIST_HASH_LOG_NAME, "Failed hash compare greater than");
+            Log::add(Log::ERROR, NEXTCASH_HASH_LOG_NAME, "Failed hash compare greater than");
             success = false;
         }
 
@@ -1035,20 +1035,20 @@ namespace ArcMist
 
         a += b;
         if(a == answer)
-            Log::add(Log::INFO, ARCMIST_HASH_LOG_NAME, "Passed add assign hash 1005");
+            Log::add(Log::INFO, NEXTCASH_HASH_LOG_NAME, "Passed add assign hash 1005");
         else
         {
-            Log::addFormatted(Log::ERROR, ARCMIST_HASH_LOG_NAME, "Failed add assign hash 1005 : %s",
+            Log::addFormatted(Log::ERROR, NEXTCASH_HASH_LOG_NAME, "Failed add assign hash 1005 : %s",
               a.hex().text());
             success = false;
         }
 
         a = 5;
         if(a + b == answer)
-            Log::add(Log::INFO, ARCMIST_HASH_LOG_NAME, "Passed add hash 1005");
+            Log::add(Log::INFO, NEXTCASH_HASH_LOG_NAME, "Passed add hash 1005");
         else
         {
-            Log::addFormatted(Log::ERROR, ARCMIST_HASH_LOG_NAME, "Failed add hash 1005 : %s",
+            Log::addFormatted(Log::ERROR, NEXTCASH_HASH_LOG_NAME, "Failed add hash 1005 : %s",
               (a + b).hex().text());
             success = false;
         }
@@ -1056,10 +1056,10 @@ namespace ArcMist
         a = 1005;
         answer = 1010;
         if(a + 5 == answer)
-            Log::add(Log::INFO, ARCMIST_HASH_LOG_NAME, "Passed add hash 1010");
+            Log::add(Log::INFO, NEXTCASH_HASH_LOG_NAME, "Passed add hash 1010");
         else
         {
-            Log::addFormatted(Log::ERROR, ARCMIST_HASH_LOG_NAME, "Failed add hash 1010 : %s",
+            Log::addFormatted(Log::ERROR, NEXTCASH_HASH_LOG_NAME, "Failed add hash 1010 : %s",
               (a + 5).hex().text());
             success = false;
         }
@@ -1068,10 +1068,10 @@ namespace ArcMist
         answer = 16590;
         ++a;
         if(a == answer)
-            Log::add(Log::INFO, ARCMIST_HASH_LOG_NAME, "Passed increment");
+            Log::add(Log::INFO, NEXTCASH_HASH_LOG_NAME, "Passed increment");
         else
         {
-            Log::addFormatted(Log::ERROR, ARCMIST_HASH_LOG_NAME, "Failed increment : %s",
+            Log::addFormatted(Log::ERROR, NEXTCASH_HASH_LOG_NAME, "Failed increment : %s",
               a.hex().text());
             success = false;
         }
@@ -1084,10 +1084,10 @@ namespace ArcMist
         a -= b;
         answer = 995;
         if(a == answer)
-            Log::add(Log::INFO, ARCMIST_HASH_LOG_NAME, "Passed subtract assign hash 995");
+            Log::add(Log::INFO, NEXTCASH_HASH_LOG_NAME, "Passed subtract assign hash 995");
         else
         {
-            Log::addFormatted(Log::ERROR, ARCMIST_HASH_LOG_NAME, "Failed subtract assign hash 995 : %s",
+            Log::addFormatted(Log::ERROR, NEXTCASH_HASH_LOG_NAME, "Failed subtract assign hash 995 : %s",
               a.hex().text());
             success = false;
         }
@@ -1095,10 +1095,10 @@ namespace ArcMist
         a = 1000;
         Hash c = a - b;
         if(c == answer)
-            Log::add(Log::INFO, ARCMIST_HASH_LOG_NAME, "Passed subtract hash 995");
+            Log::add(Log::INFO, NEXTCASH_HASH_LOG_NAME, "Passed subtract hash 995");
         else
         {
-            Log::addFormatted(Log::ERROR, ARCMIST_HASH_LOG_NAME, "Failed subtract hash 995 : %s",
+            Log::addFormatted(Log::ERROR, NEXTCASH_HASH_LOG_NAME, "Failed subtract hash 995 : %s",
               c.hex().text());
             success = false;
         }
@@ -1107,10 +1107,10 @@ namespace ArcMist
         answer = 16588;
         --a;
         if(a == answer)
-            Log::add(Log::INFO, ARCMIST_HASH_LOG_NAME, "Passed decrement");
+            Log::add(Log::INFO, NEXTCASH_HASH_LOG_NAME, "Passed decrement");
         else
         {
-            Log::addFormatted(Log::ERROR, ARCMIST_HASH_LOG_NAME, "Failed decrement : %s",
+            Log::addFormatted(Log::ERROR, NEXTCASH_HASH_LOG_NAME, "Failed decrement : %s",
               a.hex().text());
             success = false;
         }
@@ -1121,10 +1121,10 @@ namespace ArcMist
         a = -1;
         answer.setHex("ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
         if(a == answer)
-            Log::add(Log::INFO, ARCMIST_HASH_LOG_NAME, "Passed assign negative");
+            Log::add(Log::INFO, NEXTCASH_HASH_LOG_NAME, "Passed assign negative");
         else
         {
-            Log::addFormatted(Log::ERROR, ARCMIST_HASH_LOG_NAME, "Failed assign negative : %s",
+            Log::addFormatted(Log::ERROR, NEXTCASH_HASH_LOG_NAME, "Failed assign negative : %s",
               a.hex().text());
             success = false;
         }
@@ -1137,10 +1137,10 @@ namespace ArcMist
         answer = 100000000;
         a *= b;
         if(a == answer)
-            Log::add(Log::INFO, ARCMIST_HASH_LOG_NAME, "Passed multiply assign 100000000");
+            Log::add(Log::INFO, NEXTCASH_HASH_LOG_NAME, "Passed multiply assign 100000000");
         else
         {
-            Log::addFormatted(Log::ERROR, ARCMIST_HASH_LOG_NAME, "Failed multiply assign 100000000 : %s",
+            Log::addFormatted(Log::ERROR, NEXTCASH_HASH_LOG_NAME, "Failed multiply assign 100000000 : %s",
               a.hex().text());
             success = false;
         }
@@ -1148,10 +1148,10 @@ namespace ArcMist
         a = 100000;
         a *= 1000;
         if(a == answer)
-            Log::add(Log::INFO, ARCMIST_HASH_LOG_NAME, "Passed multiply assign int 100000000");
+            Log::add(Log::INFO, NEXTCASH_HASH_LOG_NAME, "Passed multiply assign int 100000000");
         else
         {
-            Log::addFormatted(Log::ERROR, ARCMIST_HASH_LOG_NAME, "Failed multiply assign int 100000000 : %s",
+            Log::addFormatted(Log::ERROR, NEXTCASH_HASH_LOG_NAME, "Failed multiply assign int 100000000 : %s",
               a.hex().text());
             success = false;
         }
@@ -1164,10 +1164,10 @@ namespace ArcMist
         answer = 100;
         a /= b;
         if(a == answer)
-            Log::add(Log::INFO, ARCMIST_HASH_LOG_NAME, "Passed divide assign 100");
+            Log::add(Log::INFO, NEXTCASH_HASH_LOG_NAME, "Passed divide assign 100");
         else
         {
-            Log::addFormatted(Log::ERROR, ARCMIST_HASH_LOG_NAME, "Failed divide assign 100 : %s",
+            Log::addFormatted(Log::ERROR, NEXTCASH_HASH_LOG_NAME, "Failed divide assign 100 : %s",
               a.hex().text());
             success = false;
         }
@@ -1175,10 +1175,10 @@ namespace ArcMist
         a = 100000;
         a /= 1000;
         if(a == answer)
-            Log::add(Log::INFO, ARCMIST_HASH_LOG_NAME, "Passed divide assign int 100");
+            Log::add(Log::INFO, NEXTCASH_HASH_LOG_NAME, "Passed divide assign int 100");
         else
         {
-            Log::addFormatted(Log::ERROR, ARCMIST_HASH_LOG_NAME, "Failed divide assign int 100 : %s",
+            Log::addFormatted(Log::ERROR, NEXTCASH_HASH_LOG_NAME, "Failed divide assign int 100 : %s",
               a.hex().text());
             success = false;
         }
@@ -1190,10 +1190,10 @@ namespace ArcMist
         b = -a;
         answer = 1;
         if(b == answer)
-            Log::add(Log::INFO, ARCMIST_HASH_LOG_NAME, "Passed negate -1 hash");
+            Log::add(Log::INFO, NEXTCASH_HASH_LOG_NAME, "Passed negate -1 hash");
         else
         {
-            Log::addFormatted(Log::ERROR, ARCMIST_HASH_LOG_NAME, "Failed negate -1 hash : %s",
+            Log::addFormatted(Log::ERROR, NEXTCASH_HASH_LOG_NAME, "Failed negate -1 hash : %s",
               b.hex().text());
             success = false;
         }
@@ -1202,10 +1202,10 @@ namespace ArcMist
         b = -a;
         answer.setHex("ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
         if(b == answer)
-            Log::add(Log::INFO, ARCMIST_HASH_LOG_NAME, "Passed negate 1 hash");
+            Log::add(Log::INFO, NEXTCASH_HASH_LOG_NAME, "Passed negate 1 hash");
         else
         {
-            Log::addFormatted(Log::ERROR, ARCMIST_HASH_LOG_NAME, "Failed negate 1 hash : %s",
+            Log::addFormatted(Log::ERROR, NEXTCASH_HASH_LOG_NAME, "Failed negate 1 hash : %s",
               b.hex().text());
             success = false;
         }
@@ -1214,10 +1214,10 @@ namespace ArcMist
         b = -a;
         answer.setHex("fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff862");
         if(b == answer)
-            Log::add(Log::INFO, ARCMIST_HASH_LOG_NAME, "Passed negate 1950 hash");
+            Log::add(Log::INFO, NEXTCASH_HASH_LOG_NAME, "Passed negate 1950 hash");
         else
         {
-            Log::addFormatted(Log::ERROR, ARCMIST_HASH_LOG_NAME, "Failed negate 1950 hash : %s",
+            Log::addFormatted(Log::ERROR, NEXTCASH_HASH_LOG_NAME, "Failed negate 1950 hash : %s",
               b.hex().text());
             success = false;
         }
@@ -1233,11 +1233,11 @@ namespace ArcMist
             proofHash.setByte(31, 0xff >> i);
             proofHash.getWork(workHash);
             if(workHash == answerHash)
-                Log::addFormatted(Log::INFO, ARCMIST_HASH_LOG_NAME,
+                Log::addFormatted(Log::INFO, NEXTCASH_HASH_LOG_NAME,
                   "Passed hash work %d zeroes", i);
             else
             {
-                Log::addFormatted(Log::ERROR, ARCMIST_HASH_LOG_NAME,
+                Log::addFormatted(Log::ERROR, NEXTCASH_HASH_LOG_NAME,
                   "Failed hash work %d zeroes : %s", i, workHash.hex().text());
                 success = false;
             }
@@ -1248,10 +1248,10 @@ namespace ArcMist
         answerHash.setHex("0000000000000000000000000000000000000000000000000000000000008000");
         proofHash.getWork(workHash);
         if(workHash == answerHash)
-            Log::add(Log::INFO, ARCMIST_HASH_LOG_NAME, "Passed hash work 0001");
+            Log::add(Log::INFO, NEXTCASH_HASH_LOG_NAME, "Passed hash work 0001");
         else
         {
-            Log::addFormatted(Log::ERROR, ARCMIST_HASH_LOG_NAME, "Failed hash work 0001 : %s",
+            Log::addFormatted(Log::ERROR, NEXTCASH_HASH_LOG_NAME, "Failed hash work 0001 : %s",
               workHash.hex().text());
             success = false;
         }
@@ -1275,52 +1275,52 @@ namespace ArcMist
         retrieve = hashStringList.get(l1);
         if(retrieve == hashStringList.end())
         {
-            Log::addFormatted(Log::ERROR, ARCMIST_HASH_LOG_NAME, "Failed hash string list 0 : not found",
+            Log::addFormatted(Log::ERROR, NEXTCASH_HASH_LOG_NAME, "Failed hash string list 0 : not found",
               workHash.hex().text());
             success = false;
         }
         else if(*retrieve != string1)
         {
-            Log::addFormatted(Log::ERROR, ARCMIST_HASH_LOG_NAME, "Failed hash string list 0 : %s",
+            Log::addFormatted(Log::ERROR, NEXTCASH_HASH_LOG_NAME, "Failed hash string list 0 : %s",
               (*retrieve)->text());
             success = false;
         }
         else
-            Log::add(Log::INFO, ARCMIST_HASH_LOG_NAME, "Passed hash string list 0");
+            Log::add(Log::INFO, NEXTCASH_HASH_LOG_NAME, "Passed hash string list 0");
 
         hashStringList.insertIfNotMatching(l2, string2, stringEqual);
 
         retrieve = hashStringList.get(l1);
         if(retrieve == hashStringList.end())
         {
-            Log::addFormatted(Log::ERROR, ARCMIST_HASH_LOG_NAME, "Failed hash string list 1 : not found",
+            Log::addFormatted(Log::ERROR, NEXTCASH_HASH_LOG_NAME, "Failed hash string list 1 : not found",
               workHash.hex().text());
             success = false;
         }
         else if(*retrieve != string1)
         {
-            Log::addFormatted(Log::ERROR, ARCMIST_HASH_LOG_NAME, "Failed hash string list 1 : %s",
+            Log::addFormatted(Log::ERROR, NEXTCASH_HASH_LOG_NAME, "Failed hash string list 1 : %s",
               (*retrieve)->text());
             success = false;
         }
         else
-            Log::add(Log::INFO, ARCMIST_HASH_LOG_NAME, "Passed hash string list 1");
+            Log::add(Log::INFO, NEXTCASH_HASH_LOG_NAME, "Passed hash string list 1");
 
         retrieve = hashStringList.get(l2);
         if(retrieve == hashStringList.end())
         {
-            Log::addFormatted(Log::ERROR, ARCMIST_HASH_LOG_NAME, "Failed hash string list 2 : not found",
+            Log::addFormatted(Log::ERROR, NEXTCASH_HASH_LOG_NAME, "Failed hash string list 2 : not found",
               workHash.hex().text());
             success = false;
         }
         else if(*retrieve != string2)
         {
-            Log::addFormatted(Log::ERROR, ARCMIST_HASH_LOG_NAME, "Failed hash string list 2 : %s",
+            Log::addFormatted(Log::ERROR, NEXTCASH_HASH_LOG_NAME, "Failed hash string list 2 : %s",
               (*retrieve)->text());
             success = false;
         }
         else
-            Log::add(Log::INFO, ARCMIST_HASH_LOG_NAME, "Passed hash string list 2");
+            Log::add(Log::INFO, NEXTCASH_HASH_LOG_NAME, "Passed hash string list 2");
 
         Hash lr(32);
         String *newString = NULL;
@@ -1334,7 +1334,7 @@ namespace ArcMist
 
             // for(HashContainerList<String *>::Iterator item=hashStringList.begin();item!=hashStringList.end();++item)
             // {
-                // Log::addFormatted(Log::DEBUG, ARCMIST_HASH_LOG_NAME, "Hash string list : %s <- %s",
+                // Log::addFormatted(Log::DEBUG, NEXTCASH_HASH_LOG_NAME, "Hash string list : %s <- %s",
                   // (*item)->text(), item.hash().hex().text());
             // }
         }
@@ -1342,34 +1342,34 @@ namespace ArcMist
         retrieve = hashStringList.get(l1);
         if(retrieve == hashStringList.end())
         {
-            Log::addFormatted(Log::ERROR, ARCMIST_HASH_LOG_NAME, "Failed hash string list r1 : not found",
+            Log::addFormatted(Log::ERROR, NEXTCASH_HASH_LOG_NAME, "Failed hash string list r1 : not found",
               workHash.hex().text());
             success = false;
         }
         else if(*retrieve != string1)
         {
-            Log::addFormatted(Log::ERROR, ARCMIST_HASH_LOG_NAME, "Failed hash string list r1 : %s",
+            Log::addFormatted(Log::ERROR, NEXTCASH_HASH_LOG_NAME, "Failed hash string list r1 : %s",
               (*retrieve)->text());
             success = false;
         }
         else
-            Log::add(Log::INFO, ARCMIST_HASH_LOG_NAME, "Passed hash string list r1");
+            Log::add(Log::INFO, NEXTCASH_HASH_LOG_NAME, "Passed hash string list r1");
 
         retrieve = hashStringList.get(l2);
         if(retrieve == hashStringList.end())
         {
-            Log::addFormatted(Log::ERROR, ARCMIST_HASH_LOG_NAME, "Failed hash string list r2 : not found",
+            Log::addFormatted(Log::ERROR, NEXTCASH_HASH_LOG_NAME, "Failed hash string list r2 : not found",
               workHash.hex().text());
             success = false;
         }
         else if(*retrieve != string2)
         {
-            Log::addFormatted(Log::ERROR, ARCMIST_HASH_LOG_NAME, "Failed hash string list r2 : %s",
+            Log::addFormatted(Log::ERROR, NEXTCASH_HASH_LOG_NAME, "Failed hash string list r2 : %s",
               (*retrieve)->text());
             success = false;
         }
         else
-            Log::add(Log::INFO, ARCMIST_HASH_LOG_NAME, "Passed hash string list r2");
+            Log::add(Log::INFO, NEXTCASH_HASH_LOG_NAME, "Passed hash string list r2");
 
         String *firstString = new String("first");
         String *lastString = new String("last");
@@ -1388,76 +1388,76 @@ namespace ArcMist
                 firstTest = *item;
             lastTest = *item;
             // if(*item == NULL)
-                // Log::addFormatted(Log::DEBUG, ARCMIST_HASH_LOG_NAME, "Hash string list : NULL <- %s",
+                // Log::addFormatted(Log::DEBUG, NEXTCASH_HASH_LOG_NAME, "Hash string list : NULL <- %s",
                   // item.hash().hex().text());
             // else
-                // Log::addFormatted(Log::DEBUG, ARCMIST_HASH_LOG_NAME, "Hash string list : %s <- %s",
+                // Log::addFormatted(Log::DEBUG, NEXTCASH_HASH_LOG_NAME, "Hash string list : %s <- %s",
                   // (*item)->text(), item.hash().hex().text());
         }
 
         if(firstTest == NULL)
         {
-            Log::addFormatted(Log::ERROR, ARCMIST_HASH_LOG_NAME, "Failed hash string list iterate first : not found",
+            Log::addFormatted(Log::ERROR, NEXTCASH_HASH_LOG_NAME, "Failed hash string list iterate first : not found",
               workHash.hex().text());
             success = false;
         }
         else if(firstTest != firstString)
         {
-            Log::addFormatted(Log::ERROR, ARCMIST_HASH_LOG_NAME, "Failed hash string list iterate first : %s",
+            Log::addFormatted(Log::ERROR, NEXTCASH_HASH_LOG_NAME, "Failed hash string list iterate first : %s",
               firstTest->text());
             success = false;
         }
         else
-            Log::add(Log::INFO, ARCMIST_HASH_LOG_NAME, "Passed hash string list iterate first");
+            Log::add(Log::INFO, NEXTCASH_HASH_LOG_NAME, "Passed hash string list iterate first");
 
         if(lastTest == NULL)
         {
-            Log::addFormatted(Log::ERROR, ARCMIST_HASH_LOG_NAME, "Failed hash string list iterate last : not found",
+            Log::addFormatted(Log::ERROR, NEXTCASH_HASH_LOG_NAME, "Failed hash string list iterate last : not found",
               workHash.hex().text());
             success = false;
         }
         else if(lastTest != lastString)
         {
-            Log::addFormatted(Log::ERROR, ARCMIST_HASH_LOG_NAME, "Failed hash string list iterate last : %s",
+            Log::addFormatted(Log::ERROR, NEXTCASH_HASH_LOG_NAME, "Failed hash string list iterate last : %s",
               lastTest->text());
             success = false;
         }
         else
-            Log::add(Log::INFO, ARCMIST_HASH_LOG_NAME, "Passed hash string list iterate last");
+            Log::add(Log::INFO, NEXTCASH_HASH_LOG_NAME, "Passed hash string list iterate last");
 
         l1.zeroize();
         retrieve = hashStringList.get(l1);
         if(retrieve == hashStringList.end())
         {
-            Log::addFormatted(Log::ERROR, ARCMIST_HASH_LOG_NAME, "Failed hash string list get first : not found",
+            Log::addFormatted(Log::ERROR, NEXTCASH_HASH_LOG_NAME, "Failed hash string list get first : not found",
               workHash.hex().text());
             success = false;
         }
         else if(*retrieve != firstString)
         {
-            Log::addFormatted(Log::ERROR, ARCMIST_HASH_LOG_NAME, "Failed hash string list get first : %s",
+            Log::addFormatted(Log::ERROR, NEXTCASH_HASH_LOG_NAME, "Failed hash string list get first : %s",
               (*retrieve)->text());
             success = false;
         }
         else
-            Log::add(Log::INFO, ARCMIST_HASH_LOG_NAME, "Passed hash string list get first");
+            Log::add(Log::INFO, NEXTCASH_HASH_LOG_NAME, "Passed hash string list get first");
 
         l1.setMax();
         retrieve = hashStringList.get(l1);
         if(retrieve == hashStringList.end())
         {
-            Log::addFormatted(Log::ERROR, ARCMIST_HASH_LOG_NAME, "Failed hash string list get last : not found",
+            Log::addFormatted(Log::ERROR, NEXTCASH_HASH_LOG_NAME, "Failed hash string list get last : not found",
               workHash.hex().text());
             success = false;
         }
         else if(*retrieve != lastString)
         {
-            Log::addFormatted(Log::ERROR, ARCMIST_HASH_LOG_NAME, "Failed hash string list get last : %s",
+            Log::addFormatted(Log::ERROR, NEXTCASH_HASH_LOG_NAME, "Failed hash string list get last : %s",
               (*retrieve)->text());
             success = false;
         }
         else
-            Log::add(Log::INFO, ARCMIST_HASH_LOG_NAME, "Passed hash string list get last");
+            Log::add(Log::INFO, NEXTCASH_HASH_LOG_NAME, "Passed hash string list get last");
 
         for(HashContainerList<String *>::Iterator item=hashStringList.begin();item!=hashStringList.end();++item)
             if(*item != NULL)

@@ -1,14 +1,14 @@
 /**************************************************************************
- * Copyright 2017 ArcMist, LLC                                            *
+ * Copyright 2017 NextCash, LLC                                            *
  * Contributors :                                                         *
- *   Curtis Ellis <curtis@arcmist.com>                                    *
+ *   Curtis Ellis <curtis@nextcash.com>                                    *
  * Distributed under the MIT software license, see the accompanying       *
  * file license.txt or http://www.opensource.org/licenses/mit-license.php *
  **************************************************************************/
 #include "log.hpp"
 
-#include "arcmist/base/thread.hpp"
-#include "arcmist/io/file_stream.hpp"
+#include "nextcash/base/thread.hpp"
+#include "nextcash/io/file_stream.hpp"
 
 #include <cstdarg>
 #include <cstdlib>
@@ -17,7 +17,7 @@
 #include <iomanip>
 
 
-namespace ArcMist
+namespace NextCash
 {
     Log *Log::mInstance = NULL;
 

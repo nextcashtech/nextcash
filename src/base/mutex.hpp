@@ -1,19 +1,19 @@
 /**************************************************************************
- * Copyright 2017 ArcMist, LLC                                            *
+ * Copyright 2017 NextCash, LLC                                            *
  * Contributors :                                                         *
- *   Curtis Ellis <curtis@arcmist.com>                                    *
+ *   Curtis Ellis <curtis@nextcash.com>                                    *
  * Distributed under the MIT software license, see the accompanying       *
  * file license.txt or http://www.opensource.org/licenses/mit-license.php *
  **************************************************************************/
-#ifndef ARCMIST_MUTEX_HPP
-#define ARCMIST_MUTEX_HPP
+#ifndef NEXTCASH_MUTEX_HPP
+#define NEXTCASH_MUTEX_HPP
 
 #include "string.hpp"
 
 #include <mutex>
 
 
-namespace ArcMist
+namespace NextCash
 {
     class Mutex
     {

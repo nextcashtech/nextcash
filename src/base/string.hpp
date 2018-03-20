@@ -1,22 +1,22 @@
 /**************************************************************************
- * Copyright 2017-2018 ArcMist, LLC                                       *
+ * Copyright 2017-2018 NextCash, LLC                                       *
  * Contributors :                                                         *
- *   Curtis Ellis <curtis@arcmist.com>                                    *
+ *   Curtis Ellis <curtis@nextcash.com>                                    *
  * Distributed under the MIT software license, see the accompanying       *
  * file license.txt or http://www.opensource.org/licenses/mit-license.php *
  **************************************************************************/
-#ifndef ARCMIST_STRING_HPP
-#define ARCMIST_STRING_HPP
+#ifndef NEXTCASH_STRING_HPP
+#define NEXTCASH_STRING_HPP
 
 #include "math.hpp"
 
 #include <cstring>
 #include <cstdarg>
 
-#define ARCMIST_STRING_LOG_NAME "String"
+#define NEXTCASH_STRING_LOG_NAME "String"
 
 
-namespace ArcMist
+namespace NextCash
 {
 #ifdef _WIN32
     static const char *PATH_SEPARATOR __attribute__ ((unused)) = "\\";

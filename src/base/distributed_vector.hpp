@@ -1,18 +1,18 @@
 /**************************************************************************
- * Copyright 2017 ArcMist, LLC                                            *
+ * Copyright 2017 NextCash, LLC                                            *
  * Contributors :                                                         *
- *   Curtis Ellis <curtis@arcmist.com>                                    *
+ *   Curtis Ellis <curtis@nextcash.com>                                    *
  * Distributed under the MIT software license, see the accompanying       *
  * file license.txt or http://www.opensource.org/licenses/mit-license.php *
  **************************************************************************/
-#ifndef ARCMIST_DISTRIBUTED_VECTOR_HPP
-#define ARCMIST_DISTRIBUTED_VECTOR_HPP
+#ifndef NEXTCASH_DISTRIBUTED_VECTOR_HPP
+#define NEXTCASH_DISTRIBUTED_VECTOR_HPP
 
 #include <cstring>
 #include <vector>
 
 
-namespace ArcMist
+namespace NextCash
 {
     // This class reduces insert times on large data sets because an insert doesn't require moving
     //   all objects after the insert position, only those in the subset

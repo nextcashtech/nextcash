@@ -1,15 +1,15 @@
 /**************************************************************************
- * Copyright 2017 ArcMist, LLC                                            *
+ * Copyright 2017 NextCash, LLC                                            *
  * Contributors :                                                         *
- *   Curtis Ellis <curtis@arcmist.com>                                    *
+ *   Curtis Ellis <curtis@nextcash.com>                                    *
  * Distributed under the MIT software license, see the accompanying       *
  * file license.txt or http://www.opensource.org/licenses/mit-license.php *
  **************************************************************************/
 #include "stream.hpp"
 
-#include "arcmist/base/endian.hpp"
-#include "arcmist/base/math.hpp"
-#include "arcmist/base/log.hpp"
+#include "nextcash/base/endian.hpp"
+#include "nextcash/base/math.hpp"
+#include "nextcash/base/log.hpp"
 
 #include <cstdio>
 #include <vector>
@@ -18,7 +18,7 @@
 #define STREAM_LOG_NAME "Stream"
 
 
-namespace ArcMist
+namespace NextCash
 {
     Endian::Type InputStream::sDefaultInputEndian = Endian::sSystemType;
     Endian::Type OutputStream::sDefaultOutputEndian = Endian::sSystemType;

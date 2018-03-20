@@ -1,23 +1,23 @@
 /**************************************************************************
- * Copyright 2017 ArcMist, LLC                                            *
+ * Copyright 2017 NextCash, LLC                                            *
  * Contributors :                                                         *
- *   Curtis Ellis <curtis@arcmist.com>                                    *
+ *   Curtis Ellis <curtis@nextcash.com>                                    *
  * Distributed under the MIT software license, see the accompanying       *
  * file license.txt or http://www.opensource.org/licenses/mit-license.php *
  **************************************************************************/
 #include "buffer.hpp"
 
-#include "arcmist/base/endian.hpp"
-#include "arcmist/base/string.hpp"
-#include "arcmist/base/log.hpp"
+#include "nextcash/base/endian.hpp"
+#include "nextcash/base/string.hpp"
+#include "nextcash/base/log.hpp"
 
 #include <cstring>
 #include <new>
 
-#define ARCMIST_BUFFER_LOG_NAME "Buffer"
+#define NEXTCASH_BUFFER_LOG_NAME "Buffer"
 
 
-namespace ArcMist
+namespace NextCash
 {
     Buffer::Buffer()
     {
@@ -47,13 +47,13 @@ namespace ArcMist
         }
         catch(std::bad_alloc &pBadAlloc)
         {
-            ArcMist::Log::addFormatted(ArcMist::Log::ERROR, ARCMIST_BUFFER_LOG_NAME, "Bad allocation : %s", pBadAlloc.what());
+            NextCash::Log::addFormatted(NextCash::Log::ERROR, NEXTCASH_BUFFER_LOG_NAME, "Bad allocation : %s", pBadAlloc.what());
             mData = NULL;
             mSize = 0;
         }
         catch(...)
         {
-            ArcMist::Log::add(ArcMist::Log::ERROR, ARCMIST_BUFFER_LOG_NAME, "Bad allocation : unknown");
+            NextCash::Log::add(NextCash::Log::ERROR, NEXTCASH_BUFFER_LOG_NAME, "Bad allocation : unknown");
             mData = NULL;
             mSize = 0;
         }
@@ -149,12 +149,12 @@ namespace ArcMist
     {
         if(mReadOffset + pOffset > mWriteOffset)
         {
-            Log::error(ARCMIST_BUFFER_LOG_NAME, "Move read offset too large");
+            Log::error(NEXTCASH_BUFFER_LOG_NAME, "Move read offset too large");
             mReadOffset = mWriteOffset;
         }
         else if(mReadOffset + pOffset < 0)
         {
-            Log::error(ARCMIST_BUFFER_LOG_NAME, "Move read offset too small");
+            Log::error(NEXTCASH_BUFFER_LOG_NAME, "Move read offset too small");
             mReadOffset = 0;
         }
         else
@@ -223,12 +223,12 @@ namespace ArcMist
         }
         catch(std::bad_alloc &pBadAlloc)
         {
-            ArcMist::Log::addFormatted(ArcMist::Log::ERROR, ARCMIST_BUFFER_LOG_NAME, "Bad allocation : %s", pBadAlloc.what());
+            NextCash::Log::addFormatted(NextCash::Log::ERROR, NEXTCASH_BUFFER_LOG_NAME, "Bad allocation : %s", pBadAlloc.what());
             return;
         }
         catch(...)
         {
-            ArcMist::Log::add(ArcMist::Log::ERROR, ARCMIST_BUFFER_LOG_NAME, "Bad allocation : unknown");
+            NextCash::Log::add(NextCash::Log::ERROR, NEXTCASH_BUFFER_LOG_NAME, "Bad allocation : unknown");
             return;
         }
         std::memcpy(newData, mData, mEndOffset);
@@ -266,12 +266,12 @@ namespace ArcMist
         }
         catch(std::bad_alloc &pBadAlloc)
         {
-            ArcMist::Log::addFormatted(ArcMist::Log::ERROR, ARCMIST_BUFFER_LOG_NAME, "Bad allocation : %s", pBadAlloc.what());
+            NextCash::Log::addFormatted(NextCash::Log::ERROR, NEXTCASH_BUFFER_LOG_NAME, "Bad allocation : %s", pBadAlloc.what());
             return;
         }
         catch(...)
         {
-            ArcMist::Log::add(ArcMist::Log::ERROR, ARCMIST_BUFFER_LOG_NAME, "Bad allocation : unknown");
+            NextCash::Log::add(NextCash::Log::ERROR, NEXTCASH_BUFFER_LOG_NAME, "Bad allocation : unknown");
             return;
         }
 
@@ -308,7 +308,7 @@ namespace ArcMist
         if(mReadOffset >= mEndOffset)
         {
             if(mReadOffset > mEndOffset)
-                Log::error(ARCMIST_BUFFER_LOG_NAME, "Flush with read offset higher than end offset");
+                Log::error(NEXTCASH_BUFFER_LOG_NAME, "Flush with read offset higher than end offset");
             mReadOffset  = 0;
             mWriteOffset = 0;
             mEndOffset = 0;
@@ -357,12 +357,12 @@ namespace ArcMist
         }
         catch(std::bad_alloc &pBadAlloc)
         {
-            ArcMist::Log::addFormatted(ArcMist::Log::ERROR, ARCMIST_BUFFER_LOG_NAME, "Bad allocation : %s", pBadAlloc.what());
+            NextCash::Log::addFormatted(NextCash::Log::ERROR, NEXTCASH_BUFFER_LOG_NAME, "Bad allocation : %s", pBadAlloc.what());
             return;
         }
         catch(...)
         {
-            ArcMist::Log::add(ArcMist::Log::ERROR, ARCMIST_BUFFER_LOG_NAME, "Bad allocation : unknown");
+            NextCash::Log::add(NextCash::Log::ERROR, NEXTCASH_BUFFER_LOG_NAME, "Bad allocation : unknown");
             return;
         }
 
@@ -389,7 +389,7 @@ namespace ArcMist
 
     bool Buffer::test()
     {
-        Log::add(ArcMist::Log::INFO, ARCMIST_BUFFER_LOG_NAME,
+        Log::add(NextCash::Log::INFO, NEXTCASH_BUFFER_LOG_NAME,
           "------------- Starting Buffer Tests -------------");
 
         bool result = true;
@@ -402,10 +402,10 @@ namespace ArcMist
         hexBinary.writeUnsignedInt(0x123456ff);
         String hexValue = hexBinary.readHexString(4);
         if(hexValue == "123456ff") // hex numbers in gdb are big endian
-            Log::add(Log::INFO, ARCMIST_BUFFER_LOG_NAME, "Passed read hex string function");
+            Log::add(Log::INFO, NEXTCASH_BUFFER_LOG_NAME, "Passed read hex string function");
         else
         {
-            Log::add(Log::ERROR, ARCMIST_BUFFER_LOG_NAME, "Failed read hex string function");
+            Log::add(Log::ERROR, NEXTCASH_BUFFER_LOG_NAME, "Failed read hex string function");
             result = false;
         }
 
@@ -416,10 +416,10 @@ namespace ArcMist
         hexBinary.writeUnsignedInt(0x123456ff);
         hexValue = hexBinary.readHexString(4);
         if(hexValue == "ff563412")
-            Log::add(Log::INFO, ARCMIST_BUFFER_LOG_NAME, "Passed read hex string function little endian");
+            Log::add(Log::INFO, NEXTCASH_BUFFER_LOG_NAME, "Passed read hex string function little endian");
         else
         {
-            Log::add(Log::ERROR, ARCMIST_BUFFER_LOG_NAME, "Failed read hex string function little endian");
+            Log::add(Log::ERROR, NEXTCASH_BUFFER_LOG_NAME, "Failed read hex string function little endian");
             result = false;
         }
 
@@ -431,10 +431,10 @@ namespace ArcMist
         base58Binary.writeBase58AsBinary(base58String.text());
         hexValue = base58Binary.readHexString(21);
         if(hexValue == "005a1fc5dd9e6f03819fca94a2d89669469667f9a0")
-            Log::addFormatted(Log::INFO, ARCMIST_BUFFER_LOG_NAME, "Passed write base58 string function: %s", hexValue.text());
+            Log::addFormatted(Log::INFO, NEXTCASH_BUFFER_LOG_NAME, "Passed write base58 string function: %s", hexValue.text());
         else
         {
-            Log::addFormatted(Log::ERROR, ARCMIST_BUFFER_LOG_NAME, "Failed write base58 string function : %s", hexValue.text());
+            Log::addFormatted(Log::ERROR, NEXTCASH_BUFFER_LOG_NAME, "Failed write base58 string function : %s", hexValue.text());
             result = false;
         }
 
@@ -448,10 +448,10 @@ namespace ArcMist
         base32Binary.writeBase32AsBinary(base32String.text());
         hexValue = base32Binary.readHexString(base32Binary.length());
         if(base32Binary.length() == 2 && hexValue == "6600")
-            Log::addFormatted(Log::INFO, ARCMIST_BUFFER_LOG_NAME, "Passed write base32 string function: %s", hexValue.text());
+            Log::addFormatted(Log::INFO, NEXTCASH_BUFFER_LOG_NAME, "Passed write base32 string function: %s", hexValue.text());
         else
         {
-            Log::addFormatted(Log::ERROR, ARCMIST_BUFFER_LOG_NAME, "Failed write base32 string function : %s", hexValue.text());
+            Log::addFormatted(Log::ERROR, NEXTCASH_BUFFER_LOG_NAME, "Failed write base32 string function : %s", hexValue.text());
             result = false;
         }
 
@@ -460,10 +460,10 @@ namespace ArcMist
         base32Binary.writeBase32AsBinary(base32String.text());
         hexValue = base32Binary.readHexString(base32Binary.length());
         if(base32Binary.length() == 5 && hexValue == "7465737400")
-            Log::addFormatted(Log::INFO, ARCMIST_BUFFER_LOG_NAME, "Passed write base32 string function: %s", hexValue.text());
+            Log::addFormatted(Log::INFO, NEXTCASH_BUFFER_LOG_NAME, "Passed write base32 string function: %s", hexValue.text());
         else
         {
-            Log::addFormatted(Log::ERROR, ARCMIST_BUFFER_LOG_NAME, "Failed write base32 string function : %s", hexValue.text());
+            Log::addFormatted(Log::ERROR, NEXTCASH_BUFFER_LOG_NAME, "Failed write base32 string function : %s", hexValue.text());
             result = false;
         }
 

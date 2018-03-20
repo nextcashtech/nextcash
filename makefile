@@ -7,10 +7,10 @@ HEADER_FILES=$(wildcard src/*/*.hpp)
 SOURCE_FILES=$(wildcard src/*/*.cpp)
 SRC_SUB_DIRECTORIES=$(wildcard src/*)
 OBJECT_DIRECTORY=.objects
-HEADER_DIRECTORY=include/arcmist
+HEADER_DIRECTORY=include/nextcash
 OBJECTS=$(patsubst %.cpp,${OBJECT_DIRECTORY}/%.o,${SOURCE_FILES})
 DEBUG_OBJECTS=$(patsubst %.cpp,${OBJECT_DIRECTORY}/%.o.debug,${SOURCE_FILES})
-OUTPUT=arcmist
+OUTPUT=nextcash
 
 .PHONY: list clean test release debug
 

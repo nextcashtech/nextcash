@@ -1,12 +1,12 @@
 /**************************************************************************
- * Copyright 2017 ArcMist, LLC                                            *
+ * Copyright 2017 NextCash, LLC                                            *
  * Contributors :                                                         *
- *   Curtis Ellis <curtis@arcmist.com>                                    *
+ *   Curtis Ellis <curtis@nextcash.com>                                    *
  * Distributed under the MIT software license, see the accompanying       *
  * file license.txt or http://www.opensource.org/licenses/mit-license.php *
  **************************************************************************/
-#ifndef ARCMIST_NETWORK_HPP
-#define ARCMIST_NETWORK_HPP
+#ifndef NEXTCASH_NETWORK_HPP
+#define NEXTCASH_NETWORK_HPP
 
 #include "stream.hpp"
 
@@ -18,7 +18,7 @@
 #define INET6_ADDRLEN 16
 
 
-namespace ArcMist
+namespace NextCash
 {
     namespace Network
     {

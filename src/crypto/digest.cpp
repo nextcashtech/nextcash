@@ -1,26 +1,26 @@
 /**************************************************************************
- * Copyright 2017-2018 ArcMist, LLC                                       *
+ * Copyright 2017-2018 NextCash, LLC                                       *
  * Contributors :                                                         *
- *   Curtis Ellis <curtis@arcmist.com>                                    *
+ *   Curtis Ellis <curtis@nextcash.com>                                    *
  * Distributed under the MIT software license, see the accompanying       *
  * file license.txt or http://www.opensource.org/licenses/mit-license.php *
  **************************************************************************/
 #include "digest.hpp"
 
-#include "arcmist/base/endian.hpp"
-#include "arcmist/base/math.hpp"
-#include "arcmist/base/log.hpp"
-#include "arcmist/io/stream.hpp"
-#include "arcmist/io/buffer.hpp"
+#include "nextcash/base/endian.hpp"
+#include "nextcash/base/math.hpp"
+#include "nextcash/base/log.hpp"
+#include "nextcash/io/stream.hpp"
+#include "nextcash/io/buffer.hpp"
 
 #include <cstdint>
 #include <cstring>
 #include <vector>
 
-#define ARCMIST_DIGEST_LOG_NAME "Digest"
+#define NEXTCASH_DIGEST_LOG_NAME "Digest"
 
 
-namespace ArcMist
+namespace NextCash
 {
     namespace CRC32
     {
@@ -1654,13 +1654,13 @@ namespace ArcMist
         hex.writeAsHex(&pBuffer, pBuffer.length(), true);
         char *hexText = new char[hex.length()];
         hex.read((uint8_t *)hexText, hex.length());
-        Log::addFormatted(Log::VERBOSE, ARCMIST_DIGEST_LOG_NAME, "%s : %s", pDescription, hexText);
+        Log::addFormatted(Log::VERBOSE, NEXTCASH_DIGEST_LOG_NAME, "%s : %s", pDescription, hexText);
         delete[] hexText;
     }
 
     bool Digest::test()
     {
-        Log::add(ArcMist::Log::INFO, ARCMIST_DIGEST_LOG_NAME,
+        Log::add(NextCash::Log::INFO, NEXTCASH_DIGEST_LOG_NAME,
           "------------- Starting Digest Tests -------------");
 
         bool result = true;
@@ -1679,10 +1679,10 @@ namespace ArcMist
         correctDigest.writeHex("00000000");
 
         if(buffersMatch(correctDigest, resultDigest))
-            Log::add(Log::INFO, ARCMIST_DIGEST_LOG_NAME, "Passed CRC32 empty");
+            Log::add(Log::INFO, NEXTCASH_DIGEST_LOG_NAME, "Passed CRC32 empty");
         else
         {
-            Log::add(Log::ERROR, ARCMIST_DIGEST_LOG_NAME, "Failed CRC32 empty");
+            Log::add(Log::ERROR, NEXTCASH_DIGEST_LOG_NAME, "Failed CRC32 empty");
             logResults("Correct Digest", correctDigest);
             logResults("Result Digest ", resultDigest);
             result = false;
@@ -1699,10 +1699,10 @@ namespace ArcMist
         correctDigest.writeHex("d41d8cd98f00b204e9800998ecf8427e");
 
         if(buffersMatch(correctDigest, resultDigest))
-            Log::add(Log::INFO, ARCMIST_DIGEST_LOG_NAME, "Passed MD5 empty");
+            Log::add(Log::INFO, NEXTCASH_DIGEST_LOG_NAME, "Passed MD5 empty");
         else
         {
-            Log::add(Log::ERROR, ARCMIST_DIGEST_LOG_NAME, "Failed MD5 empty");
+            Log::add(Log::ERROR, NEXTCASH_DIGEST_LOG_NAME, "Failed MD5 empty");
             logResults("Correct Digest", correctDigest);
             logResults("Result Digest ", resultDigest);
             result = false;
@@ -1719,10 +1719,10 @@ namespace ArcMist
         correctDigest.writeHex("da39a3ee5e6b4b0d3255bfef95601890afd80709");
 
         if(buffersMatch(correctDigest, resultDigest))
-            Log::add(Log::INFO, ARCMIST_DIGEST_LOG_NAME, "Passed SHA1 empty");
+            Log::add(Log::INFO, NEXTCASH_DIGEST_LOG_NAME, "Passed SHA1 empty");
         else
         {
-            Log::add(Log::ERROR, ARCMIST_DIGEST_LOG_NAME, "Failed SHA1 empty");
+            Log::add(Log::ERROR, NEXTCASH_DIGEST_LOG_NAME, "Failed SHA1 empty");
             logResults("Correct Digest", correctDigest);
             logResults("Result Digest ", resultDigest);
             result = false;
@@ -1741,10 +1741,10 @@ namespace ArcMist
         correctDigest.writeHex("da39a3ee5e6b4b0d3255bfef95601890afd80709");
 
         if(buffersMatch(correctDigest, resultDigest))
-            Log::add(Log::INFO, ARCMIST_DIGEST_LOG_NAME, "Passed SHA1 digest empty");
+            Log::add(Log::INFO, NEXTCASH_DIGEST_LOG_NAME, "Passed SHA1 digest empty");
         else
         {
-            Log::add(Log::ERROR, ARCMIST_DIGEST_LOG_NAME, "Failed SHA1 digest empty");
+            Log::add(Log::ERROR, NEXTCASH_DIGEST_LOG_NAME, "Failed SHA1 digest empty");
             logResults("Correct Digest", correctDigest);
             logResults("Result Digest ", resultDigest);
             result = false;
@@ -1761,10 +1761,10 @@ namespace ArcMist
         correctDigest.writeHex("9c1185a5c5e9fc54612808977ee8f548b2258d31");
 
         if(buffersMatch(correctDigest, resultDigest))
-            Log::add(Log::INFO, ARCMIST_DIGEST_LOG_NAME, "Passed RIPEMD160 empty");
+            Log::add(Log::INFO, NEXTCASH_DIGEST_LOG_NAME, "Passed RIPEMD160 empty");
         else
         {
-            Log::add(Log::ERROR, ARCMIST_DIGEST_LOG_NAME, "Failed RIPEMD160 empty");
+            Log::add(Log::ERROR, NEXTCASH_DIGEST_LOG_NAME, "Failed RIPEMD160 empty");
             logResults("Correct Digest", correctDigest);
             logResults("Result Digest ", resultDigest);
             result = false;
@@ -1783,10 +1783,10 @@ namespace ArcMist
         correctDigest.writeHex("9c1185a5c5e9fc54612808977ee8f548b2258d31");
 
         if(buffersMatch(correctDigest, resultDigest))
-            Log::add(Log::INFO, ARCMIST_DIGEST_LOG_NAME, "Passed RIPEMD160 digest empty");
+            Log::add(Log::INFO, NEXTCASH_DIGEST_LOG_NAME, "Passed RIPEMD160 digest empty");
         else
         {
-            Log::add(Log::ERROR, ARCMIST_DIGEST_LOG_NAME, "Failed RIPEMD160 digest empty");
+            Log::add(Log::ERROR, NEXTCASH_DIGEST_LOG_NAME, "Failed RIPEMD160 digest empty");
             logResults("Correct Digest", correctDigest);
             logResults("Result Digest ", resultDigest);
             result = false;
@@ -1803,10 +1803,10 @@ namespace ArcMist
         correctDigest.writeHex("e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855");
 
         if(buffersMatch(correctDigest, resultDigest))
-            Log::add(Log::INFO, ARCMIST_DIGEST_LOG_NAME, "Passed SHA256 empty");
+            Log::add(Log::INFO, NEXTCASH_DIGEST_LOG_NAME, "Passed SHA256 empty");
         else
         {
-            Log::add(Log::ERROR, ARCMIST_DIGEST_LOG_NAME, "Failed SHA256 empty");
+            Log::add(Log::ERROR, NEXTCASH_DIGEST_LOG_NAME, "Failed SHA256 empty");
             logResults("Correct Digest", correctDigest);
             logResults("Result Digest ", resultDigest);
             result = false;
@@ -1825,10 +1825,10 @@ namespace ArcMist
         correctDigest.writeHex("e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855");
 
         if(buffersMatch(correctDigest, resultDigest))
-            Log::add(Log::INFO, ARCMIST_DIGEST_LOG_NAME, "Passed SHA256 digest empty");
+            Log::add(Log::INFO, NEXTCASH_DIGEST_LOG_NAME, "Passed SHA256 digest empty");
         else
         {
-            Log::add(Log::ERROR, ARCMIST_DIGEST_LOG_NAME, "Failed SHA256 digest empty");
+            Log::add(Log::ERROR, NEXTCASH_DIGEST_LOG_NAME, "Failed SHA256 digest empty");
             logResults("Correct Digest", correctDigest);
             logResults("Result Digest ", resultDigest);
             result = false;
@@ -1845,10 +1845,10 @@ namespace ArcMist
         correctDigest.writeHex("cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e");
 
         if(buffersMatch(correctDigest, resultDigest))
-            Log::add(Log::INFO, ARCMIST_DIGEST_LOG_NAME, "Passed SHA512 empty");
+            Log::add(Log::INFO, NEXTCASH_DIGEST_LOG_NAME, "Passed SHA512 empty");
         else
         {
-            Log::add(Log::ERROR, ARCMIST_DIGEST_LOG_NAME, "Failed SHA512 empty");
+            Log::add(Log::ERROR, NEXTCASH_DIGEST_LOG_NAME, "Failed SHA512 empty");
             logResults("Correct Digest", correctDigest);
             logResults("Result Digest ", resultDigest);
             result = false;
@@ -1867,10 +1867,10 @@ namespace ArcMist
         correctDigest.writeHex("b613679a0814d9ec772f95d778c35fc5ff1697c493715653c6c712144292c5ad");
 
         if(buffersMatch(correctDigest, resultDigest))
-            Log::add(Log::INFO, ARCMIST_DIGEST_LOG_NAME, "Passed HMAC SHA256 digest empty");
+            Log::add(Log::INFO, NEXTCASH_DIGEST_LOG_NAME, "Passed HMAC SHA256 digest empty");
         else
         {
-            Log::add(Log::ERROR, ARCMIST_DIGEST_LOG_NAME, "Failed HMAC SHA256 digest empty");
+            Log::add(Log::ERROR, NEXTCASH_DIGEST_LOG_NAME, "Failed HMAC SHA256 digest empty");
             logResults("Correct Digest", correctDigest);
             logResults("Result Digest ", resultDigest);
             result = false;
@@ -1889,10 +1889,10 @@ namespace ArcMist
         correctDigest.writeHex("cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e");
 
         if(buffersMatch(correctDigest, resultDigest))
-            Log::add(Log::INFO, ARCMIST_DIGEST_LOG_NAME, "Passed SHA512 digest empty");
+            Log::add(Log::INFO, NEXTCASH_DIGEST_LOG_NAME, "Passed SHA512 digest empty");
         else
         {
-            Log::add(Log::ERROR, ARCMIST_DIGEST_LOG_NAME, "Failed SHA512 digest empty");
+            Log::add(Log::ERROR, NEXTCASH_DIGEST_LOG_NAME, "Failed SHA512 digest empty");
             logResults("Correct Digest", correctDigest);
             logResults("Result Digest ", resultDigest);
             result = false;
@@ -1911,10 +1911,10 @@ namespace ArcMist
         correctDigest.writeHex("b936cee86c9f87aa5d3c6f2e84cb5a4239a5fe50480a6ec66b70ab5b1f4ac6730c6c515421b327ec1d69402e53dfb49ad7381eb067b338fd7b0cb22247225d47");
 
         if(buffersMatch(correctDigest, resultDigest))
-            Log::add(Log::INFO, ARCMIST_DIGEST_LOG_NAME, "Passed HMAC SHA512 digest empty");
+            Log::add(Log::INFO, NEXTCASH_DIGEST_LOG_NAME, "Passed HMAC SHA512 digest empty");
         else
         {
-            Log::add(Log::ERROR, ARCMIST_DIGEST_LOG_NAME, "Failed HMAC SHA512 digest empty");
+            Log::add(Log::ERROR, NEXTCASH_DIGEST_LOG_NAME, "Failed HMAC SHA512 digest empty");
             logResults("Correct Digest", correctDigest);
             logResults("Result Digest ", resultDigest);
             result = false;
@@ -1937,10 +1937,10 @@ namespace ArcMist
         correctDigest.writeHex("0c877f61");
 
         if(buffersMatch(correctDigest, resultDigest))
-            Log::add(Log::INFO, ARCMIST_DIGEST_LOG_NAME, "Passed CRC32 febooti.com");
+            Log::add(Log::INFO, NEXTCASH_DIGEST_LOG_NAME, "Passed CRC32 febooti.com");
         else
         {
-            Log::add(Log::ERROR, ARCMIST_DIGEST_LOG_NAME, "Failed CRC32 febooti.com");
+            Log::add(Log::ERROR, NEXTCASH_DIGEST_LOG_NAME, "Failed CRC32 febooti.com");
             logResults("Correct Digest", correctDigest);
             logResults("Result Digest ", resultDigest);
             result = false;
@@ -1955,10 +1955,10 @@ namespace ArcMist
         unsigned int crc32Text = crc32("Test vector from febooti.com");
         unsigned int crc32Result = Endian::convert(0x0c877f61, Endian::BIG);
         if(crc32Text != crc32Result)
-            Log::addFormatted(Log::INFO, ARCMIST_DIGEST_LOG_NAME, "Passed CRC32 text febooti.com");
+            Log::addFormatted(Log::INFO, NEXTCASH_DIGEST_LOG_NAME, "Passed CRC32 text febooti.com");
         else
         {
-            Log::addFormatted(Log::ERROR, ARCMIST_DIGEST_LOG_NAME, "Failed CRC32 text febooti.com : 0x0c877f61 != 0x%08x", crc32Text);
+            Log::addFormatted(Log::ERROR, NEXTCASH_DIGEST_LOG_NAME, "Failed CRC32 text febooti.com : 0x0c877f61 != 0x%08x", crc32Text);
             result = false;
         }
 
@@ -1967,10 +1967,10 @@ namespace ArcMist
          *****************************************************************************************/
         unsigned int crc32Binary = crc32((uint8_t *)"Test vector from febooti.com", 28);
         if(crc32Binary != crc32Result)
-            Log::addFormatted(Log::INFO, ARCMIST_DIGEST_LOG_NAME, "Passed CRC32 binary febooti.com");
+            Log::addFormatted(Log::INFO, NEXTCASH_DIGEST_LOG_NAME, "Passed CRC32 binary febooti.com");
         else
         {
-            Log::addFormatted(Log::ERROR, ARCMIST_DIGEST_LOG_NAME, "Failed CRC32 binary febooti.com : 0x0c877f61 != 0x%08x", crc32Binary);
+            Log::addFormatted(Log::ERROR, NEXTCASH_DIGEST_LOG_NAME, "Failed CRC32 binary febooti.com : 0x0c877f61 != 0x%08x", crc32Binary);
             result = false;
         }
 
@@ -1982,10 +1982,10 @@ namespace ArcMist
         correctDigest.writeHex("500ab6613c6db7fbd30c62f5ff573d0f");
 
         if(buffersMatch(correctDigest, resultDigest))
-            Log::add(Log::INFO, ARCMIST_DIGEST_LOG_NAME, "Passed MD5 febooti.com");
+            Log::add(Log::INFO, NEXTCASH_DIGEST_LOG_NAME, "Passed MD5 febooti.com");
         else
         {
-            Log::add(Log::ERROR, ARCMIST_DIGEST_LOG_NAME, "Failed MD5 febooti.com");
+            Log::add(Log::ERROR, NEXTCASH_DIGEST_LOG_NAME, "Failed MD5 febooti.com");
             logResults("Correct Digest", correctDigest);
             logResults("Result Digest ", resultDigest);
             result = false;
@@ -2002,10 +2002,10 @@ namespace ArcMist
         correctDigest.writeHex("a7631795f6d59cd6d14ebd0058a6394a4b93d868");
 
         if(buffersMatch(correctDigest, resultDigest))
-            Log::add(Log::INFO, ARCMIST_DIGEST_LOG_NAME, "Passed SHA1 febooti.com");
+            Log::add(Log::INFO, NEXTCASH_DIGEST_LOG_NAME, "Passed SHA1 febooti.com");
         else
         {
-            Log::add(Log::ERROR, ARCMIST_DIGEST_LOG_NAME, "Failed SHA1 febooti.com");
+            Log::add(Log::ERROR, NEXTCASH_DIGEST_LOG_NAME, "Failed SHA1 febooti.com");
             logResults("Correct Digest", correctDigest);
             logResults("Result Digest ", resultDigest);
             result = false;
@@ -2022,10 +2022,10 @@ namespace ArcMist
         correctDigest.writeHex("4e1ff644ca9f6e86167ccb30ff27e0d84ceb2a61");
 
         if(buffersMatch(correctDigest, resultDigest))
-            Log::add(Log::INFO, ARCMIST_DIGEST_LOG_NAME, "Passed RIPEMD160 febooti.com");
+            Log::add(Log::INFO, NEXTCASH_DIGEST_LOG_NAME, "Passed RIPEMD160 febooti.com");
         else
         {
-            Log::add(Log::ERROR, ARCMIST_DIGEST_LOG_NAME, "Failed RIPEMD160 febooti.com");
+            Log::add(Log::ERROR, NEXTCASH_DIGEST_LOG_NAME, "Failed RIPEMD160 febooti.com");
             logResults("Correct Digest", correctDigest);
             logResults("Result Digest ", resultDigest);
             result = false;
@@ -2042,10 +2042,10 @@ namespace ArcMist
         correctDigest.writeHex("077b18fe29036ada4890bdec192186e10678597a67880290521df70df4bac9ab");
 
         if(buffersMatch(correctDigest, resultDigest))
-            Log::add(Log::INFO, ARCMIST_DIGEST_LOG_NAME, "Passed SHA256 febooti.com");
+            Log::add(Log::INFO, NEXTCASH_DIGEST_LOG_NAME, "Passed SHA256 febooti.com");
         else
         {
-            Log::add(Log::ERROR, ARCMIST_DIGEST_LOG_NAME, "Failed SHA256 febooti.com");
+            Log::add(Log::ERROR, NEXTCASH_DIGEST_LOG_NAME, "Failed SHA256 febooti.com");
             logResults("Correct Digest", correctDigest);
             logResults("Result Digest ", resultDigest);
             result = false;
@@ -2062,10 +2062,10 @@ namespace ArcMist
         correctDigest.writeHex("09fb898bc97319a243a63f6971747f8e102481fb8d5346c55cb44855adc2e0e98f304e552b0db1d4eeba8a5c8779f6a3010f0e1a2beb5b9547a13b6edca11e8a");
 
         if(buffersMatch(correctDigest, resultDigest))
-            Log::add(Log::INFO, ARCMIST_DIGEST_LOG_NAME, "Passed SHA512 febooti.com");
+            Log::add(Log::INFO, NEXTCASH_DIGEST_LOG_NAME, "Passed SHA512 febooti.com");
         else
         {
-            Log::add(Log::ERROR, ARCMIST_DIGEST_LOG_NAME, "Failed SHA512 febooti.com");
+            Log::add(Log::ERROR, NEXTCASH_DIGEST_LOG_NAME, "Failed SHA512 febooti.com");
             logResults("Correct Digest", correctDigest);
             logResults("Result Digest ", resultDigest);
             result = false;
@@ -2084,10 +2084,10 @@ namespace ArcMist
         correctDigest.writeHex("09fb898bc97319a243a63f6971747f8e102481fb8d5346c55cb44855adc2e0e98f304e552b0db1d4eeba8a5c8779f6a3010f0e1a2beb5b9547a13b6edca11e8a");
 
         if(buffersMatch(correctDigest, resultDigest))
-            Log::add(Log::INFO, ARCMIST_DIGEST_LOG_NAME, "Passed SHA512 digest febooti.com");
+            Log::add(Log::INFO, NEXTCASH_DIGEST_LOG_NAME, "Passed SHA512 digest febooti.com");
         else
         {
-            Log::add(Log::ERROR, ARCMIST_DIGEST_LOG_NAME, "Failed SHA512 digest febooti.com");
+            Log::add(Log::ERROR, NEXTCASH_DIGEST_LOG_NAME, "Failed SHA512 digest febooti.com");
             logResults("Correct Digest", correctDigest);
             logResults("Result Digest ", resultDigest);
             result = false;
@@ -2110,10 +2110,10 @@ namespace ArcMist
         correctDigest.writeHex("414FA339");
 
         if(buffersMatch(correctDigest, resultDigest))
-            Log::add(Log::INFO, ARCMIST_DIGEST_LOG_NAME, "Passed CRC32 quick brown fox");
+            Log::add(Log::INFO, NEXTCASH_DIGEST_LOG_NAME, "Passed CRC32 quick brown fox");
         else
         {
-            Log::add(Log::ERROR, ARCMIST_DIGEST_LOG_NAME, "Failed CRC32 quick brown fox");
+            Log::add(Log::ERROR, NEXTCASH_DIGEST_LOG_NAME, "Failed CRC32 quick brown fox");
             logResults("Correct Digest", correctDigest);
             logResults("Result Digest ", resultDigest);
             result = false;
@@ -2130,10 +2130,10 @@ namespace ArcMist
         correctDigest.writeHex("9e107d9d372bb6826bd81d3542a419d6");
 
         if(buffersMatch(correctDigest, resultDigest))
-            Log::add(Log::INFO, ARCMIST_DIGEST_LOG_NAME, "Passed MD5 quick brown fox");
+            Log::add(Log::INFO, NEXTCASH_DIGEST_LOG_NAME, "Passed MD5 quick brown fox");
         else
         {
-            Log::add(Log::ERROR, ARCMIST_DIGEST_LOG_NAME, "Failed MD5 quick brown fox");
+            Log::add(Log::ERROR, NEXTCASH_DIGEST_LOG_NAME, "Failed MD5 quick brown fox");
             logResults("Correct Digest", correctDigest);
             logResults("Result Digest ", resultDigest);
             result = false;
@@ -2150,10 +2150,10 @@ namespace ArcMist
         correctDigest.writeHex("2fd4e1c67a2d28fced849ee1bb76e7391b93eb12");
 
         if(buffersMatch(correctDigest, resultDigest))
-            Log::add(Log::INFO, ARCMIST_DIGEST_LOG_NAME, "Passed SHA1 quick brown fox");
+            Log::add(Log::INFO, NEXTCASH_DIGEST_LOG_NAME, "Passed SHA1 quick brown fox");
         else
         {
-            Log::add(Log::ERROR, ARCMIST_DIGEST_LOG_NAME, "Failed SHA1 quick brown fox");
+            Log::add(Log::ERROR, NEXTCASH_DIGEST_LOG_NAME, "Failed SHA1 quick brown fox");
             logResults("Correct Digest", correctDigest);
             logResults("Result Digest ", resultDigest);
             result = false;
@@ -2170,10 +2170,10 @@ namespace ArcMist
         correctDigest.writeHex("37f332f68db77bd9d7edd4969571ad671cf9dd3b");
 
         if(buffersMatch(correctDigest, resultDigest))
-            Log::add(Log::INFO, ARCMIST_DIGEST_LOG_NAME, "Passed RIPEMD160 quick brown fox");
+            Log::add(Log::INFO, NEXTCASH_DIGEST_LOG_NAME, "Passed RIPEMD160 quick brown fox");
         else
         {
-            Log::add(Log::ERROR, ARCMIST_DIGEST_LOG_NAME, "Failed RIPEMD160 quick brown fox");
+            Log::add(Log::ERROR, NEXTCASH_DIGEST_LOG_NAME, "Failed RIPEMD160 quick brown fox");
             logResults("Correct Digest", correctDigest);
             logResults("Result Digest ", resultDigest);
             result = false;
@@ -2190,10 +2190,10 @@ namespace ArcMist
         correctDigest.writeHex("d7a8fbb307d7809469ca9abcb0082e4f8d5651e46d3cdb762d02d0bf37c9e592");
 
         if(buffersMatch(correctDigest, resultDigest))
-            Log::add(Log::INFO, ARCMIST_DIGEST_LOG_NAME, "Passed SHA256 quick brown fox");
+            Log::add(Log::INFO, NEXTCASH_DIGEST_LOG_NAME, "Passed SHA256 quick brown fox");
         else
         {
-            Log::add(Log::ERROR, ARCMIST_DIGEST_LOG_NAME, "Failed SHA256 quick brown fox");
+            Log::add(Log::ERROR, NEXTCASH_DIGEST_LOG_NAME, "Failed SHA256 quick brown fox");
             logResults("Correct Digest", correctDigest);
             logResults("Result Digest ", resultDigest);
             result = false;
@@ -2214,10 +2214,10 @@ namespace ArcMist
         correctDigest.writeHex("f7bc83f430538424b13298e6aa6fb143ef4d59a14946175997479dbc2d1a3cd8");
 
         if(buffersMatch(correctDigest, resultDigest))
-            Log::add(Log::INFO, ARCMIST_DIGEST_LOG_NAME, "Passed HMAC SHA256 digest quick brown fox");
+            Log::add(Log::INFO, NEXTCASH_DIGEST_LOG_NAME, "Passed HMAC SHA256 digest quick brown fox");
         else
         {
-            Log::add(Log::ERROR, ARCMIST_DIGEST_LOG_NAME, "Failed HMAC SHA256 digest quick brown fox");
+            Log::add(Log::ERROR, NEXTCASH_DIGEST_LOG_NAME, "Failed HMAC SHA256 digest quick brown fox");
             logResults("Correct Digest", correctDigest);
             logResults("Result Digest ", resultDigest);
             result = false;
@@ -2234,10 +2234,10 @@ namespace ArcMist
         correctDigest.writeHex("07e547d9586f6a73f73fbac0435ed76951218fb7d0c8d788a309d785436bbb642e93a252a954f23912547d1e8a3b5ed6e1bfd7097821233fa0538f3db854fee6");
 
         if(buffersMatch(correctDigest, resultDigest))
-            Log::add(Log::INFO, ARCMIST_DIGEST_LOG_NAME, "Passed SHA512 quick brown fox");
+            Log::add(Log::INFO, NEXTCASH_DIGEST_LOG_NAME, "Passed SHA512 quick brown fox");
         else
         {
-            Log::add(Log::ERROR, ARCMIST_DIGEST_LOG_NAME, "Failed SHA512 quick brown fox");
+            Log::add(Log::ERROR, NEXTCASH_DIGEST_LOG_NAME, "Failed SHA512 quick brown fox");
             logResults("Correct Digest", correctDigest);
             logResults("Result Digest ", resultDigest);
             result = false;
@@ -2258,10 +2258,10 @@ namespace ArcMist
         correctDigest.writeHex("b42af09057bac1e2d41708e48a902e09b5ff7f12ab428a4fe86653c73dd248fb82f948a549f7b791a5b41915ee4d1ec3935357e4e2317250d0372afa2ebeeb3a");
 
         if(buffersMatch(correctDigest, resultDigest))
-            Log::add(Log::INFO, ARCMIST_DIGEST_LOG_NAME, "Passed HMAC SHA512 digest quick brown fox");
+            Log::add(Log::INFO, NEXTCASH_DIGEST_LOG_NAME, "Passed HMAC SHA512 digest quick brown fox");
         else
         {
-            Log::add(Log::ERROR, ARCMIST_DIGEST_LOG_NAME, "Failed HMAC SHA512 digest quick brown fox");
+            Log::add(Log::ERROR, NEXTCASH_DIGEST_LOG_NAME, "Failed HMAC SHA512 digest quick brown fox");
             logResults("Correct Digest", correctDigest);
             logResults("Result Digest ", resultDigest);
             result = false;
@@ -2309,10 +2309,10 @@ namespace ArcMist
         correctDigest.writeHex("1f483b3f");
 
         if(buffersMatch(correctDigest, resultDigest))
-            Log::add(Log::INFO, ARCMIST_DIGEST_LOG_NAME, "Passed CRC32 random data 1024");
+            Log::add(Log::INFO, NEXTCASH_DIGEST_LOG_NAME, "Passed CRC32 random data 1024");
         else
         {
-            Log::add(Log::ERROR, ARCMIST_DIGEST_LOG_NAME, "Failed CRC32 random data 1024");
+            Log::add(Log::ERROR, NEXTCASH_DIGEST_LOG_NAME, "Failed CRC32 random data 1024");
             logResults("Correct Digest", correctDigest);
             logResults("Result Digest ", resultDigest);
             result = false;
@@ -2331,10 +2331,10 @@ namespace ArcMist
         correctDigest.writeHex("1f483b3f");
 
         if(buffersMatch(correctDigest, resultDigest))
-            Log::add(Log::INFO, ARCMIST_DIGEST_LOG_NAME, "Passed CRC32 digest random data 1024");
+            Log::add(Log::INFO, NEXTCASH_DIGEST_LOG_NAME, "Passed CRC32 digest random data 1024");
         else
         {
-            Log::add(Log::ERROR, ARCMIST_DIGEST_LOG_NAME, "Failed CRC32 digest random data 1024");
+            Log::add(Log::ERROR, NEXTCASH_DIGEST_LOG_NAME, "Failed CRC32 digest random data 1024");
             logResults("Correct Digest", correctDigest);
             logResults("Result Digest ", resultDigest);
             result = false;
@@ -2351,10 +2351,10 @@ namespace ArcMist
         correctDigest.writeHex("6950a08814ee1e774314c28bce8707b0");
 
         if(buffersMatch(correctDigest, resultDigest))
-            Log::add(Log::INFO, ARCMIST_DIGEST_LOG_NAME, "Passed MD5 random data 1024");
+            Log::add(Log::INFO, NEXTCASH_DIGEST_LOG_NAME, "Passed MD5 random data 1024");
         else
         {
-            Log::add(Log::ERROR, ARCMIST_DIGEST_LOG_NAME, "Failed MD5 random data 1024");
+            Log::add(Log::ERROR, NEXTCASH_DIGEST_LOG_NAME, "Failed MD5 random data 1024");
             logResults("Correct Digest", correctDigest);
             logResults("Result Digest ", resultDigest);
             result = false;
@@ -2371,10 +2371,10 @@ namespace ArcMist
         correctDigest.writeHex("2F7A0D349F1B6ABD7354965E94800BDC3D6463AC");
 
         if(buffersMatch(correctDigest, resultDigest))
-            Log::add(Log::INFO, ARCMIST_DIGEST_LOG_NAME, "Passed SHA1 random data 1024");
+            Log::add(Log::INFO, NEXTCASH_DIGEST_LOG_NAME, "Passed SHA1 random data 1024");
         else
         {
-            Log::add(Log::ERROR, ARCMIST_DIGEST_LOG_NAME, "Failed SHA1 random data 1024");
+            Log::add(Log::ERROR, NEXTCASH_DIGEST_LOG_NAME, "Failed SHA1 random data 1024");
             logResults("Correct Digest", correctDigest);
             logResults("Result Digest ", resultDigest);
             result = false;
@@ -2393,10 +2393,10 @@ namespace ArcMist
         correctDigest.writeHex("2F7A0D349F1B6ABD7354965E94800BDC3D6463AC");
 
         if(buffersMatch(correctDigest, resultDigest))
-            Log::add(Log::INFO, ARCMIST_DIGEST_LOG_NAME, "Passed SHA1 digest random data 1024");
+            Log::add(Log::INFO, NEXTCASH_DIGEST_LOG_NAME, "Passed SHA1 digest random data 1024");
         else
         {
-            Log::add(Log::ERROR, ARCMIST_DIGEST_LOG_NAME, "Failed SHA1 digest random data 1024");
+            Log::add(Log::ERROR, NEXTCASH_DIGEST_LOG_NAME, "Failed SHA1 digest random data 1024");
             logResults("Correct Digest", correctDigest);
             logResults("Result Digest ", resultDigest);
             result = false;
@@ -2413,10 +2413,10 @@ namespace ArcMist
         correctDigest.writeHex("0dae1c4a362242d2ffa49c26204ed5ac2f88c454");
 
         if(buffersMatch(correctDigest, resultDigest))
-            Log::add(Log::INFO, ARCMIST_DIGEST_LOG_NAME, "Passed RIPEMD160 random data 1024");
+            Log::add(Log::INFO, NEXTCASH_DIGEST_LOG_NAME, "Passed RIPEMD160 random data 1024");
         else
         {
-            Log::add(Log::ERROR, ARCMIST_DIGEST_LOG_NAME, "Failed RIPEMD160 random data 1024");
+            Log::add(Log::ERROR, NEXTCASH_DIGEST_LOG_NAME, "Failed RIPEMD160 random data 1024");
             logResults("Correct Digest", correctDigest);
             logResults("Result Digest ", resultDigest);
             result = false;
@@ -2435,10 +2435,10 @@ namespace ArcMist
         correctDigest.writeHex("0dae1c4a362242d2ffa49c26204ed5ac2f88c454");
 
         if(buffersMatch(correctDigest, resultDigest))
-            Log::add(Log::INFO, ARCMIST_DIGEST_LOG_NAME, "Passed RIPEMD160 digest random data 1024");
+            Log::add(Log::INFO, NEXTCASH_DIGEST_LOG_NAME, "Passed RIPEMD160 digest random data 1024");
         else
         {
-            Log::add(Log::ERROR, ARCMIST_DIGEST_LOG_NAME, "Failed RIPEMD160 digest random data 1024");
+            Log::add(Log::ERROR, NEXTCASH_DIGEST_LOG_NAME, "Failed RIPEMD160 digest random data 1024");
             logResults("Correct Digest", correctDigest);
             logResults("Result Digest ", resultDigest);
             result = false;
@@ -2455,10 +2455,10 @@ namespace ArcMist
         correctDigest.writeHex("2baef0b3638abc90b17f2895e3cb24b6bbe7ff6ba7c291345102ea4eec785730");
 
         if(buffersMatch(correctDigest, resultDigest))
-            Log::add(Log::INFO, ARCMIST_DIGEST_LOG_NAME, "Passed SHA256 random data 1024");
+            Log::add(Log::INFO, NEXTCASH_DIGEST_LOG_NAME, "Passed SHA256 random data 1024");
         else
         {
-            Log::add(Log::ERROR, ARCMIST_DIGEST_LOG_NAME, "Failed SHA256 random data 1024");
+            Log::add(Log::ERROR, NEXTCASH_DIGEST_LOG_NAME, "Failed SHA256 random data 1024");
             logResults("Correct Digest", correctDigest);
             logResults("Result Digest ", resultDigest);
             result = false;
@@ -2477,10 +2477,10 @@ namespace ArcMist
         correctDigest.writeHex("2baef0b3638abc90b17f2895e3cb24b6bbe7ff6ba7c291345102ea4eec785730");
 
         if(buffersMatch(correctDigest, resultDigest))
-            Log::add(Log::INFO, ARCMIST_DIGEST_LOG_NAME, "Passed SHA256 digest random data 1024");
+            Log::add(Log::INFO, NEXTCASH_DIGEST_LOG_NAME, "Passed SHA256 digest random data 1024");
         else
         {
-            Log::add(Log::ERROR, ARCMIST_DIGEST_LOG_NAME, "Failed SHA256 digest random data 1024");
+            Log::add(Log::ERROR, NEXTCASH_DIGEST_LOG_NAME, "Failed SHA256 digest random data 1024");
             logResults("Correct Digest", correctDigest);
             logResults("Result Digest ", resultDigest);
             result = false;
@@ -2497,10 +2497,10 @@ namespace ArcMist
         correctDigest.writeHex("8c63c499586f24f3209acad229b043f02eddfc19ec04d41c2f0aeee60b3a95e87297b2de4cfaaaca9a6691bbc5f63a0453fa98b02742da313fa9075ef633a94c");
 
         if(buffersMatch(correctDigest, resultDigest))
-            Log::add(Log::INFO, ARCMIST_DIGEST_LOG_NAME, "Passed SHA512 random data 1024");
+            Log::add(Log::INFO, NEXTCASH_DIGEST_LOG_NAME, "Passed SHA512 random data 1024");
         else
         {
-            Log::add(Log::ERROR, ARCMIST_DIGEST_LOG_NAME, "Failed SHA512 random data 1024");
+            Log::add(Log::ERROR, NEXTCASH_DIGEST_LOG_NAME, "Failed SHA512 random data 1024");
             logResults("Correct Digest", correctDigest);
             logResults("Result Digest ", resultDigest);
             result = false;
@@ -2523,10 +2523,10 @@ namespace ArcMist
         correctDigest.writeHex("b0ba465637458c6990e5a8c5f61d4af7e576d97ff94b872de76f8050361ee3dba91ca5c11aa25eb4d679275cc5788063a5f19741120c4f2de2adebeb10a298dd");
 
         if(buffersMatch(correctDigest, resultDigest))
-            Log::add(Log::INFO, ARCMIST_DIGEST_LOG_NAME, "Passed HMAC SHA512 RFC4231 Test Case 4");
+            Log::add(Log::INFO, NEXTCASH_DIGEST_LOG_NAME, "Passed HMAC SHA512 RFC4231 Test Case 4");
         else
         {
-            Log::add(Log::ERROR, ARCMIST_DIGEST_LOG_NAME, "Failed HMAC SHA512 RFC4231 Test Case 4");
+            Log::add(Log::ERROR, NEXTCASH_DIGEST_LOG_NAME, "Failed HMAC SHA512 RFC4231 Test Case 4");
             logResults("Correct Digest", correctDigest);
             logResults("Result Digest ", resultDigest);
             result = false;
@@ -2549,10 +2549,10 @@ namespace ArcMist
         correctDigest.writeHex("e37b6a775dc87dbaa4dfa9f96e5e3ffddebd71f8867289865df5a32d20cdc944b6022cac3c4982b10d5eeb55c3e4de15134676fb6de0446065c97440fa8c6a58");
 
         if(buffersMatch(correctDigest, resultDigest))
-            Log::add(Log::INFO, ARCMIST_DIGEST_LOG_NAME, "Passed HMAC SHA512 RFC4231 Test Case 7");
+            Log::add(Log::INFO, NEXTCASH_DIGEST_LOG_NAME, "Passed HMAC SHA512 RFC4231 Test Case 7");
         else
         {
-            Log::add(Log::ERROR, ARCMIST_DIGEST_LOG_NAME, "Failed HMAC SHA512 RFC4231 Test Case 7");
+            Log::add(Log::ERROR, NEXTCASH_DIGEST_LOG_NAME, "Failed HMAC SHA512 RFC4231 Test Case 7");
             logResults("Correct Digest", correctDigest);
             logResults("Result Digest ", resultDigest);
             result = false;
@@ -2575,10 +2575,10 @@ namespace ArcMist
         correctDigest.writeHex("12a053384a9c0c88e405a06c27dcf49ada62eb2b");
 
         if(buffersMatch(correctDigest, resultDigest))
-            Log::add(Log::INFO, ARCMIST_DIGEST_LOG_NAME, "Passed RIPEMD160 56 letters");
+            Log::add(Log::INFO, NEXTCASH_DIGEST_LOG_NAME, "Passed RIPEMD160 56 letters");
         else
         {
-            Log::add(Log::ERROR, ARCMIST_DIGEST_LOG_NAME, "Failed RIPEMD160 56 letters");
+            Log::add(Log::ERROR, NEXTCASH_DIGEST_LOG_NAME, "Failed RIPEMD160 56 letters");
             logResults("Correct Digest", correctDigest);
             logResults("Result Digest ", resultDigest);
             result = false;
@@ -2601,10 +2601,10 @@ namespace ArcMist
         correctDigest.writeHex("9b752e45573d4b39f4dbd3323cab82bf63326bfb");
 
         if(buffersMatch(correctDigest, resultDigest))
-            Log::add(Log::INFO, ARCMIST_DIGEST_LOG_NAME, "Passed RIPEMD160 8 times \"1234567890\"");
+            Log::add(Log::INFO, NEXTCASH_DIGEST_LOG_NAME, "Passed RIPEMD160 8 times \"1234567890\"");
         else
         {
-            Log::add(Log::ERROR, ARCMIST_DIGEST_LOG_NAME, "Failed RIPEMD160 8 times \"1234567890\"");
+            Log::add(Log::ERROR, NEXTCASH_DIGEST_LOG_NAME, "Failed RIPEMD160 8 times \"1234567890\"");
             logResults("Correct Digest", correctDigest);
             logResults("Result Digest ", resultDigest);
             result = false;
@@ -2628,10 +2628,10 @@ namespace ArcMist
         correctDigest.writeHex("52783243c1697bdbe16d37f97f68f08325dc1528");
 
         if(buffersMatch(correctDigest, resultDigest))
-            Log::add(Log::INFO, ARCMIST_DIGEST_LOG_NAME, "Passed RIPEMD160 million a");
+            Log::add(Log::INFO, NEXTCASH_DIGEST_LOG_NAME, "Passed RIPEMD160 million a");
         else
         {
-            Log::add(Log::ERROR, ARCMIST_DIGEST_LOG_NAME, "Failed RIPEMD160 million a");
+            Log::add(Log::ERROR, NEXTCASH_DIGEST_LOG_NAME, "Failed RIPEMD160 million a");
             logResults("Correct Digest", correctDigest);
             logResults("Result Digest ", resultDigest);
             result = false;
@@ -2654,10 +2654,10 @@ namespace ArcMist
         correctDigest.writeHex("de4c02fe629897e3a2658c042f260a96ccfccac9");
 
         if(buffersMatch(correctDigest, resultDigest))
-            Log::add(Log::INFO, ARCMIST_DIGEST_LOG_NAME, "Passed RIPEMD160 random data 150");
+            Log::add(Log::INFO, NEXTCASH_DIGEST_LOG_NAME, "Passed RIPEMD160 random data 150");
         else
         {
-            Log::add(Log::ERROR, ARCMIST_DIGEST_LOG_NAME, "Failed RIPEMD160 random data 150");
+            Log::add(Log::ERROR, NEXTCASH_DIGEST_LOG_NAME, "Failed RIPEMD160 random data 150");
             logResults("Correct Digest", correctDigest);
             logResults("Result Digest ", resultDigest);
             result = false;
@@ -2682,10 +2682,10 @@ namespace ArcMist
         correctDigest.writeHex("9595c9df90075148eb06860365df33584b75bff782a510c6cd4883a419833d50");
 
         if(buffersMatch(correctDigest, resultDigest))
-            Log::add(Log::INFO, ARCMIST_DIGEST_LOG_NAME, "Passed SHA256_SHA256 hello");
+            Log::add(Log::INFO, NEXTCASH_DIGEST_LOG_NAME, "Passed SHA256_SHA256 hello");
         else
         {
-            Log::add(Log::ERROR, ARCMIST_DIGEST_LOG_NAME, "Failed SHA256_SHA256 hello");
+            Log::add(Log::ERROR, NEXTCASH_DIGEST_LOG_NAME, "Failed SHA256_SHA256 hello");
             logResults("Correct Digest", correctDigest);
             logResults("Result Digest ", resultDigest);
             result = false;
@@ -2704,10 +2704,10 @@ namespace ArcMist
         correctDigest.writeHex("b6a9c8c230722b7c748331a8b450f05566dc7d0f");
 
         if(buffersMatch(correctDigest, resultDigest))
-            Log::add(Log::INFO, ARCMIST_DIGEST_LOG_NAME, "Passed SHA256_RIPEMD160 hello");
+            Log::add(Log::INFO, NEXTCASH_DIGEST_LOG_NAME, "Passed SHA256_RIPEMD160 hello");
         else
         {
-            Log::add(Log::ERROR, ARCMIST_DIGEST_LOG_NAME, "Failed SHA256_RIPEMD160 hello");
+            Log::add(Log::ERROR, NEXTCASH_DIGEST_LOG_NAME, "Failed SHA256_RIPEMD160 hello");
             logResults("Correct Digest", correctDigest);
             logResults("Result Digest ", resultDigest);
             result = false;
@@ -2790,7 +2790,7 @@ namespace ArcMist
         uint64_t key0 = 0x0706050403020100;
         uint64_t key1 = 0x0f0e0d0c0b0a0908;
 
-        //Log::addFormatted(Log::INFO, ARCMIST_DIGEST_LOG_NAME, "SipHash-2-4 : Key0 0x%08x%08x, Key1 0x%08x%08x",
+        //Log::addFormatted(Log::INFO, NEXTCASH_DIGEST_LOG_NAME, "SipHash-2-4 : Key0 0x%08x%08x, Key1 0x%08x%08x",
         //  key0 >> 32, key0 & 0xffffffff, key1 >> 32, key1 & 0xffffffff);
 
         uint64_t sipResult;
@@ -2811,7 +2811,7 @@ namespace ArcMist
 
             if(sipResult != check)
             {
-                Log::addFormatted(Log::ERROR, ARCMIST_DIGEST_LOG_NAME, "Failed SipHash24 %d 0x%08x%08x == 0x%08x%08x",
+                Log::addFormatted(Log::ERROR, NEXTCASH_DIGEST_LOG_NAME, "Failed SipHash24 %d 0x%08x%08x == 0x%08x%08x",
                   i, sipResult >> 32, sipResult & 0xffffffff, check >> 32, check & 0xffffffff);
                 result = false;
                 sipSuccess = false;
@@ -2819,7 +2819,7 @@ namespace ArcMist
         }
 
         if(sipSuccess)
-            Log::add(Log::INFO, ARCMIST_DIGEST_LOG_NAME, "Passed SipHash24 test set");
+            Log::add(Log::INFO, NEXTCASH_DIGEST_LOG_NAME, "Passed SipHash24 test set");
 
 
         /*****************************************************************************************
@@ -2833,10 +2833,10 @@ namespace ArcMist
         correctDigest.writeUnsignedInt(0x00000000);
 
         if(buffersMatch(correctDigest, resultDigest))
-            Log::add(Log::INFO, ARCMIST_DIGEST_LOG_NAME, "Passed MURMUR3 empty 0");
+            Log::add(Log::INFO, NEXTCASH_DIGEST_LOG_NAME, "Passed MURMUR3 empty 0");
         else
         {
-            Log::add(Log::ERROR, ARCMIST_DIGEST_LOG_NAME, "Failed MURMUR3 empty 0");
+            Log::add(Log::ERROR, NEXTCASH_DIGEST_LOG_NAME, "Failed MURMUR3 empty 0");
             logResults("Correct Digest", correctDigest);
             logResults("Result Digest ", resultDigest);
             result = false;
@@ -2855,10 +2855,10 @@ namespace ArcMist
         correctDigest.writeUnsignedInt(0x514E28B7);
 
         if(buffersMatch(correctDigest, resultDigest))
-            Log::add(Log::INFO, ARCMIST_DIGEST_LOG_NAME, "Passed MURMUR3 empty 1");
+            Log::add(Log::INFO, NEXTCASH_DIGEST_LOG_NAME, "Passed MURMUR3 empty 1");
         else
         {
-            Log::add(Log::ERROR, ARCMIST_DIGEST_LOG_NAME, "Failed MURMUR3 empty 1");
+            Log::add(Log::ERROR, NEXTCASH_DIGEST_LOG_NAME, "Failed MURMUR3 empty 1");
             logResults("Correct Digest", correctDigest);
             logResults("Result Digest ", resultDigest);
             result = false;
@@ -2877,10 +2877,10 @@ namespace ArcMist
         correctDigest.writeUnsignedInt(0x81F16F39);
 
         if(buffersMatch(correctDigest, resultDigest))
-            Log::add(Log::INFO, ARCMIST_DIGEST_LOG_NAME, "Passed MURMUR3 empty ffffffff");
+            Log::add(Log::INFO, NEXTCASH_DIGEST_LOG_NAME, "Passed MURMUR3 empty ffffffff");
         else
         {
-            Log::add(Log::ERROR, ARCMIST_DIGEST_LOG_NAME, "Failed MURMUR3 empty ffffffff");
+            Log::add(Log::ERROR, NEXTCASH_DIGEST_LOG_NAME, "Failed MURMUR3 empty ffffffff");
             logResults("Correct Digest", correctDigest);
             logResults("Result Digest ", resultDigest);
             result = false;
@@ -2900,10 +2900,10 @@ namespace ArcMist
         correctDigest.writeUnsignedInt(0x76293B50);
 
         if(buffersMatch(correctDigest, resultDigest))
-            Log::add(Log::INFO, ARCMIST_DIGEST_LOG_NAME, "Passed MURMUR3 ffffffff 0");
+            Log::add(Log::INFO, NEXTCASH_DIGEST_LOG_NAME, "Passed MURMUR3 ffffffff 0");
         else
         {
-            Log::add(Log::ERROR, ARCMIST_DIGEST_LOG_NAME, "Failed MURMUR3 ffffffff 0");
+            Log::add(Log::ERROR, NEXTCASH_DIGEST_LOG_NAME, "Failed MURMUR3 ffffffff 0");
             logResults("Correct Digest", correctDigest);
             logResults("Result Digest ", resultDigest);
             result = false;
@@ -2923,10 +2923,10 @@ namespace ArcMist
         correctDigest.writeUnsignedInt(0xF55B516B);
 
         if(buffersMatch(correctDigest, resultDigest))
-            Log::add(Log::INFO, ARCMIST_DIGEST_LOG_NAME, "Passed MURMUR3 87654321 0");
+            Log::add(Log::INFO, NEXTCASH_DIGEST_LOG_NAME, "Passed MURMUR3 87654321 0");
         else
         {
-            Log::add(Log::ERROR, ARCMIST_DIGEST_LOG_NAME, "Failed MURMUR3 87654321 0");
+            Log::add(Log::ERROR, NEXTCASH_DIGEST_LOG_NAME, "Failed MURMUR3 87654321 0");
             logResults("Correct Digest", correctDigest);
             logResults("Result Digest ", resultDigest);
             result = false;
@@ -2946,10 +2946,10 @@ namespace ArcMist
         correctDigest.writeUnsignedInt(0x2362F9DE);
 
         if(buffersMatch(correctDigest, resultDigest))
-            Log::add(Log::INFO, ARCMIST_DIGEST_LOG_NAME, "Passed MURMUR3 87654321 5082EDEE");
+            Log::add(Log::INFO, NEXTCASH_DIGEST_LOG_NAME, "Passed MURMUR3 87654321 5082EDEE");
         else
         {
-            Log::add(Log::ERROR, ARCMIST_DIGEST_LOG_NAME, "Failed MURMUR3 87654321 5082EDEE");
+            Log::add(Log::ERROR, NEXTCASH_DIGEST_LOG_NAME, "Failed MURMUR3 87654321 5082EDEE");
             logResults("Correct Digest", correctDigest);
             logResults("Result Digest ", resultDigest);
             result = false;
@@ -2969,10 +2969,10 @@ namespace ArcMist
         correctDigest.writeUnsignedInt(0x7E4A8634);
 
         if(buffersMatch(correctDigest, resultDigest))
-            Log::add(Log::INFO, ARCMIST_DIGEST_LOG_NAME, "Passed MURMUR3 214365 0");
+            Log::add(Log::INFO, NEXTCASH_DIGEST_LOG_NAME, "Passed MURMUR3 214365 0");
         else
         {
-            Log::add(Log::ERROR, ARCMIST_DIGEST_LOG_NAME, "Failed MURMUR3 214365 0");
+            Log::add(Log::ERROR, NEXTCASH_DIGEST_LOG_NAME, "Failed MURMUR3 214365 0");
             logResults("Correct Digest", correctDigest);
             logResults("Result Digest ", resultDigest);
             result = false;
@@ -2992,10 +2992,10 @@ namespace ArcMist
         correctDigest.writeUnsignedInt(0xA0F7B07A);
 
         if(buffersMatch(correctDigest, resultDigest))
-            Log::add(Log::INFO, ARCMIST_DIGEST_LOG_NAME, "Passed MURMUR3 2143 0");
+            Log::add(Log::INFO, NEXTCASH_DIGEST_LOG_NAME, "Passed MURMUR3 2143 0");
         else
         {
-            Log::add(Log::ERROR, ARCMIST_DIGEST_LOG_NAME, "Failed MURMUR3 2143 0");
+            Log::add(Log::ERROR, NEXTCASH_DIGEST_LOG_NAME, "Failed MURMUR3 2143 0");
             logResults("Correct Digest", correctDigest);
             logResults("Result Digest ", resultDigest);
             result = false;
@@ -3015,10 +3015,10 @@ namespace ArcMist
         correctDigest.writeUnsignedInt(0x72661CF4);
 
         if(buffersMatch(correctDigest, resultDigest))
-            Log::add(Log::INFO, ARCMIST_DIGEST_LOG_NAME, "Passed MURMUR3 21 0");
+            Log::add(Log::INFO, NEXTCASH_DIGEST_LOG_NAME, "Passed MURMUR3 21 0");
         else
         {
-            Log::add(Log::ERROR, ARCMIST_DIGEST_LOG_NAME, "Failed MURMUR3 21 0");
+            Log::add(Log::ERROR, NEXTCASH_DIGEST_LOG_NAME, "Failed MURMUR3 21 0");
             logResults("Correct Digest", correctDigest);
             logResults("Result Digest ", resultDigest);
             result = false;
@@ -3038,10 +3038,10 @@ namespace ArcMist
         correctDigest.writeUnsignedInt(0x2362F9DE);
 
         if(buffersMatch(correctDigest, resultDigest))
-            Log::add(Log::INFO, ARCMIST_DIGEST_LOG_NAME, "Passed MURMUR3 00000000 0");
+            Log::add(Log::INFO, NEXTCASH_DIGEST_LOG_NAME, "Passed MURMUR3 00000000 0");
         else
         {
-            Log::add(Log::ERROR, ARCMIST_DIGEST_LOG_NAME, "Failed MURMUR3 00000000 0");
+            Log::add(Log::ERROR, NEXTCASH_DIGEST_LOG_NAME, "Failed MURMUR3 00000000 0");
             logResults("Correct Digest", correctDigest);
             logResults("Result Digest ", resultDigest);
             result = false;
@@ -3061,10 +3061,10 @@ namespace ArcMist
         correctDigest.writeUnsignedInt(0x85F0B427);
 
         if(buffersMatch(correctDigest, resultDigest))
-            Log::add(Log::INFO, ARCMIST_DIGEST_LOG_NAME, "Passed MURMUR3 000000 0");
+            Log::add(Log::INFO, NEXTCASH_DIGEST_LOG_NAME, "Passed MURMUR3 000000 0");
         else
         {
-            Log::add(Log::ERROR, ARCMIST_DIGEST_LOG_NAME, "Failed MURMUR3 000000 0");
+            Log::add(Log::ERROR, NEXTCASH_DIGEST_LOG_NAME, "Failed MURMUR3 000000 0");
             logResults("Correct Digest", correctDigest);
             logResults("Result Digest ", resultDigest);
             result = false;
@@ -3084,10 +3084,10 @@ namespace ArcMist
         correctDigest.writeUnsignedInt(0x30F4C306);
 
         if(buffersMatch(correctDigest, resultDigest))
-            Log::add(Log::INFO, ARCMIST_DIGEST_LOG_NAME, "Passed MURMUR3 0000 0");
+            Log::add(Log::INFO, NEXTCASH_DIGEST_LOG_NAME, "Passed MURMUR3 0000 0");
         else
         {
-            Log::add(Log::ERROR, ARCMIST_DIGEST_LOG_NAME, "Failed MURMUR3 0000 0");
+            Log::add(Log::ERROR, NEXTCASH_DIGEST_LOG_NAME, "Failed MURMUR3 0000 0");
             logResults("Correct Digest", correctDigest);
             logResults("Result Digest ", resultDigest);
             result = false;
@@ -3107,10 +3107,10 @@ namespace ArcMist
         correctDigest.writeUnsignedInt(0x514E28B7);
 
         if(buffersMatch(correctDigest, resultDigest))
-            Log::add(Log::INFO, ARCMIST_DIGEST_LOG_NAME, "Passed MURMUR3 00 0");
+            Log::add(Log::INFO, NEXTCASH_DIGEST_LOG_NAME, "Passed MURMUR3 00 0");
         else
         {
-            Log::add(Log::ERROR, ARCMIST_DIGEST_LOG_NAME, "Failed MURMUR3 00 0");
+            Log::add(Log::ERROR, NEXTCASH_DIGEST_LOG_NAME, "Failed MURMUR3 00 0");
             logResults("Correct Digest", correctDigest);
             logResults("Result Digest ", resultDigest);
             result = false;

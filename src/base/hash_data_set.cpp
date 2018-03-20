@@ -1,16 +1,16 @@
 /**************************************************************************
- * Copyright 2017 ArcMist, LLC                                            *
+ * Copyright 2017 NextCash, LLC                                            *
  * Contributors :                                                         *
- *   Curtis Ellis <curtis@arcmist.com>                                    *
+ *   Curtis Ellis <curtis@nextcash.com>                                    *
  * Distributed under the MIT software license, see the accompanying       *
  * file license.txt or http://www.opensource.org/licenses/mit-license.php *
  **************************************************************************/
 #include "hash_data_set.hpp"
 
-#include "arcmist/crypto/digest.hpp"
+#include "nextcash/crypto/digest.hpp"
 
 
-namespace ArcMist
+namespace NextCash
 {
     bool HashData::writeToDataFile(const Hash &pHash, OutputStream *pStream)
     {
@@ -102,7 +102,7 @@ namespace ArcMist
 
     bool testHashDataSet()
     {
-        Log::add(Log::INFO, ARCMIST_HASH_DATA_SET_LOG_NAME, "------------- Starting Hash Data Set Tests -------------");
+        Log::add(Log::INFO, NEXTCASH_HASH_DATA_SET_LOG_NAME, "------------- Starting Hash Data Set Tests -------------");
 
         bool success = true;
         Hash hash(32);
@@ -116,7 +116,7 @@ namespace ArcMist
         const unsigned int testSizeLarger = 7500;
         String dupValue, nonDupValue;
 
-        ArcMist::removeDirectory("test_hash_data_set");
+        NextCash::removeDirectory("test_hash_data_set");
 
         if(success)
         {
@@ -175,10 +175,10 @@ namespace ArcMist
             hashDataSet.insert(hash, data);
 
             if(hashDataSet.size() == testSize + 1)
-                Log::add(Log::INFO, ARCMIST_HASH_DATA_SET_LOG_NAME, "Pass hash data set size");
+                Log::add(Log::INFO, NEXTCASH_HASH_DATA_SET_LOG_NAME, "Pass hash data set size");
             else
             {
-                Log::addFormatted(Log::ERROR, ARCMIST_HASH_DATA_SET_LOG_NAME, "Failed hash data set size : %d != %d",
+                Log::addFormatted(Log::ERROR, NEXTCASH_HASH_DATA_SET_LOG_NAME, "Failed hash data set size : %d != %d",
                   hashDataSet.size(), testSize + 1);
                 success = false;
             }
@@ -186,16 +186,16 @@ namespace ArcMist
             found = hashDataSet.get(lowestHash);
             if(!found)
             {
-                Log::addFormatted(Log::ERROR, ARCMIST_HASH_DATA_SET_LOG_NAME, "Failed hash data set lowest : not found : %s",
+                Log::addFormatted(Log::ERROR, NEXTCASH_HASH_DATA_SET_LOG_NAME, "Failed hash data set lowest : not found : %s",
                   lowestHash.hex().text());
                 success = false;
             }
             else if(((TestHashData *)(*found))->value == lowest->value)
-                Log::addFormatted(Log::INFO, ARCMIST_HASH_DATA_SET_LOG_NAME, "Pass hash data set lowest : %s - %s",
+                Log::addFormatted(Log::INFO, NEXTCASH_HASH_DATA_SET_LOG_NAME, "Pass hash data set lowest : %s - %s",
                   ((TestHashData *)(*found))->value.text(), found.hash().hex().text());
             else
             {
-                Log::addFormatted(Log::ERROR, ARCMIST_HASH_DATA_SET_LOG_NAME, "Failed hash data set lowest : wrong entry : %s - %s",
+                Log::addFormatted(Log::ERROR, NEXTCASH_HASH_DATA_SET_LOG_NAME, "Failed hash data set lowest : wrong entry : %s - %s",
                   ((TestHashData *)(*found))->value.text(), found.hash().hex().text());
                 success = false;
             }
@@ -203,16 +203,16 @@ namespace ArcMist
             found = hashDataSet.get(highestHash);
             if(!found)
             {
-                Log::addFormatted(Log::ERROR, ARCMIST_HASH_DATA_SET_LOG_NAME, "Failed hash data set highest : not found : %s",
+                Log::addFormatted(Log::ERROR, NEXTCASH_HASH_DATA_SET_LOG_NAME, "Failed hash data set highest : not found : %s",
                   highestHash.hex().text());
                 success = false;
             }
             else if(((TestHashData *)(*found))->value == highest->value)
-                Log::addFormatted(Log::INFO, ARCMIST_HASH_DATA_SET_LOG_NAME, "Pass hash data set highest : %s - %s",
+                Log::addFormatted(Log::INFO, NEXTCASH_HASH_DATA_SET_LOG_NAME, "Pass hash data set highest : %s - %s",
                   ((TestHashData *)(*found))->value.text(), found.hash().hex().text());
             else
             {
-                Log::addFormatted(Log::ERROR, ARCMIST_HASH_DATA_SET_LOG_NAME, "Failed hash data set highest : wrong entry : %s - %s",
+                Log::addFormatted(Log::ERROR, NEXTCASH_HASH_DATA_SET_LOG_NAME, "Failed hash data set highest : wrong entry : %s - %s",
                   ((TestHashData *)(*found))->value.text(), found.hash().hex().text());
                 success = false;
             }
@@ -221,7 +221,7 @@ namespace ArcMist
             found = hashDataSet.get(hash);
             if(!found)
             {
-                Log::add(Log::ERROR, ARCMIST_HASH_DATA_SET_LOG_NAME, "Failed hash data set duplicate : not found");
+                Log::add(Log::ERROR, NEXTCASH_HASH_DATA_SET_LOG_NAME, "Failed hash data set duplicate : not found");
                 success = false;
             }
             else
@@ -231,28 +231,28 @@ namespace ArcMist
                 {
                     if(((TestHashData *)(*found))->value == dupValue || ((TestHashData *)(*found))->value == nonDupValue ||
                       ((TestHashData *)(*found))->value == data->value)
-                        Log::addFormatted(Log::INFO, ARCMIST_HASH_DATA_SET_LOG_NAME, "Pass hash data set duplicate first : %s - %s",
+                        Log::addFormatted(Log::INFO, NEXTCASH_HASH_DATA_SET_LOG_NAME, "Pass hash data set duplicate first : %s - %s",
                           ((TestHashData *)(*found))->value.text(), found.hash().hex().text());
                     else
                     {
-                        Log::addFormatted(Log::ERROR, ARCMIST_HASH_DATA_SET_LOG_NAME, "Failed hash data set duplicate first : wrong entry : %s - %s",
+                        Log::addFormatted(Log::ERROR, NEXTCASH_HASH_DATA_SET_LOG_NAME, "Failed hash data set duplicate first : wrong entry : %s - %s",
                           ((TestHashData *)(*found))->value.text(), found.hash().hex().text());
                         success = false;
                     }
                 }
                 else
                 {
-                    Log::addFormatted(Log::ERROR, ARCMIST_HASH_DATA_SET_LOG_NAME, "Failed hash data set duplicate first : wrong hash",
+                    Log::addFormatted(Log::ERROR, NEXTCASH_HASH_DATA_SET_LOG_NAME, "Failed hash data set duplicate first : wrong hash",
                       found.hash().hex().text());
                     success = false;
                 }
 
                 ++found;
                 if(*found != firstData)
-                    Log::add(Log::INFO, ARCMIST_HASH_DATA_SET_LOG_NAME, "Pass hash data set duplicate second incremented");
+                    Log::add(Log::INFO, NEXTCASH_HASH_DATA_SET_LOG_NAME, "Pass hash data set duplicate second incremented");
                 else
                 {
-                    Log::add(Log::ERROR, ARCMIST_HASH_DATA_SET_LOG_NAME, "Failed hash data set duplicate second not incremented");
+                    Log::add(Log::ERROR, NEXTCASH_HASH_DATA_SET_LOG_NAME, "Failed hash data set duplicate second not incremented");
                     success = false;
                 }
 
@@ -260,18 +260,18 @@ namespace ArcMist
                 {
                     if(((TestHashData *)(*found))->value == dupValue || ((TestHashData *)(*found))->value == nonDupValue ||
                       ((TestHashData *)(*found))->value == data->value)
-                        Log::addFormatted(Log::INFO, ARCMIST_HASH_DATA_SET_LOG_NAME, "Pass hash data set duplicate second : %s - %s",
+                        Log::addFormatted(Log::INFO, NEXTCASH_HASH_DATA_SET_LOG_NAME, "Pass hash data set duplicate second : %s - %s",
                           ((TestHashData *)(*found))->value.text(), found.hash().hex().text());
                     else
                     {
-                        Log::addFormatted(Log::ERROR, ARCMIST_HASH_DATA_SET_LOG_NAME, "Failed hash data set duplicate second : wrong entry : %s - %s",
+                        Log::addFormatted(Log::ERROR, NEXTCASH_HASH_DATA_SET_LOG_NAME, "Failed hash data set duplicate second : wrong entry : %s - %s",
                           ((TestHashData *)(*found))->value.text(), found.hash().hex().text());
                         success = false;
                     }
                 }
                 else
                 {
-                    Log::addFormatted(Log::ERROR, ARCMIST_HASH_DATA_SET_LOG_NAME, "Failed hash data set duplicate second : wrong hash",
+                    Log::addFormatted(Log::ERROR, NEXTCASH_HASH_DATA_SET_LOG_NAME, "Failed hash data set duplicate second : wrong hash",
                       found.hash().hex().text());
                     success = false;
                 }
@@ -288,10 +288,10 @@ namespace ArcMist
             hashDataSet.setTargetCacheDataSize(1000000);
 
             if(hashDataSet.size() == testSize + 1)
-                Log::addFormatted(Log::INFO, ARCMIST_HASH_DATA_SET_LOG_NAME, "Pass hash data set load size : %d", testSize + 1);
+                Log::addFormatted(Log::INFO, NEXTCASH_HASH_DATA_SET_LOG_NAME, "Pass hash data set load size : %d", testSize + 1);
             else
             {
-                Log::addFormatted(Log::ERROR, ARCMIST_HASH_DATA_SET_LOG_NAME, "Failed hash data set load size : %d != %d",
+                Log::addFormatted(Log::ERROR, NEXTCASH_HASH_DATA_SET_LOG_NAME, "Failed hash data set load size : %d != %d",
                   hashDataSet.size(), testSize + 1);
                 success = false;
             }
@@ -312,7 +312,7 @@ namespace ArcMist
                 found = hashDataSet.get(hash);
                 if(!found)
                 {
-                    Log::addFormatted(Log::ERROR, ARCMIST_HASH_DATA_SET_LOG_NAME, "Failed hash data set load : %s not found",
+                    Log::addFormatted(Log::ERROR, NEXTCASH_HASH_DATA_SET_LOG_NAME, "Failed hash data set load : %s not found",
                       data->value.text());
                     checkSuccess = false;
                     success = false;
@@ -321,7 +321,7 @@ namespace ArcMist
                 {
                     if(found.hash() != hash)
                     {
-                        Log::addFormatted(Log::ERROR, ARCMIST_HASH_DATA_SET_LOG_NAME, "Failed hash data set load : wrong hash : %s",
+                        Log::addFormatted(Log::ERROR, NEXTCASH_HASH_DATA_SET_LOG_NAME, "Failed hash data set load : wrong hash : %s",
                           found.hash().hex().text());
                         checkSuccess = false;
                         success = false;
@@ -329,13 +329,13 @@ namespace ArcMist
                     else if(((TestHashData *)(*found))->value != data->value && ((TestHashData *)(*found))->value != dupValue &&
                       ((TestHashData *)(*found))->value != nonDupValue)
                     {
-                        Log::addFormatted(Log::ERROR, ARCMIST_HASH_DATA_SET_LOG_NAME, "Failed hash data set load : wrong value : %s - %s",
+                        Log::addFormatted(Log::ERROR, NEXTCASH_HASH_DATA_SET_LOG_NAME, "Failed hash data set load : wrong value : %s - %s",
                           ((TestHashData *)(*found))->value.text(), found.hash().hex().text());
                         checkSuccess = false;
                         success = false;
                     }
                     // else
-                        // Log::addFormatted(Log::INFO, ARCMIST_HASH_DATA_SET_LOG_NAME, "Pass hash data set load : %s - %s",
+                        // Log::addFormatted(Log::INFO, NEXTCASH_HASH_DATA_SET_LOG_NAME, "Pass hash data set load : %s - %s",
                           // ((TestHashData *)(*found))->value.text(), found.hash().hex().text());
                 }
 
@@ -343,7 +343,7 @@ namespace ArcMist
             }
 
             if(checkSuccess)
-                Log::addFormatted(Log::INFO, ARCMIST_HASH_DATA_SET_LOG_NAME, "Pass hash data set load check %d lookups", testSize);
+                Log::addFormatted(Log::INFO, NEXTCASH_HASH_DATA_SET_LOG_NAME, "Pass hash data set load check %d lookups", testSize);
 
             for(unsigned int i=testSize;i<testSizeLarger;++i)
             {
@@ -377,7 +377,7 @@ namespace ArcMist
                 found = hashDataSet.get(hash);
                 if(!found)
                 {
-                    Log::addFormatted(Log::ERROR, ARCMIST_HASH_DATA_SET_LOG_NAME, "Failed hash data set load : %s not found",
+                    Log::addFormatted(Log::ERROR, NEXTCASH_HASH_DATA_SET_LOG_NAME, "Failed hash data set load : %s not found",
                       data->value.text());
                     checkSuccess = false;
                     success = false;
@@ -386,7 +386,7 @@ namespace ArcMist
                 {
                     if(found.hash() != hash)
                     {
-                        Log::addFormatted(Log::ERROR, ARCMIST_HASH_DATA_SET_LOG_NAME, "Failed hash data set load : wrong hash : %s",
+                        Log::addFormatted(Log::ERROR, NEXTCASH_HASH_DATA_SET_LOG_NAME, "Failed hash data set load : wrong hash : %s",
                           found.hash().hex().text());
                         checkSuccess = false;
                         success = false;
@@ -394,13 +394,13 @@ namespace ArcMist
                     else if(((TestHashData *)(*found))->value != data->value && ((TestHashData *)(*found))->value != dupValue &&
                       ((TestHashData *)(*found))->value != nonDupValue)
                     {
-                        Log::addFormatted(Log::ERROR, ARCMIST_HASH_DATA_SET_LOG_NAME, "Failed hash data set load : wrong value : %s - %s",
+                        Log::addFormatted(Log::ERROR, NEXTCASH_HASH_DATA_SET_LOG_NAME, "Failed hash data set load : wrong value : %s - %s",
                           ((TestHashData *)(*found))->value.text(), found.hash().hex().text());
                         checkSuccess = false;
                         success = false;
                     }
                     // else
-                        // Log::addFormatted(Log::INFO, ARCMIST_HASH_DATA_SET_LOG_NAME, "Pass hash data set load : %s - %s",
+                        // Log::addFormatted(Log::INFO, NEXTCASH_HASH_DATA_SET_LOG_NAME, "Pass hash data set load : %s - %s",
                           // ((TestHashData *)(*found))->value.text(), found.hash().hex().text());
                 }
 
@@ -408,7 +408,7 @@ namespace ArcMist
             }
 
             if(checkSuccess)
-                Log::addFormatted(Log::INFO, ARCMIST_HASH_DATA_SET_LOG_NAME, "Pass hash data set check %d lookups", testSizeLarger);
+                Log::addFormatted(Log::INFO, NEXTCASH_HASH_DATA_SET_LOG_NAME, "Pass hash data set check %d lookups", testSizeLarger);
 
             // Check removing items
             removedSize = hashDataSet.size();
@@ -460,20 +460,20 @@ namespace ArcMist
             hashDataSet.save();
 
             if(hashDataSet.size() == removedSize)
-                Log::addFormatted(Log::INFO, ARCMIST_HASH_DATA_SET_LOG_NAME, "Pass hash data set remove size : %d", removedSize);
+                Log::addFormatted(Log::INFO, NEXTCASH_HASH_DATA_SET_LOG_NAME, "Pass hash data set remove size : %d", removedSize);
             else
             {
-                Log::addFormatted(Log::ERROR, ARCMIST_HASH_DATA_SET_LOG_NAME, "Failed hash data set remove size : %d != %d",
+                Log::addFormatted(Log::ERROR, NEXTCASH_HASH_DATA_SET_LOG_NAME, "Failed hash data set remove size : %d != %d",
                   hashDataSet.size(), removedSize);
                 success = false;
             }
 
             if(hashDataSet.cacheSize() == hashDataSet.size() - markedOldCount)
-                Log::addFormatted(Log::INFO, ARCMIST_HASH_DATA_SET_LOG_NAME, "Pass hash data set old cache size : %d",
+                Log::addFormatted(Log::INFO, NEXTCASH_HASH_DATA_SET_LOG_NAME, "Pass hash data set old cache size : %d",
                   hashDataSet.cacheSize());
             else
             {
-                Log::addFormatted(Log::ERROR, ARCMIST_HASH_DATA_SET_LOG_NAME, "Failed hash data set old cache size : %d != %d",
+                Log::addFormatted(Log::ERROR, NEXTCASH_HASH_DATA_SET_LOG_NAME, "Failed hash data set old cache size : %d != %d",
                   hashDataSet.cacheSize(), hashDataSet.size() - markedOldCount);
                 success = false;
             }
@@ -493,11 +493,11 @@ namespace ArcMist
             hashDataSet.save();
 
             if(hashDataSet.size() == removedSize)
-                Log::addFormatted(Log::INFO, ARCMIST_HASH_DATA_SET_LOG_NAME, "Pass hash data set prune size : %d",
+                Log::addFormatted(Log::INFO, NEXTCASH_HASH_DATA_SET_LOG_NAME, "Pass hash data set prune size : %d",
                   removedSize);
             else
             {
-                Log::addFormatted(Log::ERROR, ARCMIST_HASH_DATA_SET_LOG_NAME, "Failed hash data set prune size : %d != %d",
+                Log::addFormatted(Log::ERROR, NEXTCASH_HASH_DATA_SET_LOG_NAME, "Failed hash data set prune size : %d != %d",
                   hashDataSet.size(), removedSize);
                 success = false;
             }
@@ -506,11 +506,11 @@ namespace ArcMist
             uint64_t bufferDataSize = (uint64_t)((double)cacheMaxSize * 1.1);
 
             if(hashDataSet.cacheDataSize() < bufferDataSize)
-                Log::addFormatted(Log::INFO, ARCMIST_HASH_DATA_SET_LOG_NAME, "Pass hash data set prune cache data size : %d < %d",
+                Log::addFormatted(Log::INFO, NEXTCASH_HASH_DATA_SET_LOG_NAME, "Pass hash data set prune cache data size : %d < %d",
                   hashDataSet.cacheDataSize(), bufferDataSize);
             else
             {
-                Log::addFormatted(Log::ERROR, ARCMIST_HASH_DATA_SET_LOG_NAME, "Failed hash data set prune cache data size : %d >= %d",
+                Log::addFormatted(Log::ERROR, NEXTCASH_HASH_DATA_SET_LOG_NAME, "Failed hash data set prune cache data size : %d >= %d",
                   hashDataSet.cacheDataSize(), bufferDataSize);
                 success = false;
             }
@@ -534,7 +534,7 @@ namespace ArcMist
                 {
                     if(found)
                     {
-                        Log::addFormatted(Log::ERROR, ARCMIST_HASH_DATA_SET_LOG_NAME, "Failed hash data set after prune : %s not removed : %s",
+                        Log::addFormatted(Log::ERROR, NEXTCASH_HASH_DATA_SET_LOG_NAME, "Failed hash data set after prune : %s not removed : %s",
                           data->value.text(), hash.hex().text());
                         checkSuccess = false;
                         success = false;
@@ -545,7 +545,7 @@ namespace ArcMist
                 {
                     if(!found)
                     {
-                        Log::addFormatted(Log::ERROR, ARCMIST_HASH_DATA_SET_LOG_NAME, "Failed hash data set after prune : %s not found : %s",
+                        Log::addFormatted(Log::ERROR, NEXTCASH_HASH_DATA_SET_LOG_NAME, "Failed hash data set after prune : %s not found : %s",
                           data->value.text(), hash.hex().text());
                         checkSuccess = false;
                         success = false;
@@ -555,7 +555,7 @@ namespace ArcMist
                     {
                         if(found.hash() != hash)
                         {
-                            Log::addFormatted(Log::ERROR, ARCMIST_HASH_DATA_SET_LOG_NAME, "Failed hash data set after prune : wrong hash : %s",
+                            Log::addFormatted(Log::ERROR, NEXTCASH_HASH_DATA_SET_LOG_NAME, "Failed hash data set after prune : wrong hash : %s",
                               found.hash().hex().text());
                             checkSuccess = false;
                             success = false;
@@ -563,13 +563,13 @@ namespace ArcMist
                         else if(((TestHashData *)(*found))->value != data->value && ((TestHashData *)(*found))->value != dupValue &&
                           ((TestHashData *)(*found))->value != nonDupValue)
                         {
-                            Log::addFormatted(Log::ERROR, ARCMIST_HASH_DATA_SET_LOG_NAME, "Failed hash data set load : wrong value : %s - %s",
+                            Log::addFormatted(Log::ERROR, NEXTCASH_HASH_DATA_SET_LOG_NAME, "Failed hash data set load : wrong value : %s - %s",
                               ((TestHashData *)(*found))->value.text(), found.hash().hex().text());
                             checkSuccess = false;
                             success = false;
                         }
                         // else
-                            // Log::addFormatted(Log::INFO, ARCMIST_HASH_DATA_SET_LOG_NAME, "Pass hash data set load : %s - %s",
+                            // Log::addFormatted(Log::INFO, NEXTCASH_HASH_DATA_SET_LOG_NAME, "Pass hash data set load : %s - %s",
                               // ((TestHashData *)(*found))->value.text(), found.hash().hex().text());
                     }
                 }
@@ -578,7 +578,7 @@ namespace ArcMist
             }
 
             if(checkSuccess)
-                Log::addFormatted(Log::INFO, ARCMIST_HASH_DATA_SET_LOG_NAME, "Pass hash data set after prune check %d lookups", testSize);
+                Log::addFormatted(Log::INFO, NEXTCASH_HASH_DATA_SET_LOG_NAME, "Pass hash data set after prune check %d lookups", testSize);
         }
 
         return success;

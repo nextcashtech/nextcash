@@ -1,27 +1,27 @@
 /**************************************************************************
- * Copyright 2017 ArcMist, LLC                                            *
+ * Copyright 2017 NextCash, LLC                                            *
  * Contributors :                                                         *
- *   Curtis Ellis <curtis@arcmist.com>                                    *
+ *   Curtis Ellis <curtis@nextcash.com>                                    *
  * Distributed under the MIT software license, see the accompanying       *
  * file license.txt or http://www.opensource.org/licenses/mit-license.php *
  **************************************************************************/
-#ifndef ARCMIST_HASH_HPP
-#define ARCMIST_HASH_HPP
+#ifndef NEXTCASH_HASH_HPP
+#define NEXTCASH_HASH_HPP
 
-#include "arcmist/io/stream.hpp"
-#include "arcmist/base/log.hpp"
-#include "arcmist/base/mutex.hpp"
+#include "nextcash/io/stream.hpp"
+#include "nextcash/base/log.hpp"
+#include "nextcash/base/mutex.hpp"
 
 #ifdef PROFILER_ON
-#include "arcmist/dev/profiler.hpp"
+#include "nextcash/dev/profiler.hpp"
 #endif
 
 #include <vector>
 
-#define ARCMIST_HASH_LOG_NAME "Hash"
+#define NEXTCASH_HASH_LOG_NAME "Hash"
 
 
-namespace ArcMist
+namespace NextCash
 {
     class Hash : public RawOutputStream // So Digest can write results to it
     {

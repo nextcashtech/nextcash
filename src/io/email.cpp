@@ -1,19 +1,19 @@
 /**************************************************************************
- * Copyright 2018 ArcMist, LLC                                       *
+ * Copyright 2018 NextCash, LLC                                       *
  * Contributors :                                                         *
- *   Curtis Ellis <curtis@arcmist.com>                                    *
+ *   Curtis Ellis <curtis@nextcash.com>                                    *
  * Distributed under the MIT software license, see the accompanying       *
  * file license.txt or http://www.opensource.org/licenses/mit-license.php *
  **************************************************************************/
 #include "email.hpp"
 
-#include "arcmist/base/log.hpp"
+#include "nextcash/base/log.hpp"
 
 #include <cstdlib>
 
-#define ARCMIST_EMAIL_LOG_NAME "Email"
+#define NEXTCASH_EMAIL_LOG_NAME "Email"
 
-namespace ArcMist
+namespace NextCash
 {
     namespace Email
     {
@@ -32,12 +32,12 @@ namespace ArcMist
                 fwrite(pBody, 1, std::strlen(pBody), mailPipe);
                 fwrite("\n", 1, 2, mailPipe);
                 pclose(mailPipe);
-                ArcMist::Log::addFormatted(ArcMist::Log::INFO, ARCMIST_EMAIL_LOG_NAME, "Sent email : %s", pSubject);
+                NextCash::Log::addFormatted(NextCash::Log::INFO, NEXTCASH_EMAIL_LOG_NAME, "Sent email : %s", pSubject);
                 return true;
             }
             else
             {
-                ArcMist::Log::add(ArcMist::Log::ERROR, ARCMIST_EMAIL_LOG_NAME, "Failed to send email");
+                NextCash::Log::add(NextCash::Log::ERROR, NEXTCASH_EMAIL_LOG_NAME, "Failed to send email");
                 return false;
             }
         }

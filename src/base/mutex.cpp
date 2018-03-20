@@ -1,22 +1,22 @@
 /**************************************************************************
- * Copyright 2017 ArcMist, LLC                                            *
+ * Copyright 2017 NextCash, LLC                                            *
  * Contributors :                                                         *
- *   Curtis Ellis <curtis@arcmist.com>                                    *
+ *   Curtis Ellis <curtis@nextcash.com>                                    *
  * Distributed under the MIT software license, see the accompanying       *
  * file license.txt or http://www.opensource.org/licenses/mit-license.php *
  **************************************************************************/
 #include "mutex.hpp"
 
 #ifdef PROFILER_ON
-#include "arcmist/dev/profiler.hpp"
+#include "nextcash/dev/profiler.hpp"
 #endif
 
-#include "arcmist/base/log.hpp"
+#include "nextcash/base/log.hpp"
 
 #include <unistd.h>
 
 
-namespace ArcMist
+namespace NextCash
 {
     void Mutex::lock()
     {

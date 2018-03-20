@@ -1,13 +1,13 @@
 /**************************************************************************
- * Copyright 2017 ArcMist, LLC                                            *
+ * Copyright 2017 NextCash, LLC                                            *
  * Contributors :                                                         *
- *   Curtis Ellis <curtis@arcmist.com>                                    *
+ *   Curtis Ellis <curtis@nextcash.com>                                    *
  * Distributed under the MIT software license, see the accompanying       *
  * file license.txt or http://www.opensource.org/licenses/mit-license.php *
  **************************************************************************/
 #include "network.hpp"
 
-#include "arcmist/base/log.hpp"
+#include "nextcash/base/log.hpp"
 
 #include <cstdlib>
 #include <cstring>
@@ -21,7 +21,7 @@
 #define NETWORK_LOG_NAME "Network"
 
 
-namespace ArcMist
+namespace NextCash
 {
     namespace Network
     {
@@ -623,14 +623,14 @@ namespace ArcMist
                         }
                         catch(std::bad_alloc &pBadAlloc)
                         {
-                            ArcMist::Log::addFormatted(ArcMist::Log::ERROR, NETWORK_LOG_NAME,
+                            NextCash::Log::addFormatted(NextCash::Log::ERROR, NETWORK_LOG_NAME,
                               "Bad allocation while allocating new connection : %s", pBadAlloc.what());
                             ::close(newSocketID);
                             continue;
                         }
                         catch(...)
                         {
-                            ArcMist::Log::add(ArcMist::Log::ERROR, NETWORK_LOG_NAME,
+                            NextCash::Log::add(NextCash::Log::ERROR, NETWORK_LOG_NAME,
                               "Bad allocation while allocating new connection : unknown");
                             ::close(newSocketID);
                             continue;

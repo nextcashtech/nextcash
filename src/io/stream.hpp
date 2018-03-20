@@ -1,22 +1,22 @@
 /**************************************************************************
- * Copyright 2017 ArcMist, LLC                                            *
+ * Copyright 2017 NextCash, LLC                                            *
  * Contributors :                                                         *
- *   Curtis Ellis <curtis@arcmist.com>                                    *
+ *   Curtis Ellis <curtis@nextcash.com>                                    *
  * Distributed under the MIT software license, see the accompanying       *
  * file license.txt or http://www.opensource.org/licenses/mit-license.php *
  **************************************************************************/
-#ifndef ARCMIST_STREAM_HPP
-#define ARCMIST_STREAM_HPP
+#ifndef NEXTCASH_STREAM_HPP
+#define NEXTCASH_STREAM_HPP
 
-#include "arcmist/base/endian.hpp"
-#include "arcmist/base/string.hpp"
+#include "nextcash/base/endian.hpp"
+#include "nextcash/base/string.hpp"
 
 #include <cstdarg>
 #include <cstdint>
 #include <limits>
 
 
-namespace ArcMist
+namespace NextCash
 {
     class OutputStream;
     class InputStream;

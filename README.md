@@ -1,6 +1,6 @@
-# arcmist
-Base Arc Mist code base
+# nextcashtech
+Base NextCash code base
 
-Classes and functions for Arc Mist code base.
+Classes and functions for NextCash code base.
 
 Supports bitcoin repository.

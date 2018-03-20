@@ -1,30 +1,30 @@
 /**************************************************************************
- * Copyright 2017 ArcMist, LLC                                            *
+ * Copyright 2017 NextCash, LLC                                            *
  * Contributors :                                                         *
- *   Curtis Ellis <curtis@arcmist.com>                                    *
+ *   Curtis Ellis <curtis@nextcash.com>                                    *
  * Distributed under the MIT software license, see the accompanying       *
  * file license.txt or http://www.opensource.org/licenses/mit-license.php *
  **************************************************************************/
-#ifndef ARCMIST_HASH_DATA_SET_HPP
-#define ARCMIST_HASH_DATA_SET_HPP
+#ifndef NEXTCASH_HASH_DATA_SET_HPP
+#define NEXTCASH_HASH_DATA_SET_HPP
 
-#include "arcmist/base/mutex.hpp"
-#include "arcmist/base/math.hpp"
-#include "arcmist/base/string.hpp"
-#include "arcmist/base/hash.hpp"
-#include "arcmist/base/distributed_vector.hpp"
-#include "arcmist/base/log.hpp"
-#include "arcmist/io/stream.hpp"
-#include "arcmist/io/file_stream.hpp"
+#include "nextcash/base/mutex.hpp"
+#include "nextcash/base/math.hpp"
+#include "nextcash/base/string.hpp"
+#include "nextcash/base/hash.hpp"
+#include "nextcash/base/distributed_vector.hpp"
+#include "nextcash/base/log.hpp"
+#include "nextcash/io/stream.hpp"
+#include "nextcash/io/file_stream.hpp"
 
 #ifdef PROFILER_ON
-#include "arcmist/dev/profiler.hpp"
+#include "nextcash/dev/profiler.hpp"
 #endif
 
-#define ARCMIST_HASH_DATA_SET_LOG_NAME "HashDataSet"
+#define NEXTCASH_HASH_DATA_SET_LOG_NAME "HashDataSet"
 
 
-namespace ArcMist
+namespace NextCash
 {
     // A data class that can be used within a HashDataSet.
     // NOTE: The objects size can't increase after being initially added to the hash data set or it
@@ -155,7 +155,7 @@ namespace ArcMist
                     pDataFile->setReadOffset(dataOffset);
                     if(!hash.read(pDataFile, tHashSize))
                     {
-                        Log::addFormatted(Log::ERROR, ARCMIST_HASH_DATA_SET_LOG_NAME,
+                        Log::addFormatted(Log::ERROR, NEXTCASH_HASH_DATA_SET_LOG_NAME,
                           "Failed to read sample index hash at offset %llu", offset);
                         return false;
                     }
@@ -198,11 +198,11 @@ namespace ArcMist
             Hash pullHash(InputStream *pDataFile, stream_size pFileOffset)
             {
 #ifdef PROFILER_ON
-                ArcMist::Profiler profiler("Hash SubSet Save Pull Hash");
+                NextCash::Profiler profiler("Hash SubSet Save Pull Hash");
 #endif
                 if(!pDataFile->setReadOffset(pFileOffset))
                 {
-                    Log::addFormatted(Log::ERROR, ARCMIST_HASH_DATA_SET_LOG_NAME,
+                    Log::addFormatted(Log::ERROR, NEXTCASH_HASH_DATA_SET_LOG_NAME,
                       "Failed to pull hash at index offset %d/%d", pFileOffset, pDataFile->length());
                     return Hash();
                 }
@@ -210,7 +210,7 @@ namespace ArcMist
                 Hash result(tHashSize);
                 if(!result.read(pDataFile))
                 {
-                    Log::addFormatted(Log::ERROR, ARCMIST_HASH_DATA_SET_LOG_NAME,
+                    Log::addFormatted(Log::ERROR, NEXTCASH_HASH_DATA_SET_LOG_NAME,
                       "Failed to pull hash at index offset %d/%d", pFileOffset, pDataFile->length());
                     return Hash();
                 }
@@ -407,7 +407,7 @@ namespace ArcMist
       HashData *pValue, bool pRejectMatching)
     {
 #ifdef PROFILER_ON
-        ArcMist::Profiler profiler("Hash Set Insert");
+        NextCash::Profiler profiler("Hash Set Insert");
 #endif
         mLock.readLock();
         bool result = mSubSets[subSetOffset(pLookupValue)].insert(pLookupValue, pValue, pRejectMatching);
@@ -436,7 +436,7 @@ namespace ArcMist
         mFilePath = pFilePath;
         if(!createDirectory(mFilePath))
         {
-            Log::addFormatted(Log::ERROR, ARCMIST_HASH_DATA_SET_LOG_NAME,
+            Log::addFormatted(Log::ERROR, NEXTCASH_HASH_DATA_SET_LOG_NAME,
               "%s Failed to create directory : %s", mName.text(), mFilePath.text());
             mIsValid = false;
             mLock.writeUnlock();
@@ -448,7 +448,7 @@ namespace ArcMist
         {
             if(getTime() - lastReport > 10)
             {
-                Log::addFormatted(Log::INFO, ARCMIST_HASH_DATA_SET_LOG_NAME,
+                Log::addFormatted(Log::INFO, NEXTCASH_HASH_DATA_SET_LOG_NAME,
                   "%s load is %2d%% Complete", mName.text(), (int)(((float)i / (float)tSetCount) * 100.0f));
                 lastReport = getTime();
             }
@@ -467,7 +467,7 @@ namespace ArcMist
 
         if(!mIsValid)
         {
-            Log::addFormatted(Log::ERROR, ARCMIST_HASH_DATA_SET_LOG_NAME,
+            Log::addFormatted(Log::ERROR, NEXTCASH_HASH_DATA_SET_LOG_NAME,
               "%s : can't save invalid data set", mName.text());
             mLock.writeUnlock();
             return false;
@@ -482,7 +482,7 @@ namespace ArcMist
         {
             if(getTime() - lastReport > 10)
             {
-                Log::addFormatted(Log::INFO, ARCMIST_HASH_DATA_SET_LOG_NAME,
+                Log::addFormatted(Log::INFO, NEXTCASH_HASH_DATA_SET_LOG_NAME,
                   "%s save is %2d%% Complete", mName.text(), (int)(((float)i / (float)tSetCount) * 100.0f));
                 lastReport = getTime();
             }
@@ -518,7 +518,7 @@ namespace ArcMist
       bool pRejectMatching)
     {
 #ifdef PROFILER_ON
-        ArcMist::Profiler profiler("Hash SubSet Insert");
+        NextCash::Profiler profiler("Hash SubSet Insert");
 #endif
         bool result = false;
         mLock.writeLock();
@@ -578,17 +578,17 @@ namespace ArcMist
 
         if(!indexFile.isValid())
         {
-            Log::add(Log::ERROR, ARCMIST_HASH_DATA_SET_LOG_NAME, "Failed to open index file in pull");
+            Log::add(Log::ERROR, NEXTCASH_HASH_DATA_SET_LOG_NAME, "Failed to open index file in pull");
             return false;
         }
 
         if(!dataFile.isValid())
         {
-            Log::add(Log::ERROR, ARCMIST_HASH_DATA_SET_LOG_NAME, "Failed to open index file in pull");
+            Log::add(Log::ERROR, NEXTCASH_HASH_DATA_SET_LOG_NAME, "Failed to open index file in pull");
             return false;
         }
 
-        // Log::addFormatted(Log::VERBOSE, ARCMIST_HASH_DATA_SET_LOG_NAME,
+        // Log::addFormatted(Log::VERBOSE, NEXTCASH_HASH_DATA_SET_LOG_NAME,
           // "Pull : %s", pLookupValue.hex().text());
         if(mSamples != NULL)
         {
@@ -655,7 +655,7 @@ namespace ArcMist
                 dataFile.setReadOffset(dataOffset);
                 if(!hash.read(&dataFile))
                     return false;
-                // Log::addFormatted(Log::VERBOSE, ARCMIST_HASH_DATA_SET_LOG_NAME,
+                // Log::addFormatted(Log::VERBOSE, NEXTCASH_HASH_DATA_SET_LOG_NAME,
                   // "Binary : %s", hash.hex().text());
 
                 // Determine which half the desired item is in
@@ -774,7 +774,7 @@ namespace ArcMist
             pEnd   = sample->offset;
             return true;
         }
-        // Log::addFormatted(Log::VERBOSE, ARCMIST_HASH_DATA_SET_LOG_NAME,
+        // Log::addFormatted(Log::VERBOSE, NEXTCASH_HASH_DATA_SET_LOG_NAME,
           // "First : %s", mSamples[0].hash.hex().text());
 
         // Check last entry
@@ -796,7 +796,7 @@ namespace ArcMist
             pEnd   = sample->offset;
             return true;
         }
-        // Log::addFormatted(Log::VERBOSE, ARCMIST_HASH_DATA_SET_LOG_NAME,
+        // Log::addFormatted(Log::VERBOSE, NEXTCASH_HASH_DATA_SET_LOG_NAME,
           // "Last : %s", mSamples[tSampleSize - 1].hash.hex().text());
 
         // Binary search the samples
@@ -808,7 +808,7 @@ namespace ArcMist
         while(!done)
         {
             sampleCurrent = (sampleBegin + sampleEnd) / 2;
-            // Log::addFormatted(Log::VERBOSE, ARCMIST_HASH_DATA_SET_LOG_NAME,
+            // Log::addFormatted(Log::VERBOSE, NEXTCASH_HASH_DATA_SET_LOG_NAME,
               // "Sample : %s", mSamples[sampleCurrent].hash.hex().text());
 
             if(sampleCurrent == sampleBegin || sampleCurrent == sampleEnd)
@@ -853,7 +853,7 @@ namespace ArcMist
 
         if(!cacheFile->isValid())
         {
-            // Log::addFormatted(Log::DEBUG, ARCMIST_HASH_DATA_SET_LOG_NAME,
+            // Log::addFormatted(Log::DEBUG, NEXTCASH_HASH_DATA_SET_LOG_NAME,
               // "Failed to open subset cache file %04x for reading : %s", mID, filePathName.text());
             delete cacheFile;
             return false;
@@ -903,7 +903,7 @@ namespace ArcMist
 
         if(!cacheFile->isValid())
         {
-            Log::addFormatted(Log::WARNING, ARCMIST_HASH_DATA_SET_LOG_NAME,
+            Log::addFormatted(Log::WARNING, NEXTCASH_HASH_DATA_SET_LOG_NAME,
               "Failed to open subset cache file %04x for writing : %s", mID, filePathName.text());
             delete cacheFile;
             return false;
@@ -961,7 +961,7 @@ namespace ArcMist
     void HashDataSet<tHashDataType, tHashSize, tSampleSize, tSetCount>::SubSet::pruneCache(uint64_t pDataSize)
     {
 #ifdef PROFILER_ON
-        ArcMist::Profiler profiler("Hash SubSet Prune");
+        NextCash::Profiler profiler("Hash SubSet Prune");
 #endif
         if(pDataSize == 0)
         {
@@ -997,7 +997,7 @@ namespace ArcMist
                 }
         }
 
-        // Log::addFormatted(Log::DEBUG, ARCMIST_HASH_DATA_SET_LOG_NAME,
+        // Log::addFormatted(Log::DEBUG, NEXTCASH_HASH_DATA_SET_LOG_NAME,
           // "Marked %d/%d items as old during pruning", prunedCount, pruneCount);
     }
 
@@ -1028,7 +1028,7 @@ namespace ArcMist
 
         if(!indexFile.isValid())
         {
-            Log::addFormatted(Log::ERROR, ARCMIST_HASH_DATA_SET_LOG_NAME,
+            Log::addFormatted(Log::ERROR, NEXTCASH_HASH_DATA_SET_LOG_NAME,
               "Failed to open index file : %s", filePathName.text());
             mLock.writeUnlock();
             return false;
@@ -1053,7 +1053,7 @@ namespace ArcMist
     bool HashDataSet<tHashDataType, tHashSize, tSampleSize, tSetCount>::SubSet::cleanup(uint64_t pMaxCacheDataSize)
     {
 #ifdef PROFILER_ON
-        ArcMist::Profiler profiler("Hash SubSet Clean");
+        NextCash::Profiler profiler("Hash SubSet Clean");
 #endif
         // Mark items as old to keep cache data size under max
         pruneCache(pMaxCacheDataSize);
@@ -1074,7 +1074,7 @@ namespace ArcMist
                 ++item;
         }
 
-        // Log::addFormatted(Log::DEBUG, ARCMIST_HASH_DATA_SET_LOG_NAME,
+        // Log::addFormatted(Log::DEBUG, NEXTCASH_HASH_DATA_SET_LOG_NAME,
           // "Pruned %d/%d items from cache to new size %d", prunedCount, previousSize, mCache.size());
 
         saveCache();
@@ -1094,7 +1094,7 @@ namespace ArcMist
     bool HashDataSet<tHashDataType, tHashSize, tSampleSize, tSetCount>::SubSet::save()
     {
 #ifdef PROFILER_ON
-        ArcMist::Profiler profiler("Hash SubSet Save");
+        NextCash::Profiler profiler("Hash SubSet Save");
 #endif
         mLock.writeLock("Save");
 
@@ -1107,7 +1107,7 @@ namespace ArcMist
         String filePathName;
 
 #ifdef PROFILER_ON
-        ArcMist::Profiler profilerWriteData("Hash SubSet Save Write Data");
+        NextCash::Profiler profilerWriteData("Hash SubSet Save Write Data");
 #endif
         // Reopen data file as an output stream
         filePathName.writeFormatted("%s%s%04x.data", mFilePath.text(), PATH_SEPARATOR, mID);
@@ -1147,7 +1147,7 @@ namespace ArcMist
         }
 
 #ifdef PROFILER_ON
-        ArcMist::Profiler profilerReadIndex("Hash SubSet Save Read Index");
+        NextCash::Profiler profilerReadIndex("Hash SubSet Save Read Index");
 #endif
         // Read entire index file
         filePathName.writeFormatted("%s%s%04x.index", mFilePath.text(), PATH_SEPARATOR, mID);
@@ -1194,9 +1194,9 @@ namespace ArcMist
 #endif
 
 #ifdef PROFILER_ON
-        ArcMist::Profiler profilerUpdateIndex("Hash SubSet Save Update Index");
-        ArcMist::Profiler profilerIndexInsert("Hash SubSet Save Index Insert", false);
-        ArcMist::Profiler profilerIndexInsertPush("Hash SubSet Save Index Insert Push", false);
+        NextCash::Profiler profilerUpdateIndex("Hash SubSet Save Update Index");
+        NextCash::Profiler profilerIndexInsert("Hash SubSet Save Index Insert", false);
+        NextCash::Profiler profilerIndexInsertPush("Hash SubSet Save Index Insert Push", false);
 #endif
         // Update indices
         DistributedVector<Hash>::Iterator hash;
@@ -1238,7 +1238,7 @@ namespace ArcMist
 
                     if(!found)
                     {
-                        Log::addFormatted(Log::ERROR, ARCMIST_HASH_DATA_SET_LOG_NAME,
+                        Log::addFormatted(Log::ERROR, NEXTCASH_HASH_DATA_SET_LOG_NAME,
                           "Failed to find index to remove for file offset %d : %s", (*item)->dataOffset(),
                           item.hash().hex().text());
                         success = false;
@@ -1380,13 +1380,13 @@ namespace ArcMist
                             indices.insert(index, (*item)->dataOffset());
                             (*item)->clearNew();
 
-                            // Log::addFormatted(Log::VERBOSE, ARCMIST_HASH_DATA_SET_LOG_NAME,
+                            // Log::addFormatted(Log::VERBOSE, NEXTCASH_HASH_DATA_SET_LOG_NAME,
                               // "Inserted after : %s", hashes[current-1]->id.hex().text());
 
-                            // Log::addFormatted(Log::VERBOSE, ARCMIST_HASH_DATA_SET_LOG_NAME,
+                            // Log::addFormatted(Log::VERBOSE, NEXTCASH_HASH_DATA_SET_LOG_NAME,
                               // "Inserted index : %s", (*item)->id.hex().text());
 
-                            // Log::addFormatted(Log::VERBOSE, ARCMIST_HASH_DATA_SET_LOG_NAME,
+                            // Log::addFormatted(Log::VERBOSE, NEXTCASH_HASH_DATA_SET_LOG_NAME,
                               // "Inserted befor : %s", hashes[current]->id.hex().text());
 
                             hash = hashes.begin();
@@ -1405,13 +1405,13 @@ namespace ArcMist
                             indices.insert(index, (*item)->dataOffset());
                             (*item)->clearNew();
 
-                            // Log::addFormatted(Log::VERBOSE, ARCMIST_HASH_DATA_SET_LOG_NAME,
+                            // Log::addFormatted(Log::VERBOSE, NEXTCASH_HASH_DATA_SET_LOG_NAME,
                               // "Inserted after : %s", hashes[current]->id.hex().text());
 
-                            // Log::addFormatted(Log::VERBOSE, ARCMIST_HASH_DATA_SET_LOG_NAME,
+                            // Log::addFormatted(Log::VERBOSE, NEXTCASH_HASH_DATA_SET_LOG_NAME,
                               // "Inserted index : %s", (*item)->id.hex().text());
 
-                            // Log::addFormatted(Log::VERBOSE, ARCMIST_HASH_DATA_SET_LOG_NAME,
+                            // Log::addFormatted(Log::VERBOSE, NEXTCASH_HASH_DATA_SET_LOG_NAME,
                               // "Inserted befor : %s", hashes[current+1]->id.hex().text());
 
                             hash = hashes.begin();
@@ -1441,7 +1441,7 @@ namespace ArcMist
         if(success)
         {
 #ifdef PROFILER_ON
-            ArcMist::Profiler profilerWriteIndex("Hash SubSet Save Write Index");
+            NextCash::Profiler profilerWriteIndex("Hash SubSet Save Write Index");
 #endif
             // Open index file as an output stream
             filePathName.writeFormatted("%s%s%04x.index", mFilePath.text(), PATH_SEPARATOR, mID);

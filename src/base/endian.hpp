@@ -1,36 +1,36 @@
 /**************************************************************************
- * Copyright 2017 ArcMist, LLC                                            *
+ * Copyright 2017 NextCash, LLC                                            *
  * Contributors :                                                         *
- *   Curtis Ellis <curtis@arcmist.com>                                    *
+ *   Curtis Ellis <curtis@nextcash.com>                                    *
  * Distributed under the MIT software license, see the accompanying       *
  * file license.txt or http://www.opensource.org/licenses/mit-license.php *
  **************************************************************************/
-#ifndef ARCMIST_ENDIAN_HPP
-#define ARCMIST_ENDIAN_HPP
+#ifndef NEXTCASH_ENDIAN_HPP
+#define NEXTCASH_ENDIAN_HPP
 
 #include <cstdint>
 
 // Determine endian from compiler (currently only supports g++)
 #if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
-    #define ARCMIST_LITTLE_ENDIAN
+    #define NEXTCASH_LITTLE_ENDIAN
 #elif __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
-    #define ARCMIST_BIG_ENDIAN
+    #define NEXTCASH_BIG_ENDIAN
 #elif __BYTE_ORDER__ == __ORDER_PDP_ENDIAN__
     /* bytes in 16-bit words are laid out in a little-endian fashion, whereas the 16-bit subwords
      * of a 32-bit quantity are laid out in big-endian fashion.
      */
 #endif
 
-namespace ArcMist
+namespace NextCash
 {
     namespace Endian
     {
         enum Type { BIG, LITTLE };
 
-#ifdef ARCMIST_LITTLE_ENDIAN
+#ifdef NEXTCASH_LITTLE_ENDIAN
         static const Type sSystemType = LITTLE;
 #endif
-#ifdef ARCMIST_BIG_ENDIAN
+#ifdef NEXTCASH_BIG_ENDIAN
         static const Type sSystemType = BIG;
 #endif
 
@@ -94,11 +94,11 @@ namespace ArcMist
 
         inline void convert(void *pData, int pSize, Type pEndian)
         {
-#ifdef ARCMIST_LITTLE_ENDIAN
+#ifdef NEXTCASH_LITTLE_ENDIAN
             if(pEndian != LITTLE)
                 reverse(pData, pSize);
 #endif
-#ifdef ARCMIST_BIG_ENDIAN
+#ifdef NEXTCASH_BIG_ENDIAN
             if(pEndian != BIG)
                 reverse(pData, pSize);
 #endif
