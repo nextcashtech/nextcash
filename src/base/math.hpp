@@ -116,6 +116,8 @@ namespace ArcMist
 
         static char base58Codes[59] __attribute__ ((unused)) = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
 
+        static char base32Codes[33] __attribute__ ((unused)) = "qpzry9x8gf2tvdw0s3jn54khce6mua7l";
+
         // Reverse the bits in a byte
         static uint8_t reflect8[256] __attribute__ ((unused)) =
         {

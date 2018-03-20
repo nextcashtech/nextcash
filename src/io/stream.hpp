@@ -67,6 +67,9 @@ namespace ArcMist
         // Create base 58 string from binary data
         String readBase58String(stream_size pSize);
 
+        // Create base 32 string from binary data
+        String readBase32String(stream_size pSize);
+
         // Read hex text into binary output
         //void readHexAsBinary(void *pOutput, stream_size pSize);
 
@@ -142,6 +145,9 @@ namespace ArcMist
 
         // Write base58 text as binary
         stream_size writeBase58AsBinary(const char *pString);
+
+        // Write base32 text as binary
+        stream_size writeBase32AsBinary(const char *pString);
 
         // Use printf string formatting to write
         stream_size writeFormatted(const char *pFormatting, ...);

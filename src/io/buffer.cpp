@@ -438,6 +438,35 @@ namespace ArcMist
             result = false;
         }
 
+        /******************************************************************************************
+         * Test write base32 string function
+         ******************************************************************************************/
+        Buffer base32Binary;
+        String base32String = "vc";
+
+        base32Binary.clear();
+        base32Binary.writeBase32AsBinary(base32String.text());
+        hexValue = base32Binary.readHexString(base32Binary.length());
+        if(base32Binary.length() == 2 && hexValue == "6600")
+            Log::addFormatted(Log::INFO, ARCMIST_BUFFER_LOG_NAME, "Passed write base32 string function: %s", hexValue.text());
+        else
+        {
+            Log::addFormatted(Log::ERROR, ARCMIST_BUFFER_LOG_NAME, "Failed write base32 string function : %s", hexValue.text());
+            result = false;
+        }
+
+        base32String = "w3jhxaq";
+        base32Binary.clear();
+        base32Binary.writeBase32AsBinary(base32String.text());
+        hexValue = base32Binary.readHexString(base32Binary.length());
+        if(base32Binary.length() == 5 && hexValue == "7465737400")
+            Log::addFormatted(Log::INFO, ARCMIST_BUFFER_LOG_NAME, "Passed write base32 string function: %s", hexValue.text());
+        else
+        {
+            Log::addFormatted(Log::ERROR, ARCMIST_BUFFER_LOG_NAME, "Failed write base32 string function : %s", hexValue.text());
+            result = false;
+        }
+
         return result;
     }
 }

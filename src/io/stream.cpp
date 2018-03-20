@@ -140,6 +140,15 @@ namespace ArcMist
         return result;
     }
 
+    String InputStream::readBase32String(stream_size pSize)
+    {
+        uint8_t data[pSize];
+        read(data, pSize);
+        String result;
+        result.writeBase32(data, pSize);
+        return result;
+    }
+
     //void InputStream::readHexAsBinary(void *pOutput, stream_size pSize)
     //{
         // TODO
@@ -276,15 +285,15 @@ namespace ArcMist
     {
         // Skip leading white space.
         while(*pString && isWhiteSpace(*pString))
-            pString++;
+            ++pString;
 
         // Skip and count leading '1's.
         stream_size zeroes = 0;
         stream_size length = 0;
         while(*pString == '1')
         {
-            zeroes++;
-            pString++;
+            ++zeroes;
+            ++pString;
         }
 
         // Allocate enough space in big-endian base256 representation.
@@ -311,12 +320,12 @@ namespace ArcMist
             }
 
             length = i;
-            pString++;
+            ++pString;
         }
 
         // Skip trailing spaces.
         while(isWhiteSpace(*pString))
-            pString++;
+            ++pString;
 
         if(*pString)
             return 0;
@@ -324,7 +333,7 @@ namespace ArcMist
         // Skip leading zeroes in b256.
         std::vector<uint8_t>::iterator it = b256.begin() + (size - length);
         while(it != b256.end() && *it == 0)
-            it++;
+            ++it;
 
         // Copy result into output vector.
         stream_size bytesWritten = 0;
@@ -332,6 +341,61 @@ namespace ArcMist
             bytesWritten += writeByte(0);
         while (it != b256.end())
             bytesWritten += writeByte(*(it++));
+
+        return bytesWritten;
+    }
+
+    stream_size OutputStream::writeBase32AsBinary(const char *pString)
+    {
+        // Skip leading white space.
+        while(*pString && isWhiteSpace(*pString))
+            ++pString;
+
+        // Decode base32 characters into bits
+        std::vector<bool> bits;
+        uint8_t byteValue;
+        const char *match;
+        int bitOffset;
+        while(*pString)
+        {
+            // Decode base32 character
+            match = std::strchr(Math::base32Codes, *pString);
+            if(match == NULL)
+                return 0;
+            byteValue = match - Math::base32Codes;
+
+            // Put bits
+            for(bitOffset=4;bitOffset>=0;--bitOffset)
+                bits.push_back((byteValue >> bitOffset) & 0x01);
+
+            ++pString;
+        }
+
+        // Write bits into stream
+        stream_size bytesWritten = 0;
+        byteValue = 0;
+        bitOffset = 0;
+        for(std::vector<bool>::iterator bit=bits.begin();bit!=bits.end();++bit)
+        {
+            byteValue <<= 1;
+            if(*bit)
+                byteValue |= 0x01;
+            ++bitOffset;
+
+            if(bitOffset == 8)
+            {
+                writeByte(byteValue);
+                ++bytesWritten;
+                byteValue = 0;
+                bitOffset = 0;
+            }
+        }
+
+        if(bitOffset > 0)
+        {
+            writeByte(byteValue << (8 - bitOffset));
+            ++bytesWritten;
+        }
 
         return bytesWritten;
     }

@@ -358,6 +358,52 @@ namespace ArcMist
             mData[offset++] = Math::base58Codes[*(it++)];
     }
 
+    void String::writeBase32(const void *pData, unsigned int pSize)
+    {
+        clear();
+
+        // Convert to bits
+        std::vector<bool> bits;
+        const uint8_t *byte = (const uint8_t *)pData;
+        bits.reserve(pSize * 8);
+        for(unsigned int i=0;i<pSize;++i,++byte)
+            for(unsigned int bitOffset=0;bitOffset<8;++bitOffset)
+                bits.push_back(Math::bit(*byte, bitOffset));
+
+        // Allocate data
+        mData = new char[(bits.size() / 5) + 1];
+
+        // Convert to characters
+        uint8_t byteValue = 0;
+        unsigned int bitOffset = 0;
+        char *character = mData;
+        for(std::vector<bool>::iterator bit=bits.begin();bit!=bits.end();++bit)
+        {
+            byteValue <<= 1;
+            if(*bit)
+                byteValue |= 0x01;
+            ++bitOffset;
+
+            if(bitOffset == 5)
+            {
+                *character = Math::base32Codes[byteValue];
+                ++character;
+                byteValue = 0;
+                bitOffset = 0;
+            }
+        }
+
+        if(bitOffset > 0)
+        {
+            *character = Math::base32Codes[byteValue << (5 - bitOffset)];
+            ++character;
+            byteValue = 0;
+            bitOffset = 0;
+        }
+
+        *character = '\0';
+    }
+
     void String::writeFormattedTime(time_t pTime, const char *pFormat)
     {
         clear();
@@ -857,6 +903,34 @@ namespace ArcMist
               "Failed read reverse hex text");
             result = false;
         }
+
+        /******************************************************************************************
+         * Write Base32 Data
+         ******************************************************************************************/
+        String base32;
+        bool base32Success = true;
+
+        base32.writeBase32("f", 1);
+        if(base32 != "vc")
+        {
+            Log::addFormatted(Log::ERROR, ARCMIST_STRING_LOG_NAME,
+              "Failed base32 '%s' != 'vc'", base32.text());
+            base32Success = false;
+        }
+
+        base32.writeBase32("test", 4);
+        if(base32 != "w3jhxaq")
+        {
+            Log::addFormatted(Log::ERROR, ARCMIST_STRING_LOG_NAME,
+              "Failed base32 '%s' != 'w3jhxaq'", base32.text());
+            base32Success = false;
+        }
+
+        if(base32Success)
+            Log::add(Log::INFO, ARCMIST_STRING_LOG_NAME,
+              "Passed base32 test vector");
+        else
+            result = false;
 
         return result;
     }

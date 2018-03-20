@@ -94,6 +94,9 @@ namespace ArcMist
         // Write binary data to string in base 58 text format.
         void writeBase58(const void *pData, unsigned int pSize);
 
+        // Write binary data to string in base 32 text format.
+        void writeBase32(const void *pData, unsigned int pSize);
+
         // Append a file system path separator and then path part to the string.
         String &pathAppend(const char *pPart)
         {
