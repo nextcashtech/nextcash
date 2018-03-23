@@ -8,8 +8,8 @@
 #ifndef NEXTCASH_PROFILER_HPP
 #define NEXTCASH_PROFILER_HPP
 
-#include "nextcash/base/string.hpp"
-#include "nextcash/io/stream.hpp"
+#include "string.hpp"
+#include "stream.hpp"
 
 #include <ctime>
 #include <chrono>

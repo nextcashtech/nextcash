@@ -8,10 +8,10 @@
 #include "mutex.hpp"
 
 #ifdef PROFILER_ON
-#include "nextcash/dev/profiler.hpp"
+#include "profiler.hpp"
 #endif
 
-#include "nextcash/base/log.hpp"
+#include "log.hpp"
 
 #include <unistd.h>
 

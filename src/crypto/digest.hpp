@@ -8,9 +8,9 @@
 #ifndef NEXTCASH_DIGEST_HPP
 #define NEXTCASH_DIGEST_HPP
 
-#include "nextcash/base/string.hpp"
-#include "nextcash/io/stream.hpp"
-#include "nextcash/io/buffer.hpp"
+#include "string.hpp"
+#include "stream.hpp"
+#include "buffer.hpp"
 
 #include <cstdint>
 

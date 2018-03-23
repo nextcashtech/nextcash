@@ -7,8 +7,8 @@
  **************************************************************************/
 #include "log.hpp"
 
-#include "nextcash/base/thread.hpp"
-#include "nextcash/io/file_stream.hpp"
+#include "thread.hpp"
+#include "file_stream.hpp"
 
 #include <cstdarg>
 #include <cstdlib>

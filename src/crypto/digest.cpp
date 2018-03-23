@@ -7,11 +7,11 @@
  **************************************************************************/
 #include "digest.hpp"
 
-#include "nextcash/base/endian.hpp"
-#include "nextcash/base/math.hpp"
-#include "nextcash/base/log.hpp"
-#include "nextcash/io/stream.hpp"
-#include "nextcash/io/buffer.hpp"
+#include "endian.hpp"
+#include "math.hpp"
+#include "log.hpp"
+#include "stream.hpp"
+#include "buffer.hpp"
 
 #include <cstdint>
 #include <cstring>

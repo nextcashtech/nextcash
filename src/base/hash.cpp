@@ -7,9 +7,9 @@
  **************************************************************************/
 #include "hash.hpp"
 
-#include "nextcash/base/endian.hpp"
-#include "nextcash/base/log.hpp"
-#include "nextcash/crypto/digest.hpp"
+#include "endian.hpp"
+#include "log.hpp"
+#include "digest.hpp"
 
 #define NEXTCASH_HASH_LOG_NAME "Hash"
 

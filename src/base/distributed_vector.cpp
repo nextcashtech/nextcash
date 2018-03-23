@@ -7,7 +7,7 @@
  **************************************************************************/
 #include "distributed_vector.hpp"
 
-#include "nextcash/base/log.hpp"
+#include "log.hpp"
 
 #define NEXTCASH_DISTRIBUTED_VECTOR_LOG_NAME "Distributed Vector"
 

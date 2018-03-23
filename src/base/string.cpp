@@ -7,11 +7,11 @@
  **************************************************************************/
 #include "string.hpp"
 
-#include "nextcash/base/math.hpp"
-#include "nextcash/base/endian.hpp"
-#include "nextcash/base/log.hpp"
-#include "nextcash/io/buffer.hpp"
-#include "nextcash/io/file_stream.hpp"
+#include "math.hpp"
+#include "endian.hpp"
+#include "log.hpp"
+#include "buffer.hpp"
+#include "file_stream.hpp"
 
 #include <vector>
 #include <new>

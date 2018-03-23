@@ -8,8 +8,8 @@
 #ifndef NEXTCASH_LOG_HPP
 #define NEXTCASH_LOG_HPP
 
-#include "nextcash/io/stream.hpp"
-#include "nextcash/base/mutex.hpp"
+#include "stream.hpp"
+#include "mutex.hpp"
 
 
 namespace NextCash

@@ -7,9 +7,9 @@
  **************************************************************************/
 #include "stream.hpp"
 
-#include "nextcash/base/endian.hpp"
-#include "nextcash/base/math.hpp"
-#include "nextcash/base/log.hpp"
+#include "endian.hpp"
+#include "math.hpp"
+#include "log.hpp"
 
 #include <cstdio>
 #include <vector>

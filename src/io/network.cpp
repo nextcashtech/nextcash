@@ -7,7 +7,7 @@
  **************************************************************************/
 #include "network.hpp"
 
-#include "nextcash/base/log.hpp"
+#include "log.hpp"
 
 #include <cstdlib>
 #include <cstring>

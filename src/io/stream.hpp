@@ -8,8 +8,8 @@
 #ifndef NEXTCASH_STREAM_HPP
 #define NEXTCASH_STREAM_HPP
 
-#include "nextcash/base/endian.hpp"
-#include "nextcash/base/string.hpp"
+#include "endian.hpp"
+#include "string.hpp"
 
 #include <cstdarg>
 #include <cstdint>

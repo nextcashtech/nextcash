@@ -5,16 +5,16 @@
  * Distributed under the MIT software license, see the accompanying       *
  * file license.txt or http://www.opensource.org/licenses/mit-license.php *
  **************************************************************************/
-#include "nextcash/base/string.hpp"
-#include "nextcash/base/hash.hpp"
-#include "nextcash/base/hash_data_set.hpp"
-#include "nextcash/base/distributed_vector.hpp"
-#include "nextcash/base/log.hpp"
-#include "nextcash/base/thread.hpp"
-#include "nextcash/io/buffer.hpp"
-#include "nextcash/io/file_stream.hpp"
-#include "nextcash/crypto/digest.hpp"
-#include "nextcash/dev/profiler.hpp"
+#include "string.hpp"
+#include "hash.hpp"
+#include "hash_data_set.hpp"
+#include "distributed_vector.hpp"
+#include "log.hpp"
+#include "thread.hpp"
+#include "buffer.hpp"
+#include "file_stream.hpp"
+#include "digest.hpp"
+#include "profiler.hpp"
 
 
 int main(int pArgumentCount, char **pArguments)

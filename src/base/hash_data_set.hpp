@@ -8,17 +8,17 @@
 #ifndef NEXTCASH_HASH_DATA_SET_HPP
 #define NEXTCASH_HASH_DATA_SET_HPP
 
-#include "nextcash/base/mutex.hpp"
-#include "nextcash/base/math.hpp"
-#include "nextcash/base/string.hpp"
-#include "nextcash/base/hash.hpp"
-#include "nextcash/base/distributed_vector.hpp"
-#include "nextcash/base/log.hpp"
-#include "nextcash/io/stream.hpp"
-#include "nextcash/io/file_stream.hpp"
+#include "mutex.hpp"
+#include "math.hpp"
+#include "string.hpp"
+#include "hash.hpp"
+#include "distributed_vector.hpp"
+#include "log.hpp"
+#include "stream.hpp"
+#include "file_stream.hpp"
 
 #ifdef PROFILER_ON
-#include "nextcash/dev/profiler.hpp"
+#include "profiler.hpp"
 #endif
 
 #define NEXTCASH_HASH_DATA_SET_LOG_NAME "HashDataSet"

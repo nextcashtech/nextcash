@@ -7,7 +7,7 @@
  **************************************************************************/
 #include "hash_data_set.hpp"
 
-#include "nextcash/crypto/digest.hpp"
+#include "digest.hpp"
 
 
 namespace NextCash

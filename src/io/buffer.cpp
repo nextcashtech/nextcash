@@ -7,9 +7,9 @@
  **************************************************************************/
 #include "buffer.hpp"
 
-#include "nextcash/base/endian.hpp"
-#include "nextcash/base/string.hpp"
-#include "nextcash/base/log.hpp"
+#include "endian.hpp"
+#include "string.hpp"
+#include "log.hpp"
 
 #include <cstring>
 #include <new>

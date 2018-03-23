@@ -8,12 +8,12 @@
 #ifndef NEXTCASH_HASH_HPP
 #define NEXTCASH_HASH_HPP
 
-#include "nextcash/io/stream.hpp"
-#include "nextcash/base/log.hpp"
-#include "nextcash/base/mutex.hpp"
+#include "stream.hpp"
+#include "log.hpp"
+#include "mutex.hpp"
 
 #ifdef PROFILER_ON
-#include "nextcash/dev/profiler.hpp"
+#include "profiler.hpp"
 #endif
 
 #include <vector>

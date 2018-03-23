@@ -7,7 +7,7 @@ HEADER_FILES=$(wildcard src/*/*.hpp)
 SOURCE_FILES=$(wildcard src/*/*.cpp)
 SRC_SUB_DIRECTORIES=$(wildcard src/*)
 OBJECT_DIRECTORY=.objects
-HEADER_DIRECTORY=include/nextcash
+HEADER_DIRECTORY=include
 OBJECTS=$(patsubst %.cpp,${OBJECT_DIRECTORY}/%.o,${SOURCE_FILES})
 DEBUG_OBJECTS=$(patsubst %.cpp,${OBJECT_DIRECTORY}/%.o.debug,${SOURCE_FILES})
 OUTPUT=nextcash
@@ -26,8 +26,7 @@ list:
 
 headers:
 	@mkdir -vp ${HEADER_DIRECTORY}
-	@for DIR_NAME in ${SRC_SUB_DIRECTORIES}; do mkdir -vp ${HEADER_DIRECTORY}/$${DIR_NAME#src/}; done
-	@for DIR_NAME in ${SRC_SUB_DIRECTORIES}; do cp -v $${DIR_NAME}/*.hpp ${HEADER_DIRECTORY}/$${DIR_NAME#src/}/; done
+	@for DIR_NAME in ${SRC_SUB_DIRECTORIES}; do cp -v $${DIR_NAME}/*.hpp ${HEADER_DIRECTORY}/; done
 
 ${OBJECT_DIRECTORY}:
 	@echo ----------------------------------------------------------------------------------------------------

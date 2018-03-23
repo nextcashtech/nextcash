@@ -7,7 +7,7 @@
  **************************************************************************/
 #include "thread.hpp"
 
-#include "nextcash/base/log.hpp"
+#include "log.hpp"
 
 #include <cstring>
 #include <unistd.h>
