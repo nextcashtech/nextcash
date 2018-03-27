@@ -359,7 +359,7 @@ namespace NextCash
         while(*pString)
         {
             // Decode base32 character
-            match = std::strchr(Math::base32Codes, *pString);
+            match = std::strchr(Math::base32Codes, lower(*pString));
             if(match == NULL)
                 return 0;
             byteValue = match - Math::base32Codes;
