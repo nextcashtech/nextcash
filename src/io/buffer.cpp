@@ -149,12 +149,12 @@ namespace NextCash
     {
         if(mReadOffset + pOffset > mWriteOffset)
         {
-            Log::error(NEXTCASH_BUFFER_LOG_NAME, "Move read offset too large");
+            Log::error(NEXTCASH_BUFFER_LOG_NAME, "Move read offset after end");
             mReadOffset = mWriteOffset;
         }
-        else if(mReadOffset + pOffset < 0)
+        else if(pOffset < 0 && -pOffset > mReadOffset)
         {
-            Log::error(NEXTCASH_BUFFER_LOG_NAME, "Move read offset too small");
+            Log::error(NEXTCASH_BUFFER_LOG_NAME, "Move read offset before start");
             mReadOffset = 0;
         }
         else
