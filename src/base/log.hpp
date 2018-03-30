@@ -61,15 +61,18 @@ namespace NextCash
         void internalSetRollFrequency(uint64_t pSeconds) { mRollFrequency = pSeconds; }
         bool startEntry(Level pLevel, const char *pName);
 
+        void roll();
+
+#ifdef ANDROID
         const char *mDateTimeFormat;
         Level mLevel, mPendingEntryLevel;
         bool mUseColor;
 
-        void roll();
         String mFilePathName;
         uint64_t mLastFileRoll, mRollFrequency;
 
         OutputStream *mStream, *mStreamToDestroy;
+#endif
 
         Mutex mMutex;
     };

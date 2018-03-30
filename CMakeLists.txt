@@ -4,7 +4,6 @@ cmake_minimum_required(VERSION 3.4.1)
 
 add_definitions( -DANDROID -DJAVA )
 
-
 include_directories( src/base
                      src/io
                      src/crypto
@@ -24,3 +23,7 @@ add_library( nextcash STATIC SHARED
              src/io/email.cpp
              src/io/network.cpp
              src/io/stream.cpp )
+
+# Link Android Log Library
+find_library( log-lib log )
+target_link_libraries( nextcash ${log-lib} )

@@ -15,6 +15,9 @@
 #include <ctime>
 #include <iostream>
 #include <iomanip>
+#ifdef ANDROID
+#include <android/log.h>
+#endif
 
 
 namespace NextCash
@@ -34,6 +37,9 @@ namespace NextCash
 
     void rollFile(const char *pFilePathName)
     {
+#ifdef ANDROID
+        return;
+#else
         if(!fileExists(pFilePathName))
             return;
 
@@ -72,10 +78,14 @@ namespace NextCash
         }
 
         std::rename(pFilePathName, newFilePathName);
+#endif
     }
 
     void Log::roll()
     {
+#ifdef ANDROID
+        return;
+#else
         mLastFileRoll = std::time(NULL);
         if(!mFilePathName)
             return; // Only roll when there is a file name
@@ -86,10 +96,14 @@ namespace NextCash
         // Reopen file
         mStreamToDestroy = new FileOutputStream(mFilePathName);
         mStream = mStreamToDestroy;
+#endif
     }
 
     Log::Log(OutputStream *pStream, const char *pDateTimeFormat) : mMutex("Log")
     {
+#ifdef ANDROID
+        return;
+#else
         mDateTimeFormat = pDateTimeFormat;
         mLevel = INFO;
         mPendingEntryLevel = INFO;
@@ -100,12 +114,17 @@ namespace NextCash
         mRollFrequency = 86400; // Daily
 
         internalSetOutput(pStream, false);
+#endif
     }
 
     Log::~Log()
     {
+#ifdef ANDROID
+        return;
+#else
         if(mStreamToDestroy != NULL)
             delete mStreamToDestroy;
+#endif
     }
 
     void Log::destroy()
@@ -119,26 +138,45 @@ namespace NextCash
 
     void Log::setLevel(Level pLevel)
     {
+#ifdef ANDROID
+        return;
+#else
         log().mLevel = pLevel;
+#endif
     }
 
     void Log::setOutput(OutputStream *pStream, bool pDeleteOnExit)
     {
+#ifdef ANDROID
+        return;
+#else
         log().internalSetOutput(pStream, pDeleteOnExit);
+#endif
     }
 
     void Log::setOutputFile(const char *pFilePathName)
     {
+#ifdef ANDROID
+        return;
+#else
         log().internalSetOutputFile(pFilePathName);
+#endif
     }
 
     void Log::setRollFrequency(uint64_t pSeconds)
     {
+#ifdef ANDROID
+        return;
+#else
         log().internalSetRollFrequency(pSeconds);
+#endif
     }
 
     void Log::internalSetOutput(OutputStream *pStream, bool pDeleteOnExit)
     {
+#ifdef ANDROID
+        return;
+#else
         if(mStreamToDestroy != NULL)
             delete mStreamToDestroy;
 
@@ -157,10 +195,14 @@ namespace NextCash
             mStream = mStreamToDestroy;
             mUseColor = true;
         }
+#endif
     }
 
     void Log::internalSetOutputFile(const char *pFilePathName)
     {
+#ifdef ANDROID
+        return;
+#else
         if(mStreamToDestroy != NULL)
             delete mStreamToDestroy;
         mFilePathName = pFilePathName;
@@ -168,24 +210,37 @@ namespace NextCash
         mStream = NULL;
         mUseColor = false;
         roll();
+#endif
     }
 
     inline void startForegroundColor(OutputStream *pStream, unsigned int pColor)
     {
+#ifdef ANDROID
+        return;
+#else
         pStream->writeByte(0x1b);
         pStream->writeFormatted("[38;5;%dm", pColor);
+#endif
     }
 
     inline void startBackgroundColor(OutputStream *pStream, unsigned int pColor)
     {
+#ifdef ANDROID
+        return;
+#else
         pStream->writeByte(0x1b);
         pStream->writeFormatted("[48;5;%dm", pColor);
+#endif
     }
 
     inline void endColor(OutputStream *pStream)
     {
+#ifdef ANDROID
+        return;
+#else
         pStream->writeByte(0x1b);
         pStream->writeFormatted("[0m");
+#endif
     }
 
     static const unsigned int BLACK      = 232;
@@ -203,6 +258,10 @@ namespace NextCash
 
     bool Log::startEntry(Level pLevel, const char *pName)
     {
+#ifdef ANDROID
+        lock();
+        return true;
+#else
         if(mLevel > pLevel)
             return false;
 
@@ -312,20 +371,49 @@ namespace NextCash
 
         if(mUseColor)
             startForegroundColor(mStream, entryColor);
+#endif
 
         return true;
     }
+
+#ifdef ANDROID
+    int androidLogLevel(Log::Level pLevel)
+    {
+        switch(pLevel)
+        {
+        case Log::DEBUG:
+            return ANDROID_LOG_VERBOSE; // DEBUG is higher than verbose in android, but not here
+        case Log::VERBOSE:
+            return ANDROID_LOG_DEBUG;
+        default:
+        case Log::INFO:
+            return ANDROID_LOG_INFO;
+        case Log::WARNING:
+            return ANDROID_LOG_WARN;
+        case Log::ERROR:
+            return ANDROID_LOG_ERROR;
+        case Log::NOTIFICATION:
+            return ANDROID_LOG_INFO;
+        case Log::CRITICAL:
+            return ANDROID_LOG_FATAL;
+        }
+    }
+#endif
 
     void Log::add(Level pLevel, const char *pName, const char *pEntry)
     {
         Log &theLog = log();
         if(theLog.startEntry(pLevel, pName))
         {
+#ifdef ANDROID
+            __android_log_print(androidLogLevel(pLevel), pName, "%s", pEntry);
+#else
             theLog.mStream->writeString(pEntry);
             theLog.mStream->writeByte('\n');
             if(theLog.mUseColor)
                 endColor(theLog.mStream);
             theLog.mStream->flush();
+#endif
             theLog.unlock();
         }
     }
@@ -337,12 +425,16 @@ namespace NextCash
         {
             va_list args;
             va_start(args, pFormatting);
+#ifdef ANDROID
+            __android_log_vprint(androidLogLevel(pLevel), pName, pFormatting, args);
+#else
             theLog.mStream->writeFormattedList(pFormatting, args);
-            va_end(args);
             theLog.mStream->writeByte('\n');
             if(theLog.mUseColor)
                 endColor(theLog.mStream);
             theLog.mStream->flush();
+#endif
+            va_end(args);
             theLog.unlock();
         }
     }
@@ -354,12 +446,16 @@ namespace NextCash
         {
             va_list args;
             va_start(args, pFormatting);
+#ifdef ANDROID
+            __android_log_vprint(androidLogLevel(DEBUG), pName, pFormatting, args);
+#else
             theLog.mStream->writeFormattedList(pFormatting, args);
-            va_end(args);
             theLog.mStream->writeByte('\n');
             if(theLog.mUseColor)
                 endColor(theLog.mStream);
             theLog.mStream->flush();
+#endif
+            va_end(args);
             theLog.unlock();
         }
     }
@@ -371,12 +467,16 @@ namespace NextCash
         {
             va_list args;
             va_start(args, pFormatting);
+#ifdef ANDROID
+            __android_log_vprint(androidLogLevel(VERBOSE), pName, pFormatting, args);
+#else
             theLog.mStream->writeFormattedList(pFormatting, args);
-            va_end(args);
             theLog.mStream->writeByte('\n');
             if(theLog.mUseColor)
                 endColor(theLog.mStream);
             theLog.mStream->flush();
+#endif
+            va_end(args);
             theLog.unlock();
         }
     }
@@ -388,12 +488,16 @@ namespace NextCash
         {
             va_list args;
             va_start(args, pFormatting);
+#ifdef ANDROID
+            __android_log_vprint(androidLogLevel(INFO), pName, pFormatting, args);
+#else
             theLog.mStream->writeFormattedList(pFormatting, args);
-            va_end(args);
             theLog.mStream->writeByte('\n');
             if(theLog.mUseColor)
                 endColor(theLog.mStream);
             theLog.mStream->flush();
+#endif
+            va_end(args);
             theLog.unlock();
         }
     }
@@ -405,12 +509,16 @@ namespace NextCash
         {
             va_list args;
             va_start(args, pFormatting);
+#ifdef ANDROID
+            __android_log_vprint(androidLogLevel(WARNING), pName, pFormatting, args);
+#else
             theLog.mStream->writeFormattedList(pFormatting, args);
-            va_end(args);
             theLog.mStream->writeByte('\n');
             if(theLog.mUseColor)
                 endColor(theLog.mStream);
             theLog.mStream->flush();
+#endif
+            va_end(args);
             theLog.unlock();
         }
     }
@@ -422,12 +530,16 @@ namespace NextCash
         {
             va_list args;
             va_start(args, pFormatting);
+#ifdef ANDROID
+            __android_log_vprint(androidLogLevel(ERROR), pName, pFormatting, args);
+#else
             theLog.mStream->writeFormattedList(pFormatting, args);
-            va_end(args);
             theLog.mStream->writeByte('\n');
             if(theLog.mUseColor)
                 endColor(theLog.mStream);
             theLog.mStream->flush();
+#endif
+            va_end(args);
             theLog.unlock();
         }
     }
@@ -437,6 +549,10 @@ namespace NextCash
         Log &theLog = log();
         if(theLog.startEntry(pLevel, pName))
         {
+#ifdef ANDROID
+            __android_log_print(androidLogLevel(pLevel), pName, "%s", pDescription);
+            __android_log_print(androidLogLevel(pLevel), pName, "%s", pStream->readHexString(pSize).text());
+#else
             theLog.mStream->writeString(pDescription);
             theLog.mStream->writeByte('\n');
             theLog.mStream->writeAsHex(pStream, pSize);
@@ -444,6 +560,7 @@ namespace NextCash
             if(theLog.mUseColor)
                 endColor(theLog.mStream);
             theLog.mStream->flush();
+#endif
             theLog.unlock();
         }
     }
