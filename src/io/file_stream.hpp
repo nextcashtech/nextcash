@@ -45,6 +45,16 @@ namespace NextCash
         return result >= 0;
     }
 
+    inline bool renameFile(const char *pSourceFileName, const char *pDestinationFileName)
+    {
+        String command = "mv ";
+        command += pSourceFileName;
+        command += " ";
+        command += pDestinationFileName;
+        int result = system(command.text());
+        return result >= 0;
+    }
+
     class FileInputStream : public InputStream
     {
     public:
