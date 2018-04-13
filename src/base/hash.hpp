@@ -31,6 +31,8 @@ namespace NextCash
         Hash(unsigned int pSize) { mData = NULL; allocate(pSize); } // Create specific size, zeroized
         Hash(unsigned int pSize, int64_t pValue); // Create from integer value (arithmetic)
         Hash(const char *pHex); // Create from hex text
+        Hash(InputStream *pStream, unsigned int pSize)
+          { mData = NULL; allocate(pSize); read(pStream); }
         Hash(const Hash &pCopy);
         ~Hash() { deallocate(); }
 

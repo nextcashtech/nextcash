@@ -15,6 +15,8 @@
 
 #include <unistd.h>
 
+#define NEXTCASH_MUTEX_LOG_NAME "Mutex"
+
 
 namespace NextCash
 {
@@ -27,7 +29,8 @@ namespace NextCash
             if(++sleeps > 100)
             {
                 // It has been over a second. So notify that this wait is taking too long
-                Log::addFormatted(Log::WARNING, "Mutex", "Waiting for lock on %s", mName.text());
+                Log::addFormatted(Log::WARNING, NEXTCASH_MUTEX_LOG_NAME,
+                  "Waiting for lock on %s", mName.text());
                 sleeps = 0;
             }
         }
@@ -55,10 +58,12 @@ namespace NextCash
             {
                 // It has been over a second. So notify that this wait is taking too long
                 if(mWriteLockName != NULL)
-                    Log::addFormatted(Log::VERBOSE, "Mutex", "Waiting for read lock on %s (locked by %s)",
+                    Log::addFormatted(Log::VERBOSE, NEXTCASH_MUTEX_LOG_NAME,
+                      "Waiting for read lock on %s (locked by %s)",
                       mName.text(), mWriteLockName);
                 else
-                    Log::addFormatted(Log::VERBOSE, "Mutex", "Waiting for read lock on %s", mName.text());
+                    Log::addFormatted(Log::VERBOSE, NEXTCASH_MUTEX_LOG_NAME,
+                      "Waiting for read lock on %s", mName.text());
                 sleeps = 0;
             }
 
@@ -94,10 +99,12 @@ namespace NextCash
             {
                 // It has been over 5 seconds. So notify that this wait is taking too long
                 if(mWriterLocked)
-                    Log::addFormatted(Log::VERBOSE, "Mutex", "Waiting for write lock for %s on %s (write locked by %s)",
+                    Log::addFormatted(Log::VERBOSE, NEXTCASH_MUTEX_LOG_NAME,
+                      "Waiting for write lock for %s on %s (write locked by %s)",
                       pRequestName, mName.text(), mWriteLockName);
                 else
-                    Log::addFormatted(Log::VERBOSE, "Mutex", "Waiting for write lock for %s on %s (other writer waiting)",
+                    Log::addFormatted(Log::VERBOSE, NEXTCASH_MUTEX_LOG_NAME,
+                      "Waiting for write lock for %s on %s (other writer waiting)",
                       pRequestName, mName.text());
                 sleeps = 0;
             }
@@ -125,10 +132,12 @@ namespace NextCash
             {
                 // It has been over 5 seconds. So notify that this wait is taking too long
                 if(pRequestName != NULL)
-                    Log::addFormatted(Log::VERBOSE, "Mutex", "Waiting for write lock for %s on %s (%d readers locked)",
+                    Log::addFormatted(Log::VERBOSE, NEXTCASH_MUTEX_LOG_NAME,
+                      "Waiting for write lock for %s on %s (%d readers locked)",
                       pRequestName, mName.text(), mReaderCount);
                 else
-                    Log::addFormatted(Log::VERBOSE, "Mutex", "Waiting for write lock on %s (%d readers locked)",
+                    Log::addFormatted(Log::VERBOSE, NEXTCASH_MUTEX_LOG_NAME,
+                      "Waiting for write lock on %s (%d readers locked)",
                       mName.text(), mReaderCount);
                 sleeps = 0;
             }

@@ -114,9 +114,9 @@ namespace NextCash
             "f0", "f1", "f2", "f3", "f4", "f5", "f6", "f7", "f8", "f9", "fa", "fb", "fc", "fd", "fe", "ff"
         };
 
-        static char base58Codes[59] __attribute__ ((unused)) = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
+        static const char base58Codes[59] __attribute__ ((unused)) = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
 
-        static char base32Codes[33] __attribute__ ((unused)) = "qpzry9x8gf2tvdw0s3jn54khce6mua7l";
+        static const char base32Codes[33] __attribute__ ((unused)) = "qpzry9x8gf2tvdw0s3jn54khce6mua7l";
 
         // Reverse the bits in a byte
         static uint8_t reflect8[256] __attribute__ ((unused)) =

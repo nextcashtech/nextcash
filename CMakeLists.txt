@@ -2,7 +2,6 @@
 
 cmake_minimum_required(VERSION 3.4.1)
 
-add_definitions( -DANDROID -DJAVA )
 
 include_directories( src/base
                      src/io
@@ -27,3 +26,6 @@ add_library( nextcash STATIC SHARED
 # Link Android Log Library
 find_library( log-lib log )
 target_link_libraries( nextcash ${log-lib} )
+
+set_property( TARGET nextcash PROPERTY CXX_STANDARD 11 )
+set_property( TARGET nextcash PROPERTY CXX_STANDARD_REQUIRED ON )

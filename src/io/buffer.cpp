@@ -137,8 +137,8 @@ namespace NextCash
     {
         clear();
         mData = new uint8_t[pSize];
-        pInput.read(mData, pSize);
         mSize = pSize;
+        pInput.read(mData, pSize);
         mReadOffset = 0;
         mWriteOffset = pSize;
         mEndOffset = pSize;
@@ -176,7 +176,7 @@ namespace NextCash
         mReadOffset = 0;
         mWriteOffset = 0;
         mEndOffset = 0;
-        if(mData)
+        if(mData != NULL)
         {
             if(!mSharing)
                 delete[] mData;
@@ -212,6 +212,7 @@ namespace NextCash
         {
             delete[] mData;
             mData = NULL;
+            mSize = 0;
             return;
         }
 
@@ -256,7 +257,7 @@ namespace NextCash
 
         // Allocate and populate new memory
         uint8_t *newData = NULL;
-        unsigned newSize = pSize;
+        stream_size newSize = pSize;
         if(!mAutoFlush)
             newSize += mReadOffset;
 

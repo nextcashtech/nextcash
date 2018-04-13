@@ -48,11 +48,12 @@ namespace NextCash
         void lock() { mMutex.lock(); }
         void unlock() { mMutex.unlock(); }
 
+        static void destroy();
+
     private:
 
         static Log &log();
         static Log *mInstance;
-        static void destroy();
 
         Log(OutputStream *pStream, const char *pDateTimeFormat);
         ~Log();
