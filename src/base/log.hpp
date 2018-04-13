@@ -57,6 +57,8 @@ namespace NextCash
 
         Log(OutputStream *pStream, const char *pDateTimeFormat);
         ~Log();
+
+#ifndef ANDROID
         void internalSetOutput(OutputStream *pStream, bool pDeleteOnExit);
         void internalSetOutputFile(const char *pFilePathName);
         void internalSetRollFrequency(uint64_t pSeconds) { mRollFrequency = pSeconds; }
@@ -64,7 +66,6 @@ namespace NextCash
 
         void roll();
 
-#ifdef ANDROID
         const char *mDateTimeFormat;
         Level mLevel, mPendingEntryLevel;
         bool mUseColor;

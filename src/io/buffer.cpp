@@ -152,7 +152,7 @@ namespace NextCash
             Log::error(NEXTCASH_BUFFER_LOG_NAME, "Move read offset after end");
             mReadOffset = mWriteOffset;
         }
-        else if(pOffset < 0 && -pOffset > mReadOffset)
+        else if(pOffset < 0 && (stream_size)-pOffset > mReadOffset)
         {
             Log::error(NEXTCASH_BUFFER_LOG_NAME, "Move read offset before start");
             mReadOffset = 0;

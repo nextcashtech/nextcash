@@ -35,11 +35,9 @@ namespace NextCash
         return *mInstance;
     }
 
+#ifndef ANDROID
     void rollFile(const char *pFilePathName)
     {
-#ifdef ANDROID
-        return;
-#else
         if(!fileExists(pFilePathName))
             return;
 
@@ -78,14 +76,10 @@ namespace NextCash
         }
 
         std::rename(pFilePathName, newFilePathName);
-#endif
     }
 
     void Log::roll()
     {
-#ifdef ANDROID
-        return;
-#else
         mLastFileRoll = std::time(NULL);
         if(!mFilePathName)
             return; // Only roll when there is a file name
@@ -96,8 +90,8 @@ namespace NextCash
         // Reopen file
         mStreamToDestroy = new FileOutputStream(mFilePathName);
         mStream = mStreamToDestroy;
-#endif
     }
+#endif
 
     Log::Log(OutputStream *pStream, const char *pDateTimeFormat) : mMutex("Log")
     {
@@ -136,47 +130,29 @@ namespace NextCash
         }
     }
 
+#ifndef ANDROID
     void Log::setLevel(Level pLevel)
     {
-#ifdef ANDROID
-        return;
-#else
         log().mLevel = pLevel;
-#endif
     }
 
     void Log::setOutput(OutputStream *pStream, bool pDeleteOnExit)
     {
-#ifdef ANDROID
-        return;
-#else
         log().internalSetOutput(pStream, pDeleteOnExit);
-#endif
     }
 
     void Log::setOutputFile(const char *pFilePathName)
     {
-#ifdef ANDROID
-        return;
-#else
         log().internalSetOutputFile(pFilePathName);
-#endif
     }
 
     void Log::setRollFrequency(uint64_t pSeconds)
     {
-#ifdef ANDROID
-        return;
-#else
         log().internalSetRollFrequency(pSeconds);
-#endif
     }
 
     void Log::internalSetOutput(OutputStream *pStream, bool pDeleteOnExit)
     {
-#ifdef ANDROID
-        return;
-#else
         if(mStreamToDestroy != NULL)
             delete mStreamToDestroy;
 
@@ -195,14 +171,10 @@ namespace NextCash
             mStream = mStreamToDestroy;
             mUseColor = true;
         }
-#endif
     }
 
     void Log::internalSetOutputFile(const char *pFilePathName)
     {
-#ifdef ANDROID
-        return;
-#else
         if(mStreamToDestroy != NULL)
             delete mStreamToDestroy;
         mFilePathName = pFilePathName;
@@ -210,38 +182,26 @@ namespace NextCash
         mStream = NULL;
         mUseColor = false;
         roll();
-#endif
     }
 
     inline void startForegroundColor(OutputStream *pStream, unsigned int pColor)
     {
-#ifdef ANDROID
-        return;
-#else
         pStream->writeByte(0x1b);
         pStream->writeFormatted("[38;5;%dm", pColor);
-#endif
     }
 
     inline void startBackgroundColor(OutputStream *pStream, unsigned int pColor)
     {
-#ifdef ANDROID
-        return;
-#else
         pStream->writeByte(0x1b);
         pStream->writeFormatted("[48;5;%dm", pColor);
-#endif
     }
 
     inline void endColor(OutputStream *pStream)
     {
-#ifdef ANDROID
-        return;
-#else
         pStream->writeByte(0x1b);
         pStream->writeFormatted("[0m");
-#endif
     }
+#endif
 
     static const unsigned int BLACK      = 232;
     static const unsigned int WHITE      = 252;
