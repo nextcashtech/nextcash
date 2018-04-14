@@ -19,6 +19,7 @@ namespace NextCash
     public:
         enum Level { DEBUG, VERBOSE, INFO, WARNING, ERROR, NOTIFICATION, CRITICAL };
 
+#ifndef ANDROID
         static void setLevel(Level pLevel); // Defaults to INFO
         static void setOutput(OutputStream *pStream, bool pDeleteOnExit = false); // Defaults to std::cerr
 
@@ -27,6 +28,7 @@ namespace NextCash
 
         // Set log file roll frequency. Only works after setOutputFile
         static void setRollFrequency(uint64_t pSeconds);
+#endif
 
         static void add(Level pLevel, const char *pName, const char *pEntry);
         static void debug(const char *pName, const char *pEntry) { add(DEBUG, pName, pEntry); }
@@ -58,11 +60,12 @@ namespace NextCash
         Log(OutputStream *pStream, const char *pDateTimeFormat);
         ~Log();
 
+        bool startEntry(Level pLevel, const char *pName);
+
 #ifndef ANDROID
         void internalSetOutput(OutputStream *pStream, bool pDeleteOnExit);
         void internalSetOutputFile(const char *pFilePathName);
         void internalSetRollFrequency(uint64_t pSeconds) { mRollFrequency = pSeconds; }
-        bool startEntry(Level pLevel, const char *pName);
 
         void roll();
 
