@@ -51,6 +51,7 @@ namespace NextCash
         void clear(); // Clear all data
         void compact(); // Reduce memory footprint. Flush first if you want to remove read data
         void setSize(stream_size pSize); // Sets the allocated memory size (flushes if readOffset is not zero and autoFlush is true)
+        void setEnd(stream_size pLength); // Sets the end of the stream at the specified length
         void reset() { mReadOffset = 0; mEndOffset = 0; mWriteOffset = 0; }
 
         // Reuse the memory of the other buffer.

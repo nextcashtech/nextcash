@@ -297,6 +297,18 @@ namespace NextCash
         mSize = newSize;
     }
 
+    void Buffer::setEnd(stream_size pLength)
+    {
+        if(pLength < mEndOffset)
+        {
+            mEndOffset = pLength;
+            if(mReadOffset > mEndOffset)
+                mReadOffset = mEndOffset;
+            if(mWriteOffset > mEndOffset)
+                mWriteOffset = mEndOffset;
+        }
+    }
+
     // Flush any read bytes
     void Buffer::flush()
     {
