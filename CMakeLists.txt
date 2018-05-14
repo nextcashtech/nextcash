@@ -17,6 +17,7 @@ add_library( nextcash STATIC SHARED
              src/base/string.cpp
              src/base/thread.cpp
              src/crypto/digest.cpp
+             src/crypto/encrypt.cpp
              src/dev/profiler.cpp
              src/io/buffer.cpp
              src/io/email.cpp

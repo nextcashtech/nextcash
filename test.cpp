@@ -14,6 +14,7 @@
 #include "buffer.hpp"
 #include "file_stream.hpp"
 #include "digest.hpp"
+#include "encrypt.hpp"
 #include "profiler.hpp"
 
 
@@ -39,6 +40,9 @@ int main(int pArgumentCount, char **pArguments)
         failed++;
 
     if(!NextCash::Digest::test())
+        failed++;
+
+    if(!NextCash::Encryption::test())
         failed++;
 
     NextCash::Log::add(NextCash::Log::INFO, "Test", "------------- Starting General Tests -------------");
