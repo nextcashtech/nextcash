@@ -180,6 +180,8 @@ namespace NextCash
             // Inserts a new item corresponding to the lookup.
             bool insert(const Hash &pLookupValue, HashData *pValue, bool pRejectMatching);
 
+            bool removeIfMatching(const Hash &pLookupValue, HashData *pValue);
+
             // Returns an iterator referencing the first matching item.
             SubSetIterator get(const Hash &pLookupValue, bool pForcePull = false);
 
@@ -187,7 +189,8 @@ namespace NextCash
 
             // Pull all items with matching hashes from the file and put them in the cache.
             //   Returns true if any items were added to the cache.
-            bool pull(const Hash &pLookupValue);
+            // If pPullMatchingFunction then only items that return true will be pulled.
+            bool pull(const Hash &pLookupValue, HashData *pMatching = NULL);
 
             bool load(const char *pFilePath, unsigned int pID);
             bool save();
@@ -368,6 +371,8 @@ namespace NextCash
         //   the HashData::valuesMatch function.
         bool insert(const Hash &pLookupValue, HashData *pValue, bool pRejectMatching = false);
 
+        bool removeIfMatching(const Hash &pLookupValue, HashData *pValue);
+
         // Returns an iterator referencing the first matching item.
         // Set pForcePull to true if you want to ensure you get all matching values even if they
         //   are no longer cached.
@@ -416,8 +421,22 @@ namespace NextCash
     }
 
     template <class tHashDataType, uint8_t tHashSize, uint16_t tSampleSize, uint16_t tSetCount>
+    bool HashDataSet<tHashDataType, tHashSize, tSampleSize, tSetCount>::removeIfMatching(const Hash &pLookupValue,
+      HashData *pValue)
+    {
+#ifdef PROFILER_ON
+        NextCash::Profiler profiler("Hash Set Remove If Matching");
+#endif
+        mLock.readLock();
+        bool result = mSubSets[subSetOffset(pLookupValue)].removeIfMatching(pLookupValue, pValue);
+        mLock.readUnlock();
+        return result;
+    }
+
+    template <class tHashDataType, uint8_t tHashSize, uint16_t tSampleSize, uint16_t tSetCount>
     typename HashDataSet<tHashDataType, tHashSize, tSampleSize, tSetCount>::Iterator
-      HashDataSet<tHashDataType, tHashSize, tSampleSize, tSetCount>::get(const Hash &pLookupValue, bool pForcePull)
+      HashDataSet<tHashDataType, tHashSize, tSampleSize, tSetCount>::get(const Hash &pLookupValue,
+      bool pForcePull)
     {
         mLock.readLock();
         SubSet *subSet = mSubSets + subSetOffset(pLookupValue);
@@ -547,8 +566,49 @@ namespace NextCash
     }
 
     template <class tHashDataType, uint8_t tHashSize, uint16_t tSampleSize, uint16_t tSetCount>
+    bool HashDataSet<tHashDataType, tHashSize, tSampleSize, tSetCount>::SubSet::removeIfMatching(const Hash &pLookupValue,
+      HashData *pValue)
+    {
+#ifdef PROFILER_ON
+        NextCash::Profiler profiler("Hash SubSet Remove If Matching");
+#endif
+        mLock.writeLock();
+
+        bool result = false;
+        SubSetIterator item = mCache.get(pLookupValue);
+        while(item != mCache.end() && item.hash() == pLookupValue)
+        {
+            if(pValue->valuesMatch(*item) && !(*item)->markedRemove())
+            {
+                (*item)->setRemove();
+                result = true;
+            }
+            ++item;
+        }
+
+        // Pull only matching items
+        if(!result && pull(pLookupValue, pValue))
+        {
+            item = mCache.get(pLookupValue);
+            while(item != mCache.end() && item.hash() == pLookupValue)
+            {
+                if(pValue->valuesMatch(*item) && !(*item)->markedRemove())
+                {
+                    (*item)->setRemove();
+                    result = true;
+                }
+                ++item;
+            }
+        }
+
+        mLock.writeUnlock();
+        return result;
+    }
+
+    template <class tHashDataType, uint8_t tHashSize, uint16_t tSampleSize, uint16_t tSetCount>
     typename HashDataSet<tHashDataType, tHashSize, tSampleSize, tSetCount>::SubSetIterator
-      HashDataSet<tHashDataType, tHashSize, tSampleSize, tSetCount>::SubSet::get(const Hash &pLookupValue, bool pForcePull)
+      HashDataSet<tHashDataType, tHashSize, tSampleSize, tSetCount>::SubSet::get(const Hash &pLookupValue,
+      bool pForcePull)
     {
         mLock.readLock();
         if(pForcePull)
@@ -561,7 +621,8 @@ namespace NextCash
     }
 
     template <class tHashDataType, uint8_t tHashSize, uint16_t tSampleSize, uint16_t tSetCount>
-    bool HashDataSet<tHashDataType, tHashSize, tSampleSize, tSetCount>::SubSet::pull(const Hash &pLookupValue)
+    bool HashDataSet<tHashDataType, tHashSize, tSampleSize, tSetCount>::SubSet::pull(const Hash &pLookupValue,
+      HashData *pMatching)
     {
         if(mFileSize == 0)
             return false;
@@ -708,7 +769,8 @@ namespace NextCash
                 break;
             }
 
-            if(mCache.insertIfNotMatching(pLookupValue, next, hashDataValuesMatch))
+            if((pMatching == NULL || pMatching->valuesMatch(next)) &&
+              mCache.insertIfNotMatching(pLookupValue, next, hashDataValuesMatch))
             {
                 mCacheRawDataSize += next->size();
                 result = true;
