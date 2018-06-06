@@ -32,6 +32,9 @@ namespace NextCash
                 for(unsigned int i=0;i<size();i++)
                     delete[] (*this)[i];
             }
+
+            typedef std::vector<char *>::iterator iterator;
+            typedef std::vector<char *>::const_iterator const_iterator;
         };
 
         // Lookup DNS and return IP addresses

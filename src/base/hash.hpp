@@ -335,6 +335,9 @@ namespace NextCash
         // Return true if the item exists in a sorted list
         bool containsSorted(const Hash &pHash);
 
+        typedef std::vector<Hash>::iterator iterator;
+        typedef std::vector<Hash>::const_iterator const_iterator;
+
     private:
     };
 

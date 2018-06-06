@@ -6,7 +6,8 @@ cmake_minimum_required(VERSION 3.4.1)
 include_directories( src/base
                      src/io
                      src/crypto
-                     src/dev )
+                     src/dev
+                     . )
 
 add_library( nextcash STATIC SHARED
              src/base/distributed_vector.cpp
@@ -22,7 +23,8 @@ add_library( nextcash STATIC SHARED
              src/io/buffer.cpp
              src/io/email.cpp
              src/io/network.cpp
-             src/io/stream.cpp )
+             src/io/stream.cpp
+             nextcash_test.cpp )
 
 # Link Android Log Library
 find_library( log-lib log )

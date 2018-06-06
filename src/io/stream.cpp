@@ -108,6 +108,20 @@ namespace NextCash
         return result;
     }
 
+    String InputStream::readString()
+    {
+        String result;
+        char nextChar;
+        while(remaining())
+        {
+            nextChar = readByte();
+            if(nextChar == '\0')
+                break;
+            result += nextChar;
+        }
+        return result;
+    }
+
     String InputStream::readHexString(stream_size pSize)
     {
         String result;

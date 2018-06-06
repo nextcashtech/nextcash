@@ -58,6 +58,7 @@ namespace NextCash
         int64_t readLong();
         stream_size readStream(OutputStream *pOutput, stream_size pMaxSize);
         String readString(stream_size pLength);
+        String readString();
         // Create hex string from binary data
         String readHexString(stream_size pSize);
 

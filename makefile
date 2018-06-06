@@ -83,7 +83,7 @@ test: headers ${OBJECT_DIRECTORY}/.headers ${OBJECTS}
 	@echo "\033[0;33m----------------------------------------------------------------------------------------------------\033[0m"
 	@echo "\t\033[0;33mBUILDING TEST\033[0m"
 	@echo "\033[0;33m----------------------------------------------------------------------------------------------------\033[0m"
-	${COMPILER} -c -o ${OBJECT_DIRECTORY}/test.o test.cpp ${COMPILE_FLAGS}
+	${COMPILER} -c -o ${OBJECT_DIRECTORY}/test.o nextcash_test.cpp ${COMPILE_FLAGS}
 	${COMPILER} ${OBJECTS} ${OBJECT_DIRECTORY}/test.o ${LIBRARY_PATHS} ${LIBRARIES} -o test ${LINK_FLAGS}
 	@echo "\033[0;33m----------------------------------------------------------------------------------------------------\033[0m"
 	@echo "\t\033[0;33mTESTING\033[0m"
@@ -97,7 +97,7 @@ test.debug: headers ${OBJECT_DIRECTORY}/.debug_headers ${DEBUG_OBJECTS}
 	@echo "\033[0;33m----------------------------------------------------------------------------------------------------\033[0m"
 	@echo "\t\033[0;33mBUILDING DEBUG TEST\033[0m"
 	@echo "\033[0;33m----------------------------------------------------------------------------------------------------\033[0m"
-	${COMPILER} -c -ggdb -o ${OBJECT_DIRECTORY}/test.o.debug test.cpp ${COMPILE_FLAGS}
+	${COMPILER} -c -ggdb -o ${OBJECT_DIRECTORY}/test.o.debug nextcash_test.cpp ${COMPILE_FLAGS}
 	${COMPILER} ${DEBUG_OBJECTS} ${OBJECT_DIRECTORY}/test.o.debug ${LIBRARY_PATHS} ${DEBUG_LIBRARIES} -o test.debug ${LINK_FLAGS}
 	@echo "\033[0;33m----------------------------------------------------------------------------------------------------\033[0m"
 
