@@ -238,7 +238,7 @@ namespace NextCash
 
     inline char upper(char pChar)
     {
-        if (isLower(pChar))
+        if(isLower(pChar))
             return pChar - 32;
         else
             return pChar;
@@ -246,11 +246,17 @@ namespace NextCash
 
     inline char lower(char pChar)
     {
-        if (isUpper(pChar))
+        if(isUpper(pChar))
             return pChar + 32;
         else
             return pChar;
     }
+
+    // RFC 3986 Uniform Resource Identifier (URI) encoding
+    String uriEncode(const char *pString);
+
+    // RFC 3986 Uniform Resource Identifier (URI) decoding
+    String uriDecode(const char *pString);
 }
 
 #endif

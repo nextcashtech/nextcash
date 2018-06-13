@@ -146,28 +146,20 @@ namespace NextCash
             {
             case 0:
                 return pValue & 0x80;
-                break;
             case 1:
                 return pValue & 0x40;
-                break;
             case 2:
                 return pValue & 0x20;
-                break;
             case 3:
                 return pValue & 0x10;
-                break;
             case 4:
                 return pValue & 0x08;
-                break;
             case 5:
                 return pValue & 0x04;
-                break;
             case 6:
                 return pValue & 0x02;
-                break;
             case 7:
                 return pValue & 0x01;
-                break;
             default:
                 break;
             }

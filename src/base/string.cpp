@@ -934,4 +934,53 @@ namespace NextCash
 
         return result;
     }
+
+    // RFC 3986 Uniform Resource Identifier (URI) encoding
+    String uriEncode(const char *pString)
+    {
+        String result, reservedCode;
+
+        for(const char *ptr = pString; *ptr != '\0'; ++ptr)
+        {
+            if(isLetter(*ptr) || isInt(*ptr))
+                result += *ptr;
+            else if(*ptr == '-' || *ptr == '.' || *ptr == '_' || *ptr == '~')
+                result += *ptr;
+            else
+            {
+                // Reserved character
+                reservedCode.clear();
+                reservedCode.writeFormatted("%%%02x", (int)*ptr);
+                result += reservedCode;
+            }
+        }
+
+        return result;
+    }
+
+    // RFC 3986 Uniform Resource Identifier (URI) decoding
+    String uriDecode(const char *pString)
+    {
+        String result;
+        char reservedChar;
+
+        for(const char *ptr = pString; *ptr != '\0'; ++ptr)
+        {
+            if(*ptr == '%')
+            {
+                if(*(ptr + 1) != '\0' && *(ptr + 2) != '\0')
+                {
+                    reservedChar = Math::hexToNibble(*++ptr) << 4;
+                    reservedChar += Math::hexToNibble(*++ptr);
+                    result += reservedChar;
+                }
+                else
+                    return String(); // Invalid URI
+            }
+            else
+                result += *ptr;
+        }
+
+        return result;
+    }
 }
