@@ -65,19 +65,19 @@ namespace NextCash
 
         bool operator == (Buffer &pRight) const
         {
-            if(remaining() != pRight.remaining())
+            if(length() != pRight.length())
                 return false;
-            if(remaining() == 0)
+            if(length() == 0)
                 return true;
-            return std::memcmp(mData + mReadOffset, pRight.mData + pRight.mReadOffset, remaining()) == 0;
+            return std::memcmp(mData, pRight.mData, length()) == 0;
         }
         bool operator != (Buffer &pRight) const
         {
-            if(remaining() != pRight.remaining())
+            if(length() != pRight.length())
                 return true;
-            if(remaining() == 0)
+            if(length() == 0)
                 return false;
-            return std::memcmp(mData + mReadOffset, pRight.mData + pRight.mReadOffset, remaining()) != 0;
+            return std::memcmp(mData, pRight.mData, length()) != 0;
         }
 
         static bool test();
