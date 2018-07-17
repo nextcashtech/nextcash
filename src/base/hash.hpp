@@ -323,9 +323,20 @@ namespace NextCash
 
         bool contains(const Hash &pHash) const
         {
-            for(const_iterator hash=begin();hash!=end();++hash)
+            for(const_iterator hash = begin(); hash != end(); ++hash)
                 if(*hash == pHash)
                     return true;
+            return false;
+        }
+
+        bool remove(const Hash &pHash)
+        {
+            for(const_iterator hash = begin(); hash != end(); ++hash)
+                if(*hash == pHash)
+                {
+                    erase(hash);
+                    return true;
+                }
             return false;
         }
 
