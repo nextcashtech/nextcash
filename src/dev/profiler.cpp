@@ -1,5 +1,5 @@
 /**************************************************************************
- * Copyright 2017 NextCash, LLC                                           *
+ * Copyright 2017-2018 NextCash, LLC                                      *
  * Contributors :                                                         *
  *   Curtis Ellis <curtis@nextcash.tech>                                  *
  * Distributed under the MIT software license, see the accompanying       *
@@ -12,6 +12,73 @@
 
 namespace NextCash
 {
+    class ProfilerData
+    {
+    public:
+
+        ProfilerData(const char *pName) : hits(0), seconds(0.0)
+          { name = pName; started = false; }
+
+        void start() { hits++; begin = std::chrono::steady_clock::now(); started = true; }
+        void stop()
+        {
+            if(!started)
+                return;
+            seconds += std::chrono::duration_cast<std::chrono::duration<double>>(
+              std::chrono::steady_clock::now() - begin).count();
+            started = false;
+        }
+        void write(OutputStream *pStream);
+
+        String name;
+        std::chrono::steady_clock::time_point begin;
+        unsigned long hits;
+        bool started;
+        double seconds;
+
+    private:
+
+        ProfilerData(ProfilerData &pCopy);
+        ProfilerData &operator = (const ProfilerData &pRight);
+
+    };
+
+    class ProfilerManager
+    {
+    public:
+
+        static ProfilerData *profilerData(const char *pName)
+        {
+            std::vector<ProfilerData *> &profilers = instance().mProfilers;
+            for(std::vector<ProfilerData *>::iterator iter = profilers.begin();
+              iter != profilers.end(); ++iter)
+                if((*iter)->name == pName)
+                    return *iter;
+
+            ProfilerData *newProfiler = new ProfilerData(pName);
+            profilers.push_back(newProfiler);
+            return newProfiler;
+        }
+
+        // Write text results that were collected by profiler
+        static void write(OutputStream *pStream);
+
+        static void reset();
+
+    private:
+
+        static ProfilerManager *mInstance;
+        static void destroy();
+
+        ProfilerManager();
+        ~ProfilerManager();
+
+        static ProfilerManager &instance();
+
+        std::vector<ProfilerData *> mProfilers;
+
+    };
+
     ProfilerManager *ProfilerManager::mInstance = 0;
 
     ProfilerManager &ProfilerManager::instance()
@@ -32,7 +99,8 @@ namespace NextCash
 
     ProfilerManager::~ProfilerManager()
     {
-        for(std::vector<ProfilerData *>::iterator iter = mProfilers.begin();iter!=mProfilers.end();++iter)
+        for(std::vector<ProfilerData *>::iterator iter = mProfilers.begin();
+          iter != mProfilers.end(); ++iter)
             delete *iter;
     }
 
@@ -44,17 +112,19 @@ namespace NextCash
 
     void ProfilerData::write(OutputStream *pStream)
     {
-        //float seconds = ((float)time) / CLOCKS_PER_SEC;
-        pStream->writeFormatted("  %-40s %12d %14.6f %9.6f\n", name.text(), hits, seconds, seconds / (float)hits);
+        pStream->writeFormatted("  %-40s %12d %14.6f %9.6f\n", name.text(), hits, seconds,
+          seconds / (float)hits);
     }
 
     void ProfilerManager::write(OutputStream *pStream)
     {
         pStream->writeString("Profiler:\n");
-        pStream->writeString("  Name                                             Hits           Time       Avg\n");
+        pStream->writeString(
+          "  Name                                             Hits           Time       Avg\n");
 
         std::vector<ProfilerData *> &profilers = instance().mProfilers;
-        for(std::vector<ProfilerData *>::iterator iter = profilers.begin();iter!=profilers.end();++iter)
+        for(std::vector<ProfilerData *>::iterator iter = profilers.begin();
+          iter != profilers.end(); ++iter)
             (*iter)->write(pStream);
 
         pStream->flush();
@@ -63,8 +133,20 @@ namespace NextCash
     void ProfilerManager::reset()
     {
         std::vector<ProfilerData *> &profilers = instance().mProfilers;
-        for(std::vector<ProfilerData *>::iterator iter = profilers.begin();iter!=profilers.end();++iter)
+        for(std::vector<ProfilerData *>::iterator iter = profilers.begin();
+          iter != profilers.end(); ++iter)
             delete *iter;
-        instance().mProfilers.clear();
+        profilers.clear();
     }
+
+    Profiler::Profiler(const char *pName, bool pStart)
+    {
+        mData = ProfilerManager::profilerData(pName);
+        if(pStart)
+            mData->start();
+    }
+    Profiler::~Profiler() { mData->stop(); }
+    void Profiler::start() { mData->start(); }
+    void Profiler::stop() { mData->stop(); }
+    double Profiler::seconds() { return mData->seconds; }
 }
