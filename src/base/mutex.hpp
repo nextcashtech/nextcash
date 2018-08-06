@@ -31,6 +31,22 @@ namespace NextCash
 
     };
 
+    class MutexWithConstantName
+    {
+    public:
+
+        MutexWithConstantName(const char *pName) { mName = pName; }
+
+        void lock();
+        void unlock();
+
+    private:
+
+        std::mutex mMutex;
+        const char *mName;
+
+    };
+
     // Lock that allows multiple readers to lock concurrently, but a writer needs exclusive access.
     class ReadersLock
     {

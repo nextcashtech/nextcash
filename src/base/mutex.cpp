@@ -41,6 +41,27 @@ namespace NextCash
         mMutex.unlock();
     }
 
+    void MutexWithConstantName::lock()
+    {
+        int sleeps = 0;
+        while(!mMutex.try_lock())
+        {
+            usleep(10000); // 1/100th of a second
+            if(++sleeps > 100)
+            {
+                // It has been over a second. So notify that this wait is taking too long
+                Log::addFormatted(Log::WARNING, NEXTCASH_MUTEX_LOG_NAME,
+                  "Waiting for lock on %s", mName);
+                sleeps = 0;
+            }
+        }
+    }
+
+    void MutexWithConstantName::unlock()
+    {
+        mMutex.unlock();
+    }
+
     void ReadersLock::readLock()
     {
         int sleeps = 0;
