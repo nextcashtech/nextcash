@@ -40,8 +40,8 @@ namespace NextCash
         // Lookup DNS and return IP addresses
         bool list(const char *pName, IPList &pList);
 
-        // Parse IPv6 text string into a byte address
-        uint8_t *parseIPv6(const char *pValue);
+        // Parse IPv4/IPv6 text string into an IPv6 byte address
+        uint8_t *parseIP(const char *pValue);
 
         class Connection
         {

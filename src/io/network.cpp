@@ -73,15 +73,24 @@ namespace NextCash
             return true;
         }
 
-        uint8_t *parseIPv6(const char *pValue)
+        uint8_t *parseIP(const char *pValue)
         {
-            struct in6_addr address;
+            struct in6_addr address6;
 
-            if(inet_pton(AF_INET6, pValue, &address) != 1)
+            if(inet_pton(AF_INET6, pValue, &address6) == 1)
+            {
+                uint8_t *result = new uint8_t[INET6_ADDRLEN];
+                std::memcpy(result, address6.s6_addr, INET6_ADDRLEN);
+            }
+
+            struct in_addr address4;
+            if(inet_pton(AF_INET, pValue, &address4) != 1)
                 return NULL;
 
             uint8_t *result = new uint8_t[INET6_ADDRLEN];
-            std::memcpy(result, address.s6_addr, INET6_ADDRLEN);
+            std::memset(result, 0, INET6_ADDRLEN);
+            std::memset(result + INET6_ADDRLEN - INET_ADDRLEN - 2, 0xff, 2);
+            std::memcpy(result + INET6_ADDRLEN - INET_ADDRLEN, (uint8_t *)&address4.s_addr, INET_ADDRLEN);
 
             return result;
         }
