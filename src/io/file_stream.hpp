@@ -5,8 +5,8 @@
  * Distributed under the MIT software license, see the accompanying       *
  * file license.txt or http://www.opensource.org/licenses/mit-license.php *
  **************************************************************************/
-#ifndef NEXTCASH_CSTREAM_HPP
-#define NEXTCASH_CSTREAM_HPP
+#ifndef NEXTCASH_FILESTREAM_HPP
+#define NEXTCASH_FILESTREAM_HPP
 
 #include "stream.hpp"
 
@@ -69,8 +69,8 @@ namespace NextCash
         FileInputStream(const char *pFilePathName)
         {
             mStreamNeedsDelete = true;
-            mStream = new std::fstream;
-            ((std::fstream *)mStream)->open(pFilePathName, std::ios::in | std::ios::binary);
+            mStream = new std::fstream();
+            ((std::fstream *)mStream)->open(pFilePathName, std::ios_base::in | std::ios_base::binary);
             mValid = ((std::fstream *)mStream)->is_open();
             initialize();
         }
@@ -115,9 +115,9 @@ namespace NextCash
             }
 
             mReadOffset = mStream->tellg();
-            mStream->seekg(0, std::ios::end);
+            mStream->seekg(0, std::ios_base::end);
             mEndOffset = mStream->tellg();
-            mStream->seekg(mReadOffset, std::ios::beg);
+            mStream->seekg(mReadOffset, std::ios_base::beg);
         }
 
         bool mValid;
@@ -135,22 +135,32 @@ namespace NextCash
             mValid = true;
             mStreamNeedsDelete = false;
             mStream = &pOutputStream;
-            initialize();
+            initialize(false);
         }
         FileOutputStream(const char *pFilePathName, bool pTruncate = false, bool pAppend = false)
         {
             mStreamNeedsDelete = true;
-            std::ios_base::openmode mode = std::ios::out | std::ios::binary;
+            std::ios_base::openmode mode = std::ios_base::out | std::ios_base::binary;
             if(pTruncate)
-                mode |= std::ios::trunc;
-            else if(pAppend)
-                mode |= std::ios::app;
-            else if(fileExists(pFilePathName))
-                mode |= std::ios::in; // This "hack" is required to prevent a file that already exists from being deleted. However if the file doesn't yet exist this causes failure.
-            mStream = new std::fstream;
-            ((std::fstream *)mStream)->open(pFilePathName, mode);
-            mValid = ((std::fstream *)mStream)->is_open();
-            initialize();
+                mode |= std::ios_base::trunc;
+            else
+            {
+                // This "hack" is required to prevent a file that already exists from being
+                //   deleted. However if the file doesn't yet exist this causes failure.
+                mode |= std::ios_base::in;
+            }
+            mStream = new std::ofstream(pFilePathName, mode);
+
+            if(!pTruncate && !mStream->good())
+            {
+                // Remove "in" flag and try to open again
+                mode ^= std::ios_base::in;
+                delete mStream;
+                mStream = new std::ofstream(pFilePathName, mode);
+            }
+
+            mValid = ((std::ofstream *)mStream)->is_open();
+            initialize(pAppend);
         }
         ~FileOutputStream() { mStream->flush(); if(mStreamNeedsDelete) delete mStream; }
 
@@ -185,7 +195,7 @@ namespace NextCash
     private:
 
         // Setup offsets
-        void initialize()
+        void initialize(bool pAppend)
         {
             if(mStream->tellp() == -1)
             {
@@ -194,10 +204,18 @@ namespace NextCash
                 return;
             }
 
-            mWriteOffset = mStream->tellp();
-            mStream->seekp(0, std::ios::end);
+            // Go to end of file to determine size
+            mStream->seekp(0, std::ios_base::end);
             mEndOffset = mStream->tellp();
-            mStream->seekp(mWriteOffset, std::ios::beg);
+
+            if(pAppend)
+                mWriteOffset = mEndOffset; // Stay at end of file
+            else
+            {
+                // Go back to beginning of file
+                mWriteOffset = 0;
+                mStream->seekp(mWriteOffset, std::ios_base::beg);
+            }
         }
 
         bool mValid;
@@ -213,13 +231,13 @@ namespace NextCash
 
         // FileStream(const char *pFilePathName, bool pTruncate = false, bool pAppend = false)
         // {
-            // if(!fileExists(pFilePathName)) // Create the file so it can be successfully opened with std::ios::in
-                // std::fstream createFile(pFilePathName, std::ios::out | std::ios::binary);
-            // std::ios_base::openmode mode = std::ios::out | std::ios::in | std::ios::binary;
+            // if(!fileExists(pFilePathName)) // Create the file so it can be successfully opened with std::ios_base::in
+                // std::fstream createFile(pFilePathName, std::ios_base::out | std::ios_base::binary);
+            // std::ios_base::openmode mode = std::ios_base::out | std::ios_base::in | std::ios_base::binary;
             // if(pTruncate)
-                // mode |= std::ios::trunc;
+                // mode |= std::ios_base::trunc;
             // else if(pAppend)
-                // mode |= std::ios::app;
+                // mode |= std::ios_base::app;
             // mStream.open(pFilePathName, mode);
             // mValid = mStream.is_open();
             // initialize();
@@ -302,9 +320,9 @@ namespace NextCash
 
             // mReadOffset = 0;
             // mWriteOffset = mStream.tellp();
-            // mStream.seekg(0, std::ios::end);
+            // mStream.seekg(0, std::ios_base::end);
             // mEndOffset = mStream.tellg();
-            // mStream.seekg(mReadOffset, std::ios::beg);
+            // mStream.seekg(mReadOffset, std::ios_base::beg);
         // }
 
         // bool mValid;
