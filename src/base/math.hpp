@@ -8,11 +8,13 @@
 #ifndef NEXTCASH_MATH_HPP
 #define NEXTCASH_MATH_HPP
 
+#include <chrono>
 #include <cstdint>
 #include <cstring>
 #include <cmath>
 #include <cstdlib>
 #include <ctime>
+#include <random>
 
 #define DOUBLE_BIAS 1023
 #define RADIANS_TO_DEGREES 57.29747
@@ -39,37 +41,26 @@ namespace NextCash
             return std::sqrt(pValue);
         }
 
-        static bool sRandomSeeded = false;
-
-        inline void seedRandom()
-        {
-            std::srand(getTime());
-        }
+        static std::default_random_engine sRandomIntEngine(std::chrono::system_clock::now()
+          .time_since_epoch().count());
+        static std::uniform_int_distribution<uint32_t> sRandomIntDistribution;
+        static std::default_random_engine sRandomLongEngine(std::chrono::system_clock::now()
+          .time_since_epoch().count());
+        static std::uniform_int_distribution<uint64_t> sRandomLongDistribution;
 
         inline uint32_t randomInt()
         {
-            if(!sRandomSeeded)
-            {
-                seedRandom();
-                sRandomSeeded = true;
-            }
-            return rand();
+            return sRandomIntDistribution(sRandomIntEngine);
         }
 
         inline uint32_t randomInt(uint32_t pMax)
         {
-            if(!sRandomSeeded)
-            {
-                seedRandom();
-                sRandomSeeded = true;
-            }
-            return rand() % pMax;
+            return sRandomIntDistribution(sRandomIntEngine) % pMax;
         }
 
         inline uint64_t randomLong()
         {
-            std::srand(getTime());
-            return ((uint64_t)rand() << 32) + (uint64_t)rand();
+            return sRandomIntDistribution(sRandomLongEngine);
         }
 
         // Convert 4 bit value to hex character
