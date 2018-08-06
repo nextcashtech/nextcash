@@ -171,7 +171,7 @@ namespace NextCash
         for(unsigned int i=0;i<mData->size-3;i+=4)
         {
             random = Math::randomInt();
-            std::memcpy(mData->data + i, &random, 4);
+            mData->data[i] = random & 0xff;
         }
     }
 
@@ -742,24 +742,30 @@ namespace NextCash
         /***********************************************************************************************
          * Hash lookup distribution
          ***********************************************************************************************/
-        std::vector<unsigned int> values;
-        for(unsigned int i=0;i<0x100;i++)
-            values.push_back(0);
+        unsigned int values[0x100];
+        for(int i=0;i<0x100;++i)
+            values[i] = 0;
 
         Hash hash(32);
         unsigned int count = 0x100 * 0x0f;
-        for(unsigned int i=0;i<count;i++)
+        for(unsigned int i=0;i<count;++i)
         {
             hash.randomize();
+            // Log::addFormatted(Log::INFO, NEXTCASH_HASH_LOG_NAME, "Random Hash : %s",
+              // hash.hex().text());
             values[hash.lookup8()] += 1;
         }
 
         unsigned int highestCount = 0;
         unsigned int zeroCount = 0;
-        for(unsigned int i=0;i<0x100;i++)
+        for(unsigned int i=0;i<0x100;++i)
         {
             if(values[i] == 0)
-                zeroCount++;
+            {
+                Log::addFormatted(Log::INFO, NEXTCASH_HASH_LOG_NAME, "Zero lookup : %d",
+                  i);
+                ++zeroCount;
+            }
             else if(values[i] > highestCount)
                 highestCount = values[i];
         }

@@ -162,7 +162,7 @@ namespace NextCash
             return std::memcmp(mData->data, pRight.mData->data, mData->size) != 0;
         }
 
-        uint8_t lookup8() const // Used to split into 256 piles
+        uint8_t lookup8() const // Used to split into 256 (0x100) piles
         {
             if(mData == NULL)
                 return 0;
@@ -175,7 +175,7 @@ namespace NextCash
             if(mData == NULL || mData->size < 2)
                 return 0;
             else
-                return (mData->data[0] << 8) + mData->data[1];
+                return (uint16_t)(mData->data[0] << 8) | (uint16_t)mData->data[1];
         }
 
         // Calculate the SipHash-2-4 "Short ID" and put it in pHash

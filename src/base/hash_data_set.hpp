@@ -502,7 +502,8 @@ namespace NextCash
             if(getTime() - lastReport > 10)
             {
                 Log::addFormatted(Log::INFO, NEXTCASH_HASH_DATA_SET_LOG_NAME,
-                  "%s save is %2d%% Complete", mName.text(), (int)(((float)i / (float)tSetCount) * 100.0f));
+                  "%s save is %2d%% Complete", mName.text(),
+                  (int)(((float)i / (float)tSetCount) * 100.0f));
                 lastReport = getTime();
             }
             subSet->save();
@@ -533,8 +534,8 @@ namespace NextCash
     }
 
     template <class tHashDataType, uint8_t tHashSize, uint16_t tSampleSize, uint16_t tSetCount>
-    bool HashDataSet<tHashDataType, tHashSize, tSampleSize, tSetCount>::SubSet::insert(const Hash &pLookupValue, HashData *pValue,
-      bool pRejectMatching)
+    bool HashDataSet<tHashDataType, tHashSize, tSampleSize, tSetCount>::SubSet::insert(
+      const Hash &pLookupValue, HashData *pValue, bool pRejectMatching)
     {
 #ifdef PROFILER_ON
         NextCash::Profiler profiler("Hash SubSet Insert");
