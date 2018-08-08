@@ -38,13 +38,14 @@ namespace NextCash
 
     Thread::~Thread()
     {
+        Log::addFormatted(Log::DEBUG, THREAD_LOG_NAME, "Stopping thread : %s", mName.text());
+        mThread.join();
+
         sThreadMutex.lock();
         std::map<std::thread::id, String>::iterator name = sThreadNames.find(mThread.get_id());
         if(name != sThreadNames.end())
             sThreadNames.erase(name);
         sThreadMutex.unlock();
-        Log::addFormatted(Log::DEBUG, THREAD_LOG_NAME, "Stopping thread : %s", mName.text());
-        mThread.join();
     }
 
     const char *Thread::currentName(int pTimeoutMilliseconds)
