@@ -301,7 +301,7 @@ namespace NextCash
             unsigned int size;
             uint8_t *data;
             int references;
-            Mutex mutex;
+            MutexWithConstantName mutex;
 
         private:
             Data(const Data &pCopy);

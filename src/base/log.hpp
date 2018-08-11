@@ -79,7 +79,7 @@ namespace NextCash
         OutputStream *mStream, *mStreamToDestroy;
 #endif
 
-        Mutex mMutex;
+        MutexWithConstantName mMutex;
     };
 }
 
