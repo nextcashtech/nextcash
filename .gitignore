@@ -4,3 +4,4 @@ include/
 test
 test.debug
 lib*.a
+test_hash_data_set
