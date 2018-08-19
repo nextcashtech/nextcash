@@ -93,6 +93,10 @@ namespace NextCash
             }
             return false;
         }
+        bool skip(stream_size pOffset)
+        {
+            return setReadOffset(mReadOffset + pOffset);
+        }
         operator bool() const { return mStream->good() && (mReadOffset == (stream_size)-1 || mReadOffset < mEndOffset); }
         bool operator !() const { return !mStream->good(); }
         void read(void *pOutput, stream_size pSize)
@@ -179,6 +183,10 @@ namespace NextCash
                 return true;
             }
             return false;
+        }
+        bool skip(stream_size pOffset)
+        {
+            return setWriteOffset(mWriteOffset + pOffset);
         }
         void write(const void *pInput, stream_size pSize)
         {
