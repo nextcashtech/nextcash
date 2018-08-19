@@ -370,6 +370,7 @@ namespace NextCash
 
         typedef typename std::vector<Data *>::iterator SubIterator;
 
+        // Back up to first matching hash
         SubIterator backup(const SubIterator &pIterator)
         {
             SubIterator result = pIterator;
@@ -378,13 +379,14 @@ namespace NextCash
 
             Hash &hash = (*result)->hash;
             SubIterator start = mList.begin();
-            while(result != start && (*result)->hash == hash)
+            while((*result)->hash == hash)
+            {
+                if(result == start)
+                    return result;
                 --result;
+            }
 
-            if((*result)->hash != hash)
-                ++result;
-
-            return result;
+            return ++result;
         }
 
         // Returns iterator to insert new item before.
@@ -528,7 +530,7 @@ namespace NextCash
 
         int compare = mList.back()->hash.compare(pHash);
 
-        if(compare < 0)
+        if(compare <= 0)
             return mList.end(); // Insert at the end
 
         Data **first = mList.data();

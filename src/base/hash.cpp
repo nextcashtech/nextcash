@@ -26,13 +26,15 @@ namespace NextCash
 
     Hash::Hash(const Hash &pCopy)
     {
-        mData = pCopy.mData;
-        if(mData != NULL)
+        if(pCopy.mData != NULL)
         {
-            mData->mutex.lock();
-            mData->references++;
-            mData->mutex.unlock();
+            pCopy.mData->mutex.lock();
+            mData = pCopy.mData;
+            ++mData->references;
+            pCopy.mData->mutex.unlock();
         }
+        else
+            mData = NULL;
     }
 
     Hash::Hash(unsigned int pSize, int64_t pValue)
@@ -126,13 +128,15 @@ namespace NextCash
     const Hash &Hash::operator = (const Hash &pRight)
     {
         deallocate();
-        mData = pRight.mData;
-        if(mData != NULL)
+        if(pRight.mData != NULL)
         {
-            mData->mutex.lock();
-            mData->references++;
-            mData->mutex.unlock();
+            pRight.mData->mutex.lock();
+            mData = pRight.mData;
+            ++mData->references;
+            pRight.mData->mutex.unlock();
         }
+        else
+            mData = NULL;
         return *this;
     }
 
