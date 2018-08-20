@@ -174,6 +174,8 @@ namespace NextCash
             SubSet();
             ~SubSet();
 
+            unsigned int id() const { return mID; }
+
             stream_size size() const { return mFileSize + mNewSize; }
             stream_size cacheSize() const { return mCache.size(); }
             stream_size cacheDataSize() { return mCacheRawDataSize + (mCache.size() * (tHashSize + 12)); } // 12 = 8 byte memory pointer + 4 byte size count
@@ -386,28 +388,60 @@ namespace NextCash
         virtual bool save();
         virtual bool saveMultiThreaded(unsigned int pThreadCount = 4);
 
-        class ThreadSaveData
+        class SaveThreadData
         {
         public:
 
-            ThreadSaveData(SubSet *pSubSet, stream_size pMaxSetCacheDataSize)
+            SaveThreadData(SubSet *pFirstSubSet, stream_size pMaxSetCacheDataSize) :
+              mutex("SaveThreadData")
             {
-                thread = NULL;
-                subSet = pSubSet;
+                nextSubSet = pFirstSubSet;
                 maxSetCacheDataSize = pMaxSetCacheDataSize;
-                started = false;
-                finished = false;
+                offset = 0;
+                success = true;
+                for(unsigned int i = 0; i < tSetCount; ++i)
+                {
+                    setComplete[i] = false;
+                    setSuccess[i] = true;
+                }
             }
-            ~ThreadSaveData() { if(thread != NULL) delete thread; }
 
-            Thread *thread;
-            SubSet *subSet;
-            bool started, finished;
+            Mutex mutex;
+            SubSet *nextSubSet;
             stream_size maxSetCacheDataSize;
+            unsigned int offset;
+            bool success;
+            bool setComplete[tSetCount];
+            bool setSuccess[tSetCount];
+
+            SubSet *getNext()
+            {
+                mutex.lock();
+                SubSet *result = nextSubSet;
+                if(nextSubSet != NULL)
+                {
+                    if(++offset == tSetCount)
+                        nextSubSet = NULL;
+                    else
+                        ++nextSubSet;
+                }
+                mutex.unlock();
+                return result;
+            }
+
+            void markComplete(unsigned int pOffset, bool pSuccess)
+            {
+                mutex.lock();
+                setComplete[pOffset] = true;
+                setSuccess[pOffset] = pSuccess;
+                if(!pSuccess)
+                    success = false;
+                mutex.unlock();
+            }
 
         };
 
-        static void threadSaveSubset();
+        static void saveThreadRun(); // Thread to process save tasks
 
         //TODO void defragment(); // Re-sort and rewrite data file using index file.
     };
@@ -520,6 +554,7 @@ namespace NextCash
         SubSet *subSet = mSubSets;
         uint32_t lastReport = getTime();
         uint64_t maxSetCacheDataSize = 0;
+        bool success = true;
         if(mTargetCacheDataSize > 0)
             maxSetCacheDataSize = mTargetCacheDataSize / tSetCount;
         for(unsigned int i=0;i<tSetCount;++i)
@@ -531,31 +566,50 @@ namespace NextCash
                   (int)(((float)i / (float)tSetCount) * 100.0f));
                 lastReport = getTime();
             }
-            subSet->save();
-            subSet->cleanup(maxSetCacheDataSize);
+
+            if(!subSet->save())
+            {
+                Log::addFormatted(Log::ERROR, NEXTCASH_HASH_DATA_SET_LOG_NAME,
+                  "Failed %s set %d save", mName.text(), subSet->id());
+                success = false;
+            }
+
+            if(!subSet->cleanup(maxSetCacheDataSize))
+            {
+                Log::addFormatted(Log::ERROR, NEXTCASH_HASH_DATA_SET_LOG_NAME,
+                  "Failed %s set %d save cleanup", mName.text(), subSet->id());
+                success = false;
+            }
+
             ++subSet;
         }
         mLock.writeUnlock();
-        return true;
+        return success;
     }
 
     template <class tHashDataType, uint8_t tHashSize, uint16_t tSampleSize, uint16_t tSetCount>
-    void HashDataSet<tHashDataType, tHashSize, tSampleSize, tSetCount>::threadSaveSubset()
+    void HashDataSet<tHashDataType, tHashSize, tSampleSize, tSetCount>::saveThreadRun()
     {
-        ThreadSaveData *data = (ThreadSaveData *)Thread::getParameter();
+        SaveThreadData *data = (SaveThreadData *)Thread::getParameter();
         if(data == NULL)
         {
-            Log::add(NextCash::Log::ERROR, NEXTCASH_HASH_DATA_SET_LOG_NAME,
+            Log::add(NextCash::Log::WARNING, NEXTCASH_HASH_DATA_SET_LOG_NAME,
               "Thread parameter is null. Stopping");
             return;
         }
 
-        data->started = true;
+        SubSet *subSet;
+        while(true)
+        {
+            subSet = data->getNext();
+            if(subSet == NULL)
+                break;
 
-        data->subSet->save();
-        data->subSet->cleanup(data->maxSetCacheDataSize);
-
-        data->finished = true;
+            if(subSet->save() && subSet->cleanup(data->maxSetCacheDataSize))
+                data->markComplete(subSet->id(), true);
+            else
+                data->markComplete(subSet->id(), false);
+        }
     }
 
     template <class tHashDataType, uint8_t tHashSize, uint16_t tSampleSize, uint16_t tSetCount>
@@ -571,86 +625,42 @@ namespace NextCash
             return false;
         }
 
-        ThreadSaveData *threads[pThreadCount];
-        SubSet *subSet = mSubSets;
-        uint32_t lastReport = getTime();
         uint64_t maxSetCacheDataSize = 0;
-        unsigned int i, j;
-        bool started, sleepNeeded;
-        String threadName;
         if(mTargetCacheDataSize > 0)
             maxSetCacheDataSize = mTargetCacheDataSize / tSetCount;
+        SaveThreadData threadData(mSubSets, maxSetCacheDataSize);
+        Thread *threads[pThreadCount];
+        int32_t lastReport = getTime();
+        unsigned int i;
+        String threadName;
 
-        for(j = 0; j < pThreadCount; ++j)
-            threads[j] = NULL;
+        // Start threads
+        for(i = 0; i < pThreadCount; ++i)
+        {
+            threadName.writeFormatted("%s %d", mName.text(), i);
+            threads[i] = new Thread(threadName, saveThreadRun, &threadData);
+        }
 
-        for(i = 0; i < tSetCount; ++i)
+        // Monitor threads
+        while(threadData.offset < tSetCount)
         {
             if(getTime() - lastReport > 10)
             {
                 Log::addFormatted(Log::INFO, NEXTCASH_HASH_DATA_SET_LOG_NAME,
                   "%s save is %2d%% Complete", mName.text(),
-                  (int)(((float)i / (float)tSetCount) * 100.0f));
+                  (int)(((float)threadData.offset / (float)tSetCount) * 100.0f));
                 lastReport = getTime();
             }
 
-            // Wait for a thread to be available to start a new subset.
-            started = false;
-            while(!started)
-            {
-                sleepNeeded = false;
-                for(j = 0; j < pThreadCount; ++j)
-                {
-                    if(threads[j] != NULL && threads[j]->finished)
-                    {
-                        // Delete a finished thread.
-                        delete threads[j];
-                        threads[j] = NULL;
-                    }
-
-                    if(threads[j] == NULL)
-                    {
-                        // Start new thread for this subset.
-                        threadName.writeFormatted("%s %d", mName.text(), i);
-                        threads[j] = new ThreadSaveData(subSet, maxSetCacheDataSize);
-                        threads[j]->thread = new Thread(threadName, threadSaveSubset, threads[j]);
-
-                        started = true;
-                        break;
-                    }
-                    else
-                        sleepNeeded = true; // At least one thread running.
-                }
-
-                if(sleepNeeded)
-                    Thread::sleep(200);
-            }
-
-            ++subSet;
+            Thread::sleep(500);
         }
 
-        // Wait for threads to finish.
-        bool stillRunning = true;
-        while(stillRunning)
-        {
-            stillRunning = false;
-            for(j = 0; j < pThreadCount; ++j)
-                if(threads[j] != NULL)
-                {
-                    if(threads[j]->finished)
-                    {
-                        delete threads[j];
-                        threads[j] = NULL;
-                    }
-                    else
-                        stillRunning = true;
-                }
-
-            Thread::sleep(200);
-        }
+        // Delete threads
+        for(i = 0; i < pThreadCount; ++i)
+            delete threads[i];
 
         mLock.writeUnlock();
-        return true;
+        return threadData.success;
     }
 
     template <class tHashDataType, uint8_t tHashSize, uint16_t tSampleSize, uint16_t tSetCount>

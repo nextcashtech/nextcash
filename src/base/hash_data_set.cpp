@@ -277,7 +277,12 @@ namespace NextCash
                 }
             }
 
-            hashDataSet.saveMultiThreaded(4);
+            if(!hashDataSet.saveMultiThreaded(4))
+            {
+                Log::addFormatted(Log::ERROR, NEXTCASH_HASH_DATA_SET_LOG_NAME,
+                  "Failed hash data set multi-threaded save");
+                success = false;
+            }
         }
 
         if(success)
