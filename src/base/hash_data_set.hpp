@@ -9,6 +9,7 @@
 #define NEXTCASH_HASH_DATA_SET_HPP
 
 #include "mutex.hpp"
+#include "thread.hpp"
 #include "math.hpp"
 #include "string.hpp"
 #include "hash.hpp"
@@ -173,9 +174,9 @@ namespace NextCash
             SubSet();
             ~SubSet();
 
-            uint64_t size() const { return mFileSize + mNewSize; }
-            unsigned int cacheSize() const { return mCache.size(); }
-            uint64_t cacheDataSize() { return mCacheRawDataSize + (mCache.size() * (tHashSize + 12)); } // 12 = 8 byte memory pointer + 4 byte size count
+            stream_size size() const { return mFileSize + mNewSize; }
+            stream_size cacheSize() const { return mCache.size(); }
+            stream_size cacheDataSize() { return mCacheRawDataSize + (mCache.size() * (tHashSize + 12)); } // 12 = 8 byte memory pointer + 4 byte size count
 
             // Inserts a new item corresponding to the lookup.
             bool insert(const Hash &pLookupValue, HashData *pValue, bool pRejectMatching);
@@ -230,11 +231,11 @@ namespace NextCash
             bool saveCache();
 
             // Prune old items from the cache until it is under the specified data size
-            void pruneCache(uint64_t pDataSize);
+            void pruneCache(stream_size pDataSize);
 
             ReadersLock mLock;
             String mFilePath;
-            uint64_t mFileSize, mNewSize, mCacheRawDataSize;
+            stream_size mFileSize, mNewSize, mCacheRawDataSize;
             unsigned int mID;
             HashContainerList<HashData *> mCache;
             SampleEntry *mSamples;
@@ -247,7 +248,7 @@ namespace NextCash
         String mFilePath;
         String mName;
         SubSet mSubSets[tSetCount];
-        uint64_t mTargetCacheDataSize;
+        stream_size mTargetCacheDataSize;
         bool mIsValid;
 
     public:
@@ -326,11 +327,11 @@ namespace NextCash
             SubSetIterator mIterator;
         };
 
-        uint64_t size() const
+        stream_size size() const
         {
-            uint64_t result = 0;
+            stream_size result = 0;
             const SubSet *subSet = mSubSets;
-            for(unsigned int i=0;i<tSetCount;++i)
+            for(unsigned int i = 0;i < tSetCount; ++i)
             {
                 result += subSet->size();
                 ++subSet;
@@ -338,11 +339,11 @@ namespace NextCash
             return result;
         }
 
-        unsigned int cacheSize() const
+        stream_size cacheSize() const
         {
-            unsigned int result = 0;
+            stream_size result = 0;
             const SubSet *subSet = mSubSets;
-            for(unsigned int i=0;i<tSetCount;++i)
+            for(unsigned int i = 0; i < tSetCount; ++i)
             {
                 result += subSet->cacheSize();
                 ++subSet;
@@ -350,11 +351,11 @@ namespace NextCash
             return result;
         }
 
-        uint64_t cacheDataSize()
+        stream_size cacheDataSize()
         {
-            uint64_t result = 0;
+            stream_size result = 0;
             SubSet *subSet = mSubSets;
-            for(unsigned int i=0;i<tSetCount;++i)
+            for(unsigned int i = 0; i < tSetCount; ++i)
             {
                 result += subSet->cacheDataSize();
                 ++subSet;
@@ -363,8 +364,8 @@ namespace NextCash
         }
 
         // Set max cache data size in bytes
-        uint64_t targetCacheDataSize() const { return mTargetCacheDataSize; }
-        void setTargetCacheDataSize(uint64_t pSize) { mTargetCacheDataSize = pSize; }
+        stream_size targetCacheDataSize() const { return mTargetCacheDataSize; }
+        void setTargetCacheDataSize(stream_size pSize) { mTargetCacheDataSize = pSize; }
 
         // Inserts a new item corresponding to the lookup.
         // Returns false if the pValue matches an existing value under the same hash according to
@@ -383,6 +384,30 @@ namespace NextCash
 
         virtual bool load(const char *pName, const char *pFilePath);
         virtual bool save();
+        virtual bool saveMultiThreaded(unsigned int pThreadCount = 4);
+
+        class ThreadSaveData
+        {
+        public:
+
+            ThreadSaveData(SubSet *pSubSet, stream_size pMaxSetCacheDataSize)
+            {
+                thread = NULL;
+                subSet = pSubSet;
+                maxSetCacheDataSize = pMaxSetCacheDataSize;
+                started = false;
+                finished = false;
+            }
+            ~ThreadSaveData() { if(thread != NULL) delete thread; }
+
+            Thread *thread;
+            SubSet *subSet;
+            bool started, finished;
+            stream_size maxSetCacheDataSize;
+
+        };
+
+        static void threadSaveSubset();
 
         //TODO void defragment(); // Re-sort and rewrite data file using index file.
     };
@@ -510,6 +535,120 @@ namespace NextCash
             subSet->cleanup(maxSetCacheDataSize);
             ++subSet;
         }
+        mLock.writeUnlock();
+        return true;
+    }
+
+    template <class tHashDataType, uint8_t tHashSize, uint16_t tSampleSize, uint16_t tSetCount>
+    void HashDataSet<tHashDataType, tHashSize, tSampleSize, tSetCount>::threadSaveSubset()
+    {
+        ThreadSaveData *data = (ThreadSaveData *)Thread::getParameter();
+        if(data == NULL)
+        {
+            Log::add(NextCash::Log::ERROR, NEXTCASH_HASH_DATA_SET_LOG_NAME,
+              "Thread parameter is null. Stopping");
+            return;
+        }
+
+        data->started = true;
+
+        data->subSet->save();
+        data->subSet->cleanup(data->maxSetCacheDataSize);
+
+        data->finished = true;
+    }
+
+    template <class tHashDataType, uint8_t tHashSize, uint16_t tSampleSize, uint16_t tSetCount>
+    bool HashDataSet<tHashDataType, tHashSize, tSampleSize, tSetCount>::saveMultiThreaded(unsigned int pThreadCount)
+    {
+        mLock.writeLock("Save");
+
+        if(!mIsValid)
+        {
+            Log::addFormatted(Log::ERROR, NEXTCASH_HASH_DATA_SET_LOG_NAME,
+              "%s : can't save invalid data set", mName.text());
+            mLock.writeUnlock();
+            return false;
+        }
+
+        ThreadSaveData *threads[pThreadCount];
+        SubSet *subSet = mSubSets;
+        uint32_t lastReport = getTime();
+        uint64_t maxSetCacheDataSize = 0;
+        unsigned int i, j;
+        bool started, sleepNeeded;
+        String threadName;
+        if(mTargetCacheDataSize > 0)
+            maxSetCacheDataSize = mTargetCacheDataSize / tSetCount;
+
+        for(j = 0; j < pThreadCount; ++j)
+            threads[j] = NULL;
+
+        for(i = 0; i < tSetCount; ++i)
+        {
+            if(getTime() - lastReport > 10)
+            {
+                Log::addFormatted(Log::INFO, NEXTCASH_HASH_DATA_SET_LOG_NAME,
+                  "%s save is %2d%% Complete", mName.text(),
+                  (int)(((float)i / (float)tSetCount) * 100.0f));
+                lastReport = getTime();
+            }
+
+            // Wait for a thread to be available to start a new subset.
+            started = false;
+            while(!started)
+            {
+                sleepNeeded = false;
+                for(j = 0; j < pThreadCount; ++j)
+                {
+                    if(threads[j] != NULL && threads[j]->finished)
+                    {
+                        // Delete a finished thread.
+                        delete threads[j];
+                        threads[j] = NULL;
+                    }
+
+                    if(threads[j] == NULL)
+                    {
+                        // Start new thread for this subset.
+                        threadName.writeFormatted("%s %d", mName.text(), i);
+                        threads[j] = new ThreadSaveData(subSet, maxSetCacheDataSize);
+                        threads[j]->thread = new Thread(threadName, threadSaveSubset, threads[j]);
+
+                        started = true;
+                        break;
+                    }
+                    else
+                        sleepNeeded = true; // At least one thread running.
+                }
+
+                if(sleepNeeded)
+                    Thread::sleep(200);
+            }
+
+            ++subSet;
+        }
+
+        // Wait for threads to finish.
+        bool stillRunning = true;
+        while(stillRunning)
+        {
+            stillRunning = false;
+            for(j = 0; j < pThreadCount; ++j)
+                if(threads[j] != NULL)
+                {
+                    if(threads[j]->finished)
+                    {
+                        delete threads[j];
+                        threads[j] = NULL;
+                    }
+                    else
+                        stillRunning = true;
+                }
+
+            Thread::sleep(200);
+        }
+
         mLock.writeUnlock();
         return true;
     }

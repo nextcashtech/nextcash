@@ -277,7 +277,7 @@ namespace NextCash
                 }
             }
 
-            hashDataSet.save();
+            hashDataSet.saveMultiThreaded(4);
         }
 
         if(success)
