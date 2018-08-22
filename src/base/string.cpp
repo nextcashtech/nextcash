@@ -366,12 +366,12 @@ namespace NextCash
         std::vector<bool> bits;
         const uint8_t *byte = (const uint8_t *)pData;
         bits.reserve(pSize * 8);
-        for(unsigned int i=0;i<pSize;++i,++byte)
-            for(unsigned int bitOffset=0;bitOffset<8;++bitOffset)
+        for(unsigned int i = 0; i < pSize; ++i, ++byte)
+            for(unsigned int bitOffset = 0; bitOffset < 8; ++bitOffset)
                 bits.push_back(Math::bit(*byte, bitOffset));
 
         // Allocate data
-        mData = new char[(bits.size() / 5) + 1];
+        mData = new char[(bits.size() / 5) + 2];
 
         // Convert to characters
         uint8_t byteValue = 0;

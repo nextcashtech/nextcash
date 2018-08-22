@@ -1,5 +1,5 @@
 /**************************************************************************
- * Copyright 2017 NextCash, LLC                                           *
+ * Copyright 2017-2018 NextCash, LLC                                      *
  * Contributors :                                                         *
  *   Curtis Ellis <curtis@nextcash.tech>                                  *
  * Distributed under the MIT software license, see the accompanying       *
@@ -431,12 +431,10 @@ namespace NextCash
 
             void markComplete(unsigned int pOffset, bool pSuccess)
             {
-                mutex.lock();
                 setComplete[pOffset] = true;
                 setSuccess[pOffset] = pSuccess;
                 if(!pSuccess)
                     success = false;
-                mutex.unlock();
             }
 
         };
@@ -522,7 +520,7 @@ namespace NextCash
         }
         SubSet *subSet = mSubSets;
         uint32_t lastReport = getTime();
-        for(unsigned int i=0;i<tSetCount;++i)
+        for(unsigned int i = 0; i < tSetCount; ++i)
         {
             if(getTime() - lastReport > 10)
             {
@@ -603,12 +601,20 @@ namespace NextCash
         {
             subSet = data->getNext();
             if(subSet == NULL)
+            {
+                Log::add(Log::VERBOSE, NEXTCASH_HASH_DATA_SET_LOG_NAME,
+                  "No more save tasks remaining");
                 break;
+            }
 
             if(subSet->save() && subSet->cleanup(data->maxSetCacheDataSize))
                 data->markComplete(subSet->id(), true);
             else
+            {
+                Log::addFormatted(Log::VERBOSE, NEXTCASH_HASH_DATA_SET_LOG_NAME,
+                  "Failed save of set %d", subSet->id());
                 data->markComplete(subSet->id(), false);
+            }
         }
     }
 
@@ -637,18 +643,43 @@ namespace NextCash
         // Start threads
         for(i = 0; i < pThreadCount; ++i)
         {
-            threadName.writeFormatted("%s %d", mName.text(), i);
+            threadName.writeFormatted("%s Save %d", mName.text(), i);
             threads[i] = new Thread(threadName, saveThreadRun, &threadData);
         }
 
         // Monitor threads
-        while(threadData.offset < tSetCount)
+        unsigned int completedCount;
+        bool report;
+        while(true)
         {
-            if(getTime() - lastReport > 10)
+            if(threadData.offset == tSetCount)
             {
+                report = getTime() - lastReport > 10;
+                completedCount = 0;
+                for(i = 0; i < tSetCount; ++i)
+                    if(threadData.setComplete[i])
+                        ++completedCount;
+                    else if(report)
+                        Log::addFormatted(Log::INFO, NEXTCASH_HASH_DATA_SET_LOG_NAME,
+                          "%s save waiting for set %d", mName.text(), i);
+
+                if(report)
+                    lastReport = getTime();
+
+                if(completedCount == tSetCount)
+                    break;
+            }
+            else if(getTime() - lastReport > 10)
+            {
+                completedCount = 0;
+                for(i = 0; i < tSetCount; ++i)
+                    if(threadData.setComplete[i])
+                        ++completedCount;
+
                 Log::addFormatted(Log::INFO, NEXTCASH_HASH_DATA_SET_LOG_NAME,
                   "%s save is %2d%% Complete", mName.text(),
-                  (int)(((float)threadData.offset / (float)tSetCount) * 100.0f));
+                  (int)(((float)completedCount / (float)tSetCount) * 100.0f));
+
                 lastReport = getTime();
             }
 
@@ -656,6 +687,8 @@ namespace NextCash
         }
 
         // Delete threads
+        Log::addFormatted(Log::VERBOSE, NEXTCASH_HASH_DATA_SET_LOG_NAME,
+          "Deleting %s save threads", mName.text());
         for(i = 0; i < pThreadCount; ++i)
             delete threads[i];
 
@@ -1329,7 +1362,7 @@ namespace NextCash
         bool indexNeedsUpdated = false;
 
         // Write all cached data to file, update or append, so they all have file offsets
-        for(item=mCache.begin();item!=mCache.end();++item)
+        for(item = mCache.begin(); item != mCache.end(); ++item)
         {
             if((*item)->markedRemove())
             {
@@ -1372,7 +1405,7 @@ namespace NextCash
         std::vector<stream_size> *indiceSet;
         std::vector<Hash> *hashSet;
         unsigned int setOffset = 0;
-        uint64_t reserveSize = previousSize;
+        uint64_t reserveSize = previousSize + mCache.size();
 
         if(reserveSize < tSetCount * 32)
             reserveSize = tSetCount * 32;
@@ -1416,6 +1449,8 @@ namespace NextCash
         Hash currentHash;
         int compare;
         bool found;
+        int32_t lastReport = getTime();
+        unsigned int cacheOffset = 0;
         unsigned int begin, end, current;
         unsigned int readHeadersCount = 0;//, previousIndices = indices.size();
         bool success = true;
@@ -1423,8 +1458,17 @@ namespace NextCash
         filePathName.writeFormatted("%s%s%04x.data", mFilePath.text(), PATH_SEPARATOR, mID);
         FileInputStream dataFile(filePathName);
 
-        for(item=mCache.begin();item!=mCache.end() && success;++item)
+        for(item = mCache.begin(); item != mCache.end() && success; ++item, ++cacheOffset)
         {
+            if(getTime() - lastReport > 10)
+            {
+                Log::addFormatted(Log::INFO, NEXTCASH_HASH_DATA_SET_LOG_NAME,
+                  "Set %d save index update is %2d%% Complete", mID,
+                  (int)(((float)cacheOffset / (float)mCache.size()) * 100.0f));
+
+                lastReport = getTime();
+            }
+
             if((*item)->markedRemove())
             {
                 (*item)->clearNew();
@@ -1439,7 +1483,7 @@ namespace NextCash
                     //   search would presumably be more expensive since it requires reading hashes.
                     found = false;
                     hash = hashes.begin();
-                    for(index=indices.begin();index!=indices.end();++index,++hash)
+                    for(index = indices.begin();index != indices.end(); ++index, ++hash)
                         if(*index == (*item)->dataOffset())
                         {
                             indices.erase(index);
@@ -1451,8 +1495,8 @@ namespace NextCash
                     if(!found)
                     {
                         Log::addFormatted(Log::ERROR, NEXTCASH_HASH_DATA_SET_LOG_NAME,
-                          "Failed to find index to remove for file offset %d : %s", (*item)->dataOffset(),
-                          item.hash().hex().text());
+                          "Failed to find index to remove for file offset %d : %s",
+                          (*item)->dataOffset(), item.hash().hex().text());
                         success = false;
                         break;
                     }
@@ -1465,8 +1509,8 @@ namespace NextCash
 #endif
                 // For new items perform insert sort into existing indices.
                 // This costs more processor time to do the insert for every new item.
-                // This saves file reads by not requiring a read of every existing indice like a merge sort
-                //   would.
+                // This saves file reads by not requiring a read of every existing indice like a
+                //   merge sort would.
                 if(indices.size () == 0)
                 {
 #ifdef PROFILER_ON
@@ -1660,7 +1704,7 @@ namespace NextCash
             FileOutputStream *indexOutFile = new FileOutputStream(filePathName, true);
 
             // Write the new index
-            for(setOffset=0;setOffset<tSetCount;++setOffset)
+            for(setOffset = 0; setOffset < tSetCount; ++setOffset)
             {
                 // Write set of indices
                 indiceSet = indices.dataSet(setOffset);
