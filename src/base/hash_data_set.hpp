@@ -1170,7 +1170,7 @@ namespace NextCash
 
     //TODO This operation is expensive. Try to find a better method
     template <class tHashDataType, uint8_t tHashSize, uint16_t tSampleSize, uint16_t tSetCount>
-    void HashDataSet<tHashDataType, tHashSize, tSampleSize, tSetCount>::SubSet::pruneCache(uint64_t pDataSize)
+    void HashDataSet<tHashDataType, tHashSize, tSampleSize, tSetCount>::SubSet::pruneCache(stream_size pDataSize)
     {
 #ifdef PROFILER_ON
         NextCash::Profiler profiler("Hash SubSet Prune");
