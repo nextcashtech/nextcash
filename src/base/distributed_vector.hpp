@@ -1,5 +1,5 @@
 /**************************************************************************
- * Copyright 2017 NextCash, LLC                                           *
+ * Copyright 2017-2018 NextCash, LLC                                      *
  * Contributors :                                                         *
  *   Curtis Ellis <curtis@nextcash.tech>                                  *
  * Distributed under the MIT software license, see the accompanying       *
@@ -8,8 +8,12 @@
 #ifndef NEXTCASH_DISTRIBUTED_VECTOR_HPP
 #define NEXTCASH_DISTRIBUTED_VECTOR_HPP
 
+#include "log.hpp"
+
 #include <cstring>
 #include <vector>
+
+#define NEXTCASH_DISTRIBUTED_VECTOR_LOG_NAME "DistributedVector"
 
 
 namespace NextCash
@@ -170,6 +174,9 @@ namespace NextCash
         // Return the previous Iterator before the specified set
         Iterator previousLast(std::vector<tType> *pAfterSet);
 
+        // Distribute items to other sets if one set is getting too large
+        void distribute(std::vector<tType> *pSet);
+
         unsigned int mSetCount;
         unsigned int mSize;
         std::vector<tType> *mSets;
@@ -297,7 +304,7 @@ namespace NextCash
     typename DistributedVector<tType>::Iterator DistributedVector<tType>::begin()
     {
         std::vector<tType> *set = mSets;
-        for(;set<mEndSet;++set)
+        for(; set < mEndSet; ++set)
             if(set->size() > 0)
                 return Iterator(this, set, set->begin());
         --set;
@@ -315,7 +322,7 @@ namespace NextCash
     tType &DistributedVector<tType>::front()
     {
         std::vector<tType> *set = mSets;
-        for(;set<mEndSet;++set)
+        for(; set < mEndSet; ++set)
             if(set->size() > 0)
                 break;
         return set->front();
@@ -334,6 +341,114 @@ namespace NextCash
     }
 
     template <class tType>
+    void DistributedVector<tType>::distribute(std::vector<tType> *pSet)
+    {
+        // Check if set size is larger than it should be
+        unsigned int maxSize = (mSize / mSetCount) * (mSetCount / 10);
+        if(maxSize < 1024)
+            maxSize = 1024;
+        if(pSet->size() < maxSize)
+            return;
+        unsigned int minMove = maxSize / 4;
+
+        int currentOffset = pSet - mSets;
+        if(currentOffset < 0)
+            return;
+
+        // Get previous and next sets.
+        unsigned int totalSize = pSet->size();
+        unsigned int count = 1; // 1 for current set
+        std::vector<tType> *previousSet, *nextSet;
+
+        if(currentOffset == 0)
+            previousSet = NULL;
+        else
+        {
+            previousSet = pSet;
+            --previousSet;
+            totalSize += previousSet->size();
+            ++count;
+        }
+
+        if((unsigned int)currentOffset >= mSetCount - 1)
+            nextSet = NULL;
+        else
+        {
+            nextSet = pSet;
+            ++nextSet;
+            totalSize += nextSet->size();
+            ++count;
+        }
+
+        if(previousSet == NULL && nextSet == NULL)
+            return; // Something is wrong. There must only be one set.
+
+        // Make these sets all the same size.
+        unsigned int targetSize = totalSize / count;
+        unsigned int addCount;
+        unsigned int originalSize = pSet->size();
+
+        if(nextSet != NULL && nextSet->size() >= targetSize)
+        {
+            totalSize -= nextSet->size();
+            --count;
+            nextSet = NULL;
+            targetSize = totalSize / count;
+        }
+
+        if(previousSet != NULL && previousSet->size() >= targetSize)
+        {
+            totalSize -= previousSet->size();
+            --count;
+            previousSet = NULL;
+            targetSize = totalSize / count;
+        }
+
+        if(nextSet != NULL && nextSet->size() < targetSize)
+        {
+            // Move end of current set first so removing items from the beginning is cheaper.
+            addCount = targetSize - nextSet->size();
+            if(addCount > minMove || addCount >= pSet->size() - minMove)
+            {
+                Log::addFormatted(Log::DEBUG, NEXTCASH_DISTRIBUTED_VECTOR_LOG_NAME,
+                  "Distributing set %d : Moving %d/%d items to next of size %d", currentOffset,
+                  addCount, originalSize, nextSet->size());
+
+                // Insert items from end of current set at beginning of the next set.
+                nextSet->insert(nextSet->begin(), pSet->end() - addCount, pSet->end());
+
+                // Remove items from the end of the current set.
+                pSet->erase(pSet->end() - addCount, pSet->end());
+            }
+        }
+
+        if(previousSet != NULL && previousSet->size() < targetSize)
+        {
+            addCount = targetSize - previousSet->size();
+            if(addCount > minMove || addCount >= pSet->size() - minMove)
+            {
+                Log::addFormatted(Log::DEBUG, NEXTCASH_DISTRIBUTED_VECTOR_LOG_NAME,
+                  "Distributing set %d : Moving %d/%d items to previous of size %d", currentOffset,
+                  addCount, originalSize, previousSet->size());
+
+                // Append items from the beginning of the current set to the end or previous set.
+                unsigned int previousSize = previousSet->size();
+                previousSet->resize(previousSet->size() + addCount);
+                std::move(pSet->begin(), pSet->begin() + addCount,
+                  previousSet->begin() + previousSize);
+
+                // Remove items from the beginning of the current set.
+                pSet->erase(pSet->begin(), pSet->begin() + addCount);
+            }
+        }
+
+        if(previousSet != NULL)
+            distribute(previousSet);
+        if(nextSet != NULL)
+            distribute(nextSet);
+    }
+
+    template <class tType>
     void DistributedVector<tType>::insert(const Iterator &pBefore, const tType &pValue)
     {
         if(pBefore.set != mSets && // Not first set
@@ -344,14 +459,23 @@ namespace NextCash
             --set;
             set->push_back(pValue);
             ++mSize;
+            distribute(set);
         }
         else if(pBefore == end()) // Inserting as last item
             push_back(pValue);
+        else if(pBefore.item == pBefore.set->end())
+        {
+            // Append to this set
+            pBefore.set->push_back(pValue);
+            ++mSize;
+            distribute(pBefore.set);
+        }
         else
         {
             // Normal insert into this set
             pBefore.set->insert(pBefore.item, pValue);
             ++mSize;
+            distribute(pBefore.set);
         }
     }
 
@@ -365,6 +489,7 @@ namespace NextCash
             {
                 mLastSet->push_back(pValue);
                 ++mSize;
+                distribute(mLastSet);
                 return;
             }
             else
@@ -398,7 +523,7 @@ namespace NextCash
     {
         mLastSet = mSets;
         mSize = 0;
-        for(std::vector<tType> *set=mSets;set<mEndSet;++set)
+        for(std::vector<tType> *set = mSets; set < mEndSet; ++set)
             if(set->size() > 0)
             {
                 mLastSet = set;

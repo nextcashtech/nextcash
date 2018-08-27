@@ -1,5 +1,5 @@
 /**************************************************************************
- * Copyright 2017 NextCash, LLC                                           *
+ * Copyright 2017-2018 NextCash, LLC                                      *
  * Contributors :                                                         *
  *   Curtis Ellis <curtis@nextcash.tech>                                  *
  * Distributed under the MIT software license, see the accompanying       *
@@ -8,8 +8,6 @@
 #include "distributed_vector.hpp"
 
 #include "log.hpp"
-
-#define NEXTCASH_DISTRIBUTED_VECTOR_LOG_NAME "Distributed Vector"
 
 
 namespace NextCash
@@ -36,7 +34,7 @@ namespace NextCash
          ***********************************************************************************************/
         int insertValue = 51;
         DistributedVector<int>::Iterator item;
-        for(item=testVector.begin();item!=testVector.end();++item)
+        for(item = testVector.begin(); item != testVector.end(); ++item)
             if(*item > insertValue)
             {
                 testVector.insert(item, insertValue);
@@ -45,7 +43,7 @@ namespace NextCash
 
         item = testVector.begin() + 10;
         if(*item == 51)
-            Log::addFormatted(Log::INFO, NEXTCASH_DISTRIBUTED_VECTOR_LOG_NAME, "Passed insert end of previous");
+            Log::add(Log::INFO, NEXTCASH_DISTRIBUTED_VECTOR_LOG_NAME, "Passed insert end of previous");
         else
         {
             Log::addFormatted(Log::ERROR, NEXTCASH_DISTRIBUTED_VECTOR_LOG_NAME,
@@ -66,7 +64,7 @@ namespace NextCash
 
         item = testVector.begin() + 12;
         if(*item == 56)
-            Log::addFormatted(Log::INFO, NEXTCASH_DISTRIBUTED_VECTOR_LOG_NAME, "Passed insert in set");
+            Log::add(Log::INFO, NEXTCASH_DISTRIBUTED_VECTOR_LOG_NAME, "Passed insert in set");
         else
         {
             Log::addFormatted(Log::ERROR, NEXTCASH_DISTRIBUTED_VECTOR_LOG_NAME,
@@ -82,7 +80,7 @@ namespace NextCash
 
         item = --testVector.end();
         if(*item == 501)
-            Log::addFormatted(Log::INFO, NEXTCASH_DISTRIBUTED_VECTOR_LOG_NAME, "Passed push back end");
+            Log::add(Log::INFO, NEXTCASH_DISTRIBUTED_VECTOR_LOG_NAME, "Passed push back end");
         else
         {
             Log::addFormatted(Log::ERROR, NEXTCASH_DISTRIBUTED_VECTOR_LOG_NAME,
@@ -95,7 +93,7 @@ namespace NextCash
          ***********************************************************************************************/
         item = testVector.begin() + (testVector.size() / 2);
         if(*item == 250)
-            Log::addFormatted(Log::INFO, NEXTCASH_DISTRIBUTED_VECTOR_LOG_NAME, "Passed middle item");
+            Log::add(Log::INFO, NEXTCASH_DISTRIBUTED_VECTOR_LOG_NAME, "Passed middle item");
         else
         {
             Log::addFormatted(Log::ERROR, NEXTCASH_DISTRIBUTED_VECTOR_LOG_NAME,
@@ -108,7 +106,7 @@ namespace NextCash
          ***********************************************************************************************/
         item = testVector.end() - (testVector.size() / 2);
         if(*item == 255)
-            Log::addFormatted(Log::INFO, NEXTCASH_DISTRIBUTED_VECTOR_LOG_NAME, "Passed middle item from end");
+            Log::add(Log::INFO, NEXTCASH_DISTRIBUTED_VECTOR_LOG_NAME, "Passed middle item from end");
         else
         {
             Log::addFormatted(Log::ERROR, NEXTCASH_DISTRIBUTED_VECTOR_LOG_NAME,
@@ -121,7 +119,7 @@ namespace NextCash
          ***********************************************************************************************/
         item = testVector.begin() + 10;
         if(*item == 51)
-            Log::addFormatted(Log::INFO, NEXTCASH_DISTRIBUTED_VECTOR_LOG_NAME, "Passed 10 after begin");
+            Log::add(Log::INFO, NEXTCASH_DISTRIBUTED_VECTOR_LOG_NAME, "Passed 10 after begin");
         else
         {
             Log::addFormatted(Log::ERROR, NEXTCASH_DISTRIBUTED_VECTOR_LOG_NAME,
@@ -134,7 +132,7 @@ namespace NextCash
          ***********************************************************************************************/
         item = testVector.begin() + 11;
         if(*item == 55)
-            Log::addFormatted(Log::INFO, NEXTCASH_DISTRIBUTED_VECTOR_LOG_NAME, "Passed 11 after begin");
+            Log::add(Log::INFO, NEXTCASH_DISTRIBUTED_VECTOR_LOG_NAME, "Passed 11 after begin");
         else
         {
             Log::addFormatted(Log::ERROR, NEXTCASH_DISTRIBUTED_VECTOR_LOG_NAME,
@@ -147,7 +145,7 @@ namespace NextCash
          ***********************************************************************************************/
         item = testVector.begin() + 12;
         if(*item == 56)
-            Log::addFormatted(Log::INFO, NEXTCASH_DISTRIBUTED_VECTOR_LOG_NAME, "Passed 12 after begin");
+            Log::add(Log::INFO, NEXTCASH_DISTRIBUTED_VECTOR_LOG_NAME, "Passed 12 after begin");
         else
         {
             Log::addFormatted(Log::ERROR, NEXTCASH_DISTRIBUTED_VECTOR_LOG_NAME,
@@ -160,7 +158,7 @@ namespace NextCash
          ***********************************************************************************************/
         item = testVector.end() - 11;
         if(*item == 455)
-            Log::addFormatted(Log::INFO, NEXTCASH_DISTRIBUTED_VECTOR_LOG_NAME, "Passed 11 before end");
+            Log::add(Log::INFO, NEXTCASH_DISTRIBUTED_VECTOR_LOG_NAME, "Passed 11 before end");
         else
         {
             Log::addFormatted(Log::ERROR, NEXTCASH_DISTRIBUTED_VECTOR_LOG_NAME,
@@ -173,13 +171,44 @@ namespace NextCash
          ***********************************************************************************************/
         item = testVector.end() - 12;
         if(*item == 450)
-            Log::addFormatted(Log::INFO, NEXTCASH_DISTRIBUTED_VECTOR_LOG_NAME, "Passed 12 before end");
+            Log::add(Log::INFO, NEXTCASH_DISTRIBUTED_VECTOR_LOG_NAME, "Passed 12 before end");
         else
         {
             Log::addFormatted(Log::ERROR, NEXTCASH_DISTRIBUTED_VECTOR_LOG_NAME,
               "Failed 12 before end : %d != 450", *item);
             success = false;
         }
+
+        /***********************************************************************************************
+         * DistributedVector distribute begin
+         ***********************************************************************************************/
+        for(unsigned int i = 0; i < 5000; ++i)
+        {
+            // Log::addFormatted(Log::VERBOSE, NEXTCASH_DISTRIBUTED_VECTOR_LOG_NAME,
+              // "Inserting %d at beginning", i);
+            testVector.insert(testVector.begin(), i);
+        }
+
+        /***********************************************************************************************
+         * DistributedVector distribute end
+         ***********************************************************************************************/
+        for(unsigned int i = 0; i < 5000; ++i)
+        {
+            // Log::addFormatted(Log::VERBOSE, NEXTCASH_DISTRIBUTED_VECTOR_LOG_NAME,
+              // "Inserting %d at end", i);
+            testVector.insert(--testVector.end(), i);
+        }
+
+        /***********************************************************************************************
+         * DistributedVector distribute middle
+         ***********************************************************************************************/
+        for(unsigned int i = 0; i < 5000; ++i)
+        {
+            // Log::addFormatted(Log::VERBOSE, NEXTCASH_DISTRIBUTED_VECTOR_LOG_NAME,
+              // "Inserting %d in the middle", i);
+            testVector.insert(testVector.begin() + 5, i);
+        }
+
 
         // for(item=testVector.begin();item!=testVector.end();++item)
             // Log::addFormatted(Log::INFO, NEXTCASH_DISTRIBUTED_VECTOR_LOG_NAME, "Vector : %3d", *item);
