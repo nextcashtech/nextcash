@@ -175,7 +175,7 @@ namespace NextCash
         Iterator previousLast(std::vector<tType> *pAfterSet);
 
         // Distribute items to other sets if one set is getting too large
-        void distribute(std::vector<tType> *pSet);
+        void distribute(std::vector<tType> *pSet, bool pFromPrevious, bool pFromNext);
 
         unsigned int mSetCount;
         unsigned int mSize;
@@ -341,7 +341,7 @@ namespace NextCash
     }
 
     template <class tType>
-    void DistributedVector<tType>::distribute(std::vector<tType> *pSet)
+    void DistributedVector<tType>::distribute(std::vector<tType> *pSet, bool pFromPrevious, bool pFromNext)
     {
         // Check if set size is larger than it should be
         unsigned int maxSize = (mSize / mSetCount) * (mSetCount / 10);
@@ -360,7 +360,7 @@ namespace NextCash
         unsigned int count = 1; // 1 for current set
         std::vector<tType> *previousSet, *nextSet;
 
-        if(currentOffset == 0)
+        if(pFromPrevious || currentOffset == 0)
             previousSet = NULL;
         else
         {
@@ -370,7 +370,7 @@ namespace NextCash
             ++count;
         }
 
-        if((unsigned int)currentOffset >= mSetCount - 1)
+        if(pFromNext || (unsigned int)currentOffset >= mSetCount - 1)
             nextSet = NULL;
         else
         {
@@ -381,7 +381,7 @@ namespace NextCash
         }
 
         if(previousSet == NULL && nextSet == NULL)
-            return; // Something is wrong. There must only be one set.
+            return; // No place to distribute
 
         // Make these sets all the same size.
         unsigned int targetSize = totalSize / count;
@@ -443,9 +443,9 @@ namespace NextCash
         }
 
         if(previousSet != NULL)
-            distribute(previousSet);
+            distribute(previousSet, true, false);
         if(nextSet != NULL)
-            distribute(nextSet);
+            distribute(nextSet, false, true);
     }
 
     template <class tType>
@@ -459,7 +459,7 @@ namespace NextCash
             --set;
             set->push_back(pValue);
             ++mSize;
-            distribute(set);
+            distribute(set, false, false);
         }
         else if(pBefore == end()) // Inserting as last item
             push_back(pValue);
@@ -468,14 +468,14 @@ namespace NextCash
             // Append to this set
             pBefore.set->push_back(pValue);
             ++mSize;
-            distribute(pBefore.set);
+            distribute(pBefore.set, false, false);
         }
         else
         {
             // Normal insert into this set
             pBefore.set->insert(pBefore.item, pValue);
             ++mSize;
-            distribute(pBefore.set);
+            distribute(pBefore.set, false, false);
         }
     }
 
@@ -489,7 +489,7 @@ namespace NextCash
             {
                 mLastSet->push_back(pValue);
                 ++mSize;
-                distribute(mLastSet);
+                distribute(mLastSet, false, false);
                 return;
             }
             else
