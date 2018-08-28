@@ -18,26 +18,28 @@ namespace NextCash
 {
     unsigned int Hash::mCount = 0;
 
-    Hash::Hash(const char *pHex)
+    Hash::Hash(const char *pHex) : mMutex("Hash")
     {
         mData = NULL;
         setHex(pHex);
     }
 
-    Hash::Hash(const Hash &pCopy)
+    Hash::Hash(const Hash &pCopy) : mMutex("Hash")
     {
         if(pCopy.mData != NULL)
         {
+            mMutex.lock();
             pCopy.mData->mutex.lock();
             mData = pCopy.mData;
             ++mData->references;
             pCopy.mData->mutex.unlock();
+            mMutex.unlock();
         }
         else
             mData = NULL;
     }
 
-    Hash::Hash(unsigned int pSize, int64_t pValue)
+    Hash::Hash(unsigned int pSize, int64_t pValue) : mMutex("Hash")
     {
         mData = NULL;
         allocate(pSize);
@@ -54,55 +56,67 @@ namespace NextCash
 
     void Hash::makeExclusive()
     {
+        mMutex.lock();
         if(mData == NULL)
+        {
+            mMutex.unlock();
             return;
+        }
 
         mData->mutex.lock();
 
         if(mData->references == 1)
         {
             mData->mutex.unlock();
+            mMutex.unlock();
             return; // Already exclusive
         }
 
         // Create new exclusive data
         ++mCount;
-        // if(mCount % 100 == 0)
-            // Log::addFormatted(Log::DEBUG, NEXTCASH_HASH_LOG_NAME, "Allocating hash : count %d", mCount);
-        Data *newData = new Data(mData->size);
-        std::memcpy(newData->data, mData->data, mData->size);
+        Data *oldData = mData;
+        mData = new Data(oldData->size);
+        std::memcpy(mData->data, oldData->data, oldData->size);
 
-        mData->mutex.unlock();
-
-        deallocate();
-
-        mData = newData;
+        --oldData->references;
+        oldData->mutex.unlock();
+        mMutex.unlock();
     }
 
     void Hash::allocate(unsigned int pSize)
     {
+        mMutex.lock();
+
         if(mData != NULL)
         {
             if(mData->size == pSize)
+            {
+                mMutex.unlock();
                 return;
-            deallocate();
+            }
+
+            deallocate(true);
         }
 
-        if(pSize == 0)
-            mData = NULL;
-        else
+        if(pSize > 0)
         {
             ++mCount;
-            // if(mCount % 100 == 0)
-                // Log::addFormatted(Log::DEBUG, NEXTCASH_HASH_LOG_NAME, "Allocating hash : count %d", mCount);
             mData = new Data(pSize);
         }
+
+        mMutex.unlock();
     }
 
-    void Hash::deallocate()
+    void Hash::deallocate(bool pLocked)
     {
+        if(!pLocked)
+            mMutex.lock();
+
         if(mData == NULL)
+        {
+            mMutex.unlock();
             return;
+        }
 
         mData->mutex.lock();
 
@@ -110,24 +124,26 @@ namespace NextCash
         if(mData->references == 0)
             Log::add(Log::ERROR, NEXTCASH_HASH_LOG_NAME, "Deallocating zero reference hash");
 
-        mData->references--;
+        --mData->references;
         if(mData->references == 0)
         {
             // No more references to this data
             --mCount;
-            // if(mCount % 100 == 0)
-                // Log::addFormatted(Log::DEBUG, NEXTCASH_HASH_LOG_NAME, "Deallocating hash : count %d", mCount);
-            mData->mutex.unlock();
             delete mData;
         }
         else
             mData->mutex.unlock();
         mData = NULL;
+
+        if(!pLocked)
+            mMutex.unlock();
     }
 
     const Hash &Hash::operator = (const Hash &pRight)
     {
-        deallocate();
+        mMutex.lock();
+
+        deallocate(true);
         if(pRight.mData != NULL)
         {
             pRight.mData->mutex.lock();
@@ -135,8 +151,8 @@ namespace NextCash
             ++mData->references;
             pRight.mData->mutex.unlock();
         }
-        else
-            mData = NULL;
+
+        mMutex.unlock();
         return *this;
     }
 

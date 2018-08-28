@@ -27,11 +27,11 @@ namespace NextCash
     {
     public:
 
-        Hash() { mData = NULL; } // Create empty
-        Hash(unsigned int pSize) { mData = NULL; allocate(pSize); } // Create specific size, zeroized
+        Hash() : mMutex("Hash") { mData = NULL; } // Create empty
+        Hash(unsigned int pSize) : mMutex("Hash") { mData = NULL; allocate(pSize); } // Create specific size, zeroized
         Hash(unsigned int pSize, int64_t pValue); // Create from integer value (arithmetic)
         Hash(const char *pHex); // Create from hex text
-        Hash(InputStream *pStream, unsigned int pSize)
+        Hash(InputStream *pStream, unsigned int pSize) : mMutex("Hash")
           { mData = NULL; allocate(pSize); read(pStream); }
         Hash(const Hash &pCopy);
         ~Hash() { deallocate(); }
@@ -289,7 +289,7 @@ namespace NextCash
         {
         public:
 
-            Data(unsigned int pSize) : mutex("Hash")
+            Data(unsigned int pSize) : mutex("Hash Data")
             {
                 size = pSize;
                 data = new uint8_t[pSize];
@@ -310,8 +310,9 @@ namespace NextCash
 
         void makeExclusive();
         void allocate(unsigned int pSize);
-        void deallocate();
+        void deallocate(bool pLocked = false);
 
+        MutexWithConstantName mMutex;
         Data *mData;
         static unsigned int mCount;
 
