@@ -1,5 +1,5 @@
 /**************************************************************************
- * Copyright 2017 NextCash, LLC                                           *
+ * Copyright 2017-2018 NextCash, LLC                                      *
  * Contributors :                                                         *
  *   Curtis Ellis <curtis@nextcash.tech>                                  *
  * Distributed under the MIT software license, see the accompanying       *
@@ -12,10 +12,13 @@
 #endif
 
 #include "log.hpp"
+#include "thread.hpp"
 
 #include <unistd.h>
 
 #define NEXTCASH_MUTEX_LOG_NAME "Mutex"
+// 1/20th of a second
+#define MUTEX_WAIT 50000
 
 
 namespace NextCash
@@ -25,19 +28,23 @@ namespace NextCash
         int sleeps = 0;
         while(!mMutex.try_lock())
         {
-            usleep(10000); // 1/100th of a second
-            if(++sleeps > 100)
+            usleep(MUTEX_WAIT);
+            if(++sleeps > 20)
             {
                 // It has been over a second. So notify that this wait is taking too long
                 Log::addFormatted(Log::WARNING, NEXTCASH_MUTEX_LOG_NAME,
-                  "Waiting for lock on %s", mName.text());
+                  "Waiting for lock on %s (Locked by thread %s %s)", mName.text(),
+                  Thread::name(mLockedThread), Thread::stringID(mLockedThread).text());
                 sleeps = 0;
             }
         }
+
+        mLockedThread = Thread::currentID();
     }
 
     void Mutex::unlock()
     {
+        mLockedThread = Thread::NullThreadID;
         mMutex.unlock();
     }
 
@@ -46,8 +53,8 @@ namespace NextCash
         int sleeps = 0;
         while(!mMutex.try_lock())
         {
-            usleep(10000); // 1/100th of a second
-            if(++sleeps > 100)
+            usleep(MUTEX_WAIT);
+            if(++sleeps > 20)
             {
                 // It has been over a second. So notify that this wait is taking too long
                 Log::addFormatted(Log::WARNING, NEXTCASH_MUTEX_LOG_NAME,
@@ -80,8 +87,9 @@ namespace NextCash
                 // It has been over a second. So notify that this wait is taking too long
                 if(mWriteLockName != NULL)
                     Log::addFormatted(Log::VERBOSE, NEXTCASH_MUTEX_LOG_NAME,
-                      "Waiting for read lock on %s (locked by %s)",
-                      mName.text(), mWriteLockName);
+                      "Waiting for read lock on %s (locked by %s, thread %s %s)",
+                      mName.text(), mWriteLockName, Thread::name(mWriteLockedThread),
+                      Thread::stringID(mWriteLockedThread).text());
                 else
                     Log::addFormatted(Log::VERBOSE, NEXTCASH_MUTEX_LOG_NAME,
                       "Waiting for read lock on %s", mName.text());
@@ -90,7 +98,7 @@ namespace NextCash
 
             // Wait for writer to unlock
             mMutex.unlock();
-            usleep(10000); // 1/100th of a second
+            usleep(MUTEX_WAIT);
         }
     }
 
@@ -116,13 +124,15 @@ namespace NextCash
                 break;
             }
 
-            if(++sleeps > 500)
+            if(++sleeps > 100)
             {
                 // It has been over 5 seconds. So notify that this wait is taking too long
                 if(mWriterLocked)
                     Log::addFormatted(Log::VERBOSE, NEXTCASH_MUTEX_LOG_NAME,
-                      "Waiting for write lock for %s on %s (write locked by %s)",
-                      pRequestName, mName.text(), mWriteLockName);
+                      "Waiting for write lock for %s on %s (write locked by %s, thread %s %s)",
+                      pRequestName, mName.text(), mWriteLockName,
+                      Thread::name(mWriteLockedThread),
+                      Thread::stringID(mWriteLockedThread).text());
                 else
                     Log::addFormatted(Log::VERBOSE, NEXTCASH_MUTEX_LOG_NAME,
                       "Waiting for write lock for %s on %s (other writer waiting)",
@@ -132,7 +142,7 @@ namespace NextCash
 
             // Wait for readers to unlock
             mMutex.unlock();
-            usleep(10000); // 1/100th of a second
+            usleep(MUTEX_WAIT);
         }
 
         // Wait for the readers to unlock
@@ -145,11 +155,12 @@ namespace NextCash
                 mWriterWaiting = false;
                 mWriterLocked = true;
                 mWriteLockName = pRequestName;
+                mWriteLockedThread = Thread::currentID();
                 mMutex.unlock();
                 return;
             }
 
-            if(++sleeps > 500)
+            if(++sleeps > 100)
             {
                 // It has been over 5 seconds. So notify that this wait is taking too long
                 if(pRequestName != NULL)
@@ -165,7 +176,7 @@ namespace NextCash
 
             // Wait for readers to unlock
             mMutex.unlock();
-            usleep(10000); // 1/100th of a second
+            usleep(MUTEX_WAIT);
         }
     }
 
@@ -174,6 +185,7 @@ namespace NextCash
         mMutex.lock();
         mWriteLockName = NULL;
         mWriterLocked = false;
+        mWriteLockedThread = Thread::NullThreadID;
         mMutex.unlock();
     }
 }

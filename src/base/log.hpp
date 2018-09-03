@@ -47,9 +47,6 @@ namespace NextCash
         // Read binary from pStream and write it as hex text into the log
         static void addHex(Level pLevel, const char *pName, const char *pDescription, InputStream *pStream, stream_size pSize);
 
-        void lock() { mMutex.lock(); }
-        void unlock() { mMutex.unlock(); }
-
         static void destroy();
 
     private:
@@ -79,7 +76,7 @@ namespace NextCash
         OutputStream *mStream, *mStreamToDestroy;
 #endif
 
-        MutexWithConstantName mMutex;
+        std::mutex mMutex;
     };
 }
 

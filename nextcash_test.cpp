@@ -56,6 +56,9 @@ namespace NextCash
         testProfiler.stop();
         NextCash::Log::addFormatted(NextCash::Log::INFO, "Test", "Profiler test : %f s", testProfiler.seconds());
 
+        NextCash::Log::addFormatted(Log::WARNING, "Test", "Current thread is %s %s",
+          Thread::currentName(), Thread::stringID(Thread::currentID()).text());
+
         NextCash::Log::add(NextCash::Log::DEBUG, "Test", "Debug Color Test");
         NextCash::Log::add(NextCash::Log::VERBOSE, "Test", "Verbose Color Test");
         NextCash::Log::add(NextCash::Log::INFO, "Test", "Info Color Test");

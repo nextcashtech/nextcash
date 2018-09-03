@@ -1,5 +1,5 @@
 /**************************************************************************
- * Copyright 2017 NextCash, LLC                                           *
+ * Copyright 2017-2018 NextCash, LLC                                      *
  * Contributors :                                                         *
  *   Curtis Ellis <curtis@nextcash.tech>                                  *
  * Distributed under the MIT software license, see the accompanying       *
@@ -93,7 +93,7 @@ namespace NextCash
     }
 #endif
 
-    Log::Log(OutputStream *pStream, const char *pDateTimeFormat) : mMutex("Log")
+    Log::Log(OutputStream *pStream, const char *pDateTimeFormat)
     {
 #ifdef ANDROID
         return;
@@ -219,7 +219,7 @@ namespace NextCash
     bool Log::startEntry(Level pLevel, const char *pName)
     {
 #ifdef ANDROID
-        lock();
+        mMutex.lock();
         return true;
 #else
         if(mLevel > pLevel)
@@ -230,7 +230,7 @@ namespace NextCash
         dateTimeString.writeFormattedTime(std::time(NULL), mDateTimeFormat);
         unsigned int entryColor = WHITE;
 
-        lock();
+        mMutex.lock();
 
         if(mFilePathName && std::time(NULL) - mLastFileRoll > mRollFrequency)
             roll();
@@ -374,7 +374,7 @@ namespace NextCash
                 endColor(theLog.mStream);
             theLog.mStream->flush();
 #endif
-            theLog.unlock();
+            theLog.mMutex.unlock();
         }
     }
 
@@ -395,7 +395,7 @@ namespace NextCash
             theLog.mStream->flush();
 #endif
             va_end(args);
-            theLog.unlock();
+            theLog.mMutex.unlock();
         }
     }
 
@@ -416,7 +416,7 @@ namespace NextCash
             theLog.mStream->flush();
 #endif
             va_end(args);
-            theLog.unlock();
+            theLog.mMutex.unlock();
         }
     }
 
@@ -437,7 +437,7 @@ namespace NextCash
             theLog.mStream->flush();
 #endif
             va_end(args);
-            theLog.unlock();
+            theLog.mMutex.unlock();
         }
     }
 
@@ -458,7 +458,7 @@ namespace NextCash
             theLog.mStream->flush();
 #endif
             va_end(args);
-            theLog.unlock();
+            theLog.mMutex.unlock();
         }
     }
 
@@ -479,7 +479,7 @@ namespace NextCash
             theLog.mStream->flush();
 #endif
             va_end(args);
-            theLog.unlock();
+            theLog.mMutex.unlock();
         }
     }
 
@@ -500,7 +500,7 @@ namespace NextCash
             theLog.mStream->flush();
 #endif
             va_end(args);
-            theLog.unlock();
+            theLog.mMutex.unlock();
         }
     }
 
@@ -521,7 +521,7 @@ namespace NextCash
                 endColor(theLog.mStream);
             theLog.mStream->flush();
 #endif
-            theLog.unlock();
+            theLog.mMutex.unlock();
         }
     }
 }

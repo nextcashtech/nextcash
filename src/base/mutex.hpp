@@ -1,5 +1,5 @@
 /**************************************************************************
- * Copyright 2017 NextCash, LLC                                           *
+ * Copyright 2017-2018 NextCash, LLC                                      *
  * Contributors :                                                         *
  *   Curtis Ellis <curtis@nextcash.tech>                                  *
  * Distributed under the MIT software license, see the accompanying       *
@@ -9,6 +9,7 @@
 #define NEXTCASH_MUTEX_HPP
 
 #include "string.hpp"
+#include "thread.hpp"
 
 #include <mutex>
 
@@ -28,6 +29,7 @@ namespace NextCash
 
         std::mutex mMutex;
         String mName;
+        Thread::ID mLockedThread;
 
     };
 
@@ -74,6 +76,7 @@ namespace NextCash
         unsigned int mReaderCount;
         bool mWriterWaiting;
         bool mWriterLocked;
+        Thread::ID mWriteLockedThread;
 
     };
 }

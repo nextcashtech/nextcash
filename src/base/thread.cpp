@@ -1,5 +1,5 @@
 /**************************************************************************
- * Copyright 2017 NextCash, LLC                                           *
+ * Copyright 2017-2018 NextCash, LLC                                      *
  * Contributors :                                                         *
  *   Curtis Ellis <curtis@nextcash.tech>                                  *
  * Distributed under the MIT software license, see the accompanying       *
@@ -10,6 +10,7 @@
 #include "log.hpp"
 
 #include <cstring>
+#include <sstream>
 #include <unistd.h>
 
 #define THREAD_LOG_NAME "Thread"
@@ -17,100 +18,159 @@
 
 namespace NextCash
 {
-    std::thread::id *Thread::sMainThreadID = NULL;
-    Mutex Thread::sThreadMutex("Thread");
-    std::map<std::thread::id, String> Thread::sThreadNames;
-    std::map<std::thread::id, void *> Thread::sThreadParameters;
+    std::thread::id Thread::sMainThreadID = std::this_thread::get_id();
+    std::mutex Thread::sThreadMutex;
+    Thread::ID Thread::sNextThreadID = 2;
+    std::map<std::thread::id, Thread::ID> Thread::sThreadIDs;
+    std::map<Thread::ID, Thread::Data *> Thread::sThreads;
 
-    Thread::Thread(const char *pName, void (*pFunction)(), void *pParameter) : mThread(pFunction)
+    Thread::Thread(const char *pName, void (*pFunction)(), void *pParameter)
     {
-        if(sMainThreadID == NULL)
-            sMainThreadID = new std::thread::id(std::this_thread::get_id());
+        sThreadMutex.lock();
 
         mName = pName;
-        sThreadMutex.lock();
-        sThreadNames[mThread.get_id()] = pName;
-        if(pParameter != NULL)
-            sThreadParameters[mThread.get_id()] = pParameter;
+        ID newID = sNextThreadID++;
+
+        // Setup thread data
+        sThreads.emplace(newID, new Data(newID, pName, pParameter));
+
+        // Create thread
+        mThread = new std::thread(pFunction);
+        std::thread::id internalID = mThread->get_id();
+        sThreadIDs[internalID] = newID;
+        sThreads[newID]->internalID = internalID;
+
         sThreadMutex.unlock();
+
         Log::addFormatted(Log::DEBUG, THREAD_LOG_NAME, "Started thread : %s", mName.text());
     }
 
     Thread::~Thread()
     {
         Log::addFormatted(Log::DEBUG, THREAD_LOG_NAME, "Stopping thread : %s", mName.text());
-        mThread.join();
+        mThread->join();
 
         sThreadMutex.lock();
-        std::map<std::thread::id, String>::iterator name = sThreadNames.find(mThread.get_id());
-        if(name != sThreadNames.end())
-            sThreadNames.erase(name);
+
+        std::map<std::thread::id, ID>::iterator id = sThreadIDs.find(mThread->get_id());
+        if(id != sThreadIDs.end())
+        {
+            std::map<ID, Data *>::iterator data = sThreads.find(id->second);
+            if(data != sThreads.end())
+            {
+                delete data->second;
+                sThreads.erase(data);
+            }
+            sThreadIDs.erase(id);
+        }
+
         sThreadMutex.unlock();
+
+        delete mThread;
+    }
+
+    Thread::Data *Thread::currentData()
+    {
+        std::thread::id currentID = std::this_thread::get_id();
+        if(currentID == sMainThreadID)
+            return NULL;
+
+        std::map<std::thread::id, ID>::iterator id = sThreadIDs.find(currentID);
+        if(id != sThreadIDs.end())
+        {
+            std::map<ID, Data *>::iterator data = sThreads.find(id->second);
+            if(data != sThreads.end())
+                return data->second;
+        }
+
+        return NULL;
+    }
+
+    Thread::Data *Thread::getData(const ID &pID)
+    {
+        std::map<ID, Data *>::iterator data = sThreads.find(pID);
+        if(data != sThreads.end())
+            return data->second;
+        else
+            return NULL;
     }
 
     const char *Thread::currentName(int pTimeoutMilliseconds)
     {
-        if(sMainThreadID == NULL)
-            sMainThreadID = new std::thread::id(std::this_thread::get_id());
-
         std::thread::id currentID = std::this_thread::get_id();
-        if(currentID == *sMainThreadID)
+        if(currentID == sMainThreadID)
             return "Main";
 
-        sThreadMutex.lock();
-        bool found = sThreadNames.find(currentID) != sThreadNames.end();
-        sThreadMutex.unlock();
-        const char *result = "Unknown";
-
-        // Wait for it to be available
-        while(!found && pTimeoutMilliseconds > 0)
-        {
-            sleep(100);
-            pTimeoutMilliseconds -= 100;
-            sThreadMutex.lock();
-            found = sThreadNames.find(currentID) != sThreadNames.end();
-            sThreadMutex.unlock();
-        }
+        const char *result = NULL;
 
         sThreadMutex.lock();
-        std::map<std::thread::id, String>::iterator name = sThreadNames.find(currentID);
-        if(name != sThreadNames.end())
-            result = name->second.text();
+
+        Data *data = currentData();
+        if(data != NULL)
+            result = data->name.text();
+
         sThreadMutex.unlock();
         return result;
     }
 
     void *Thread::getParameter(int pTimeoutMilliseconds)
     {
-        if(sMainThreadID == NULL)
-            sMainThreadID = new std::thread::id(std::this_thread::get_id());
-
-        std::thread::id currentID = std::this_thread::get_id();
-        if(currentID == *sMainThreadID)
-            return NULL;
-
-        sThreadMutex.lock();
-        bool found = sThreadParameters.find(currentID) != sThreadParameters.end();
-        sThreadMutex.unlock();
         void *result = NULL;
 
-        // Wait for it to be available
-        while(!found && pTimeoutMilliseconds > 0)
+        sThreadMutex.lock();
+
+        Data *data = currentData();
+        if(data != NULL && !data->parameterUsed)
         {
-            sleep(100);
-            pTimeoutMilliseconds -= 100;
-            sThreadMutex.lock();
-            found = sThreadParameters.find(currentID) != sThreadParameters.end();
-            sThreadMutex.unlock();
+            result = data->parameter;
+            data->parameterUsed = true;
         }
 
-        sThreadMutex.lock();
-        std::map<std::thread::id, void *>::iterator parameter = sThreadParameters.find(currentID);
-        if(parameter != sThreadParameters.end())
+        sThreadMutex.unlock();
+        return result;
+    }
+
+    Thread::ID Thread::currentID(int pTimeoutMilliseconds)
+    {
+        std::thread::id currentID = std::this_thread::get_id();
+        if(currentID == sMainThreadID)
         {
-            result = parameter->second;
-            sThreadParameters.erase(parameter);
+            sThreadMutex.unlock();
+            return 1;
         }
+
+        ID result = NullThreadID;
+
+        sThreadMutex.lock();
+
+        std::map<std::thread::id, ID>::iterator id = sThreadIDs.find(currentID);
+        if(id != sThreadIDs.end())
+            result = id->second;
+
+        sThreadMutex.unlock();
+        return result;
+    }
+
+    String Thread::stringID(const ID &pID)
+    {
+        String result;
+        if(pID == NullThreadID)
+            result = "0xNULL";
+        else
+            result.writeFormatted("0x%04x", pID);
+        return result;
+    }
+
+    const char *Thread::name(const ID &pID)
+    {
+        const char *result = NULL;
+
+        sThreadMutex.lock();
+
+        Data *data = getData(pID);
+        if(data != NULL)
+            result = data->name.text();
+
         sThreadMutex.unlock();
         return result;
     }
