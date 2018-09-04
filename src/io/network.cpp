@@ -1,5 +1,5 @@
 /**************************************************************************
- * Copyright 2017 NextCash, LLC                                           *
+ * Copyright 2017-2018 NextCash, LLC                                      *
  * Contributors :                                                         *
  *   Curtis Ellis <curtis@nextcash.tech>                                  *
  * Distributed under the MIT software license, see the accompanying       *
@@ -23,6 +23,44 @@
 
 namespace NextCash
 {
+
+    void IPAddress::write(OutputStream *pStream) const
+    {
+        // IP
+        pStream->write(ip, 16);
+
+        // Port
+        Endian::Type previousType = pStream->outputEndian();
+        pStream->setOutputEndian(Endian::BIG);
+        pStream->writeUnsignedShort(port);
+        pStream->setOutputEndian(previousType);
+    }
+
+    bool IPAddress::read(InputStream *pStream)
+    {
+        // IP
+        pStream->read(ip, 16);
+
+        // Port
+        Endian::Type previousType = pStream->inputEndian();
+        pStream->setInputEndian(Endian::BIG);
+        port = pStream->readUnsignedShort();
+        pStream->setInputEndian(previousType);
+
+        return true;
+    }
+
+    String IPAddress::text() const
+    {
+        char ipv6Text[INET6_ADDRSTRLEN];
+        std::memset(ipv6Text, 0, INET6_ADDRSTRLEN);
+        inet_ntop(AF_INET6, ip, ipv6Text, INET6_ADDRSTRLEN);
+
+        String result;
+        result.writeFormatted("%s:%d", ipv6Text, port);
+        return result;
+    }
+
     namespace Network
     {
         bool list(const char *pName, IPList &pList)
@@ -40,7 +78,8 @@ namespace NextCash
 
             if((errorCode = getaddrinfo(pName, 0, &hintAddress, &addressInfo)) != 0)
             {
-                Log::addFormatted(Log::VERBOSE, NETWORK_LOG_NAME, "Get Address Info : %s", gai_strerror(errorCode));
+                Log::addFormatted(Log::VERBOSE, NETWORK_LOG_NAME, "Get Address Info : %s",
+                  gai_strerror(errorCode));
                 return false;
             }
 
@@ -52,13 +91,17 @@ namespace NextCash
             {
                 if(testAddress->ai_addr->sa_family == AF_INET6)
                 {
-                    std::memcpy(address, (((struct sockaddr_in6*)testAddress->ai_addr)->sin6_addr.s6_addr), INET6_ADDRLEN);
+                    std::memcpy(address,
+                      (((struct sockaddr_in6*)testAddress->ai_addr)->sin6_addr.s6_addr),
+                      INET6_ADDRLEN);
                     inet_ntop(testAddress->ai_family, address, ip, INET6_ADDRSTRLEN);
                     Log::addFormatted(Log::VERBOSE, NETWORK_LOG_NAME, "Address found IPv6 %s", ip);
                 }
                 else if(testAddress->ai_addr->sa_family == AF_INET)
                 {
-                    std::memcpy(address, &(((struct sockaddr_in*)testAddress->ai_addr)->sin_addr.s_addr), INET_ADDRLEN);
+                    std::memcpy(address,
+                      &(((struct sockaddr_in*)testAddress->ai_addr)->sin_addr.s_addr),
+                      INET_ADDRLEN);
                     inet_ntop(testAddress->ai_family, address, ip, INET_ADDRSTRLEN);
                     Log::addFormatted(Log::VERBOSE, NETWORK_LOG_NAME, "Address found IPv4 %s", ip);
                 }
@@ -90,7 +133,8 @@ namespace NextCash
             uint8_t *result = new uint8_t[INET6_ADDRLEN];
             std::memset(result, 0, INET6_ADDRLEN);
             std::memset(result + INET6_ADDRLEN - INET_ADDRLEN - 2, 0xff, 2);
-            std::memcpy(result + INET6_ADDRLEN - INET_ADDRLEN, (uint8_t *)&address4.s_addr, INET_ADDRLEN);
+            std::memcpy(result + INET6_ADDRLEN - INET_ADDRLEN, (uint8_t *)&address4.s_addr,
+              INET_ADDRLEN);
 
             return result;
         }
@@ -103,7 +147,8 @@ namespace NextCash
             open(pIPAddress, pPort, pTimeout);
         }
 
-        Connection::Connection(unsigned int pFamily, const uint8_t *pIP, uint16_t pPort, unsigned int pTimeout)
+        Connection::Connection(unsigned int pFamily, const uint8_t *pIP, uint16_t pPort,
+          unsigned int pTimeout)
         {
             mSocketID = -1;
             mBytesReceived = 0;
@@ -136,13 +181,15 @@ namespace NextCash
             if(address->sin_family == AF_INET6)
             {
                 mPort = Endian::convert(((struct sockaddr_in6*)address)->sin6_port, Endian::BIG);
-                std::memcpy(mIPv6, (((struct sockaddr_in6*)address)->sin6_addr.s6_addr), INET6_ADDRLEN);
+                std::memcpy(mIPv6, (((struct sockaddr_in6*)address)->sin6_addr.s6_addr),
+                  INET6_ADDRLEN);
                 inet_ntop(address->sin_family, mIPv6, mIPv6Address, INET6_ADDRSTRLEN);
             }
             else if(address->sin_family == AF_INET)
             {
                 mPort = Endian::convert(((struct sockaddr_in*)address)->sin_port, Endian::BIG);
-                std::memcpy(mIPv4, &(((struct sockaddr_in*)address)->sin_addr.s_addr), INET_ADDRLEN);
+                std::memcpy(mIPv4, &(((struct sockaddr_in*)address)->sin_addr.s_addr),
+                  INET_ADDRLEN);
                 inet_ntop(address->sin_family, mIPv4, mIPv4Address, INET_ADDRSTRLEN);
 
                 std::memset(mIPv6 + INET6_ADDRLEN - INET_ADDRLEN - 2, 0xff, 2);
@@ -166,7 +213,8 @@ namespace NextCash
             return true;
         }
 
-        bool Connection::open(unsigned int pFamily, const uint8_t *pIP, uint16_t pPort, unsigned int pTimeout)
+        bool Connection::open(unsigned int pFamily, const uint8_t *pIP, uint16_t pPort,
+          unsigned int pTimeout)
         {
             close(); // Previous connection
             mBytesReceived = 0;
@@ -196,7 +244,8 @@ namespace NextCash
                 inet_ntop(AF_INET, mIPv4, mIPv4Address, INET_ADDRSTRLEN);
                 inet_ntop(AF_INET6, mIPv6, mIPv6Address, INET6_ADDRSTRLEN);
 
-                Log::addFormatted(Log::DEBUG, NETWORK_LOG_NAME, "Attempting IPv4 connection to %s : %d", mIPv4Address, mPort);
+                Log::addFormatted(Log::DEBUG, NETWORK_LOG_NAME,
+                  "Attempting IPv4 connection to %s : %d", mIPv4Address, mPort);
 
                 struct sockaddr_in address;
                 address.sin_family = AF_INET;
@@ -205,7 +254,8 @@ namespace NextCash
 
                 if((mSocketID = ::socket(AF_INET, SOCK_STREAM, 6)) == -1)
                 {
-                    Log::addFormatted(Log::VERBOSE, NETWORK_LOG_NAME, "Socket failed : %s", std::strerror(errno));
+                    Log::addFormatted(Log::DEBUG, NETWORK_LOG_NAME, "Socket failed : %s",
+                      std::strerror(errno));
                     return false;
                 }
 
@@ -213,13 +263,15 @@ namespace NextCash
 
                 if(connect(mSocketID, (const sockaddr *)&address, sizeof(address)) == -1)
                 {
-                    Log::addFormatted(Log::VERBOSE, NETWORK_LOG_NAME, "Connect failed : %s", std::strerror(errno));
+                    Log::addFormatted(Log::DEBUG, NETWORK_LOG_NAME, "Connect failed : %s",
+                      std::strerror(errno));
                     ::close(mSocketID);
                     mSocketID = -1;
                     return false;
                 }
 
-                Log::addFormatted(Log::INFO, NETWORK_LOG_NAME, "Connected to IPv4 %s : %d", mIPv4Address, mPort);
+                Log::addFormatted(Log::VERBOSE, NETWORK_LOG_NAME,
+                  "Connected to IPv4 %s : %d", mIPv4Address, mPort);
                 return true;
             }
             else if(pFamily == AF_INET6)
@@ -227,7 +279,8 @@ namespace NextCash
                 mPort = pPort;
                 std::memcpy(mIPv6, pIP, INET6_ADDRLEN);
                 inet_ntop(AF_INET6, mIPv6, mIPv6Address, INET6_ADDRSTRLEN);
-                Log::addFormatted(Log::DEBUG, NETWORK_LOG_NAME, "Attempting IPv6 connection to %s : %d", mIPv6Address, mPort);
+                Log::addFormatted(Log::DEBUG, NETWORK_LOG_NAME,
+                  "Attempting IPv6 connection to %s : %d", mIPv6Address, mPort);
 
                 struct sockaddr_in6 address;
                 address.sin6_family = AF_INET6;
@@ -238,7 +291,8 @@ namespace NextCash
 
                 if((mSocketID = ::socket(AF_INET6, SOCK_STREAM, 6)) == -1)
                 {
-                    Log::addFormatted(Log::VERBOSE, NETWORK_LOG_NAME, "Socket failed : %s", std::strerror(errno));
+                    Log::addFormatted(Log::DEBUG, NETWORK_LOG_NAME, "Socket failed : %s",
+                      std::strerror(errno));
                     return false;
                 }
 
@@ -246,18 +300,20 @@ namespace NextCash
 
                 if(connect(mSocketID, (const sockaddr *)&address, sizeof(address)) == -1)
                 {
-                    Log::addFormatted(Log::VERBOSE, NETWORK_LOG_NAME, "Connect failed : %s", std::strerror(errno));
+                    Log::addFormatted(Log::DEBUG, NETWORK_LOG_NAME, "Connect failed : %s",
+                      std::strerror(errno));
                     ::close(mSocketID);
                     mSocketID = -1;
                     return false;
                 }
 
-                Log::addFormatted(Log::INFO, NETWORK_LOG_NAME, "Connected to IPv6 %s : %d", mIPv6Address, mPort);
+                Log::addFormatted(Log::VERBOSE, NETWORK_LOG_NAME, "Connected to IPv6 %s : %d",
+                  mIPv6Address, mPort);
                 return true;
             }
             else
             {
-                Log::add(Log::ERROR, NETWORK_LOG_NAME, "Unknown network family");
+                Log::add(Log::WARNING, NETWORK_LOG_NAME, "Unknown network family");
                 return false;
             }
         }
@@ -278,11 +334,13 @@ namespace NextCash
             hintAddress.ai_family = AF_UNSPEC;
             hintAddress.ai_socktype = SOCK_STREAM;
 
-            Log::addFormatted(Log::DEBUG, NETWORK_LOG_NAME, "Looking up %s : %s", pIPAddress, pPort);
+            Log::addFormatted(Log::DEBUG, NETWORK_LOG_NAME, "Looking up %s : %s", pIPAddress,
+              pPort);
 
             if((errorCode = getaddrinfo(pIPAddress, pPort, &hintAddress, &addressInfo)) != 0)
             {
-                Log::addFormatted(Log::VERBOSE, NETWORK_LOG_NAME, "Failed to get address info : %s", gai_strerror(errorCode));
+                Log::addFormatted(Log::VERBOSE, NETWORK_LOG_NAME,
+                  "Failed to get address info : %s", gai_strerror(errorCode));
                 return false;
             }
 
@@ -290,26 +348,37 @@ namespace NextCash
             {
                 if(testAddress->ai_addr->sa_family == AF_INET6)
                 {
-                    mPort = Endian::convert(((struct sockaddr_in6*)testAddress->ai_addr)->sin6_port, Endian::BIG);
-                    std::memcpy(mIPv6, (((struct sockaddr_in6*)testAddress->ai_addr)->sin6_addr.s6_addr), INET6_ADDRLEN);
+                    mPort =
+                      Endian::convert(((struct sockaddr_in6*)testAddress->ai_addr)->sin6_port,
+                      Endian::BIG);
+                    std::memcpy(mIPv6,
+                      (((struct sockaddr_in6*)testAddress->ai_addr)->sin6_addr.s6_addr),
+                      INET6_ADDRLEN);
                     inet_ntop(testAddress->ai_family, mIPv6, mIPv6Address, INET6_ADDRSTRLEN);
-                    Log::addFormatted(Log::DEBUG, NETWORK_LOG_NAME, "Address found IPv6 %s : %d", mIPv6Address, mPort);
+                    Log::addFormatted(Log::VERBOSE, NETWORK_LOG_NAME, "Address found IPv6 %s : %d",
+                      mIPv6Address, mPort);
                 }
                 else if(testAddress->ai_addr->sa_family == AF_INET)
                 {
-                    mPort = Endian::convert(((struct sockaddr_in*)testAddress->ai_addr)->sin_port, Endian::BIG);
-                    std::memcpy(mIPv4, &(((struct sockaddr_in*)testAddress->ai_addr)->sin_addr.s_addr), INET_ADDRLEN);
+                    mPort = Endian::convert(((struct sockaddr_in*)testAddress->ai_addr)->sin_port,
+                      Endian::BIG);
+                    std::memcpy(mIPv4,
+                      &(((struct sockaddr_in*)testAddress->ai_addr)->sin_addr.s_addr),
+                      INET_ADDRLEN);
                     inet_ntop(testAddress->ai_family, mIPv4, mIPv4Address, INET_ADDRSTRLEN);
-                    Log::addFormatted(Log::DEBUG, NETWORK_LOG_NAME, "Address found IPv4 %s : %d", mIPv4Address, mPort);
+                    Log::addFormatted(Log::VERBOSE, NETWORK_LOG_NAME, "Address found IPv4 %s : %d",
+                      mIPv4Address, mPort);
                 }
             }
 
             // Loop through all the results and connect to the first we can
-            for(testAddress=addressInfo;testAddress!=NULL;testAddress=testAddress->ai_next)
+            for(testAddress = addressInfo; testAddress != NULL; testAddress = testAddress->ai_next)
             {
-                if((mSocketID = ::socket(testAddress->ai_family, testAddress->ai_socktype, testAddress->ai_protocol)) == -1)
+                if((mSocketID = ::socket(testAddress->ai_family, testAddress->ai_socktype,
+                  testAddress->ai_protocol)) == -1)
                 {
-                    Log::addFormatted(Log::VERBOSE, NETWORK_LOG_NAME, "Socket failed : %s", std::strerror(errno));
+                    Log::addFormatted(Log::DEBUG, NETWORK_LOG_NAME, "Socket failed : %s",
+                      std::strerror(errno));
                     continue;
                 }
 
@@ -323,14 +392,21 @@ namespace NextCash
 
                 if(testAddress->ai_addr->sa_family == AF_INET6)
                 {
-                    mPort = Endian::convert(((struct sockaddr_in6*)testAddress->ai_addr)->sin6_port, Endian::BIG);
-                    std::memcpy(mIPv6, (((struct sockaddr_in6*)testAddress->ai_addr)->sin6_addr.s6_addr), INET6_ADDRLEN);
+                    mPort =
+                      Endian::convert(((struct sockaddr_in6*)testAddress->ai_addr)->sin6_port,
+                      Endian::BIG);
+                    std::memcpy(mIPv6,
+                      (((struct sockaddr_in6*)testAddress->ai_addr)->sin6_addr.s6_addr),
+                      INET6_ADDRLEN);
                     inet_ntop(testAddress->ai_family, mIPv6, mIPv6Address, INET6_ADDRSTRLEN);
                 }
                 else if(testAddress->ai_addr->sa_family == AF_INET)
                 {
-                    mPort = Endian::convert(((struct sockaddr_in*)testAddress->ai_addr)->sin_port, Endian::BIG);
-                    std::memcpy(mIPv4, &(((struct sockaddr_in*)testAddress->ai_addr)->sin_addr.s_addr), INET_ADDRLEN);
+                    mPort = Endian::convert(((struct sockaddr_in*)testAddress->ai_addr)->sin_port,
+                      Endian::BIG);
+                    std::memcpy(mIPv4,
+                      &(((struct sockaddr_in*)testAddress->ai_addr)->sin_addr.s_addr),
+                      INET_ADDRLEN);
                     inet_ntop(testAddress->ai_family, mIPv4, mIPv4Address, INET_ADDRSTRLEN);
                 }
 
@@ -355,18 +431,22 @@ namespace NextCash
             {
                 mSocketID = -1;
                 if(mType == AF_INET)
-                    Log::addFormatted(Log::VERBOSE, NETWORK_LOG_NAME, "Failed to connect to IPv4 %s : %d - %s", mIPv4Address,
-                      mPort, std::strerror(errno));
+                    Log::addFormatted(Log::VERBOSE, NETWORK_LOG_NAME,
+                      "Failed to connect to IPv4 %s : %d - %s", mIPv4Address, mPort,
+                      std::strerror(errno));
                 else
-                    Log::addFormatted(Log::VERBOSE, NETWORK_LOG_NAME, "Failed to connect to IPv6 %s : %d - %s", mIPv6Address,
-                      mPort, std::strerror(errno));
+                    Log::addFormatted(Log::VERBOSE, NETWORK_LOG_NAME,
+                      "Failed to connect to IPv6 %s : %d - %s", mIPv6Address, mPort,
+                      std::strerror(errno));
                 return false;
             }
 
             if(mType == AF_INET)
-                Log::addFormatted(Log::VERBOSE, NETWORK_LOG_NAME, "Connected to IPv4 %s : %d", mIPv4Address, mPort);
+                Log::addFormatted(Log::VERBOSE, NETWORK_LOG_NAME, "Connected to IPv4 %s : %d",
+                  mIPv4Address, mPort);
             else
-                Log::addFormatted(Log::VERBOSE, NETWORK_LOG_NAME, "Connected to IPv6 %s : %d", mIPv6Address, mPort);
+                Log::addFormatted(Log::VERBOSE, NETWORK_LOG_NAME, "Connected to IPv6 %s : %d",
+                  mIPv6Address, mPort);
 
             return true;
         }
@@ -383,24 +463,30 @@ namespace NextCash
             timeout.tv_sec = pSeconds;
             timeout.tv_usec = 0;
 
-            if(setsockopt(mSocketID, SOL_SOCKET, SO_RCVTIMEO, (char *)&timeout, sizeof(timeout)) == -1)
+            if(setsockopt(mSocketID, SOL_SOCKET, SO_RCVTIMEO, (char *)&timeout,
+              sizeof(timeout)) == -1)
             {
                 if(mType == AF_INET)
-                    Log::addFormatted(Log::ERROR, NETWORK_LOG_NAME, "Failed to set receive timeout on IPv4 %s : %d - %s", mIPv4Address,
-                      mPort, std::strerror(errno));
+                    Log::addFormatted(Log::ERROR, NETWORK_LOG_NAME,
+                      "Failed to set receive timeout on IPv4 %s : %d - %s", mIPv4Address, mPort,
+                      std::strerror(errno));
                 else
-                    Log::addFormatted(Log::ERROR, NETWORK_LOG_NAME, "Failed to set receive timeout on IPv6 %s : %d - %s", mIPv6Address,
-                      mPort, std::strerror(errno));
+                    Log::addFormatted(Log::ERROR, NETWORK_LOG_NAME,
+                      "Failed to set receive timeout on IPv6 %s : %d - %s", mIPv6Address, mPort,
+                      std::strerror(errno));
             }
 
-            if(setsockopt(mSocketID, SOL_SOCKET, SO_SNDTIMEO, (char *)&timeout, sizeof(timeout)) == -1)
+            if(setsockopt(mSocketID, SOL_SOCKET, SO_SNDTIMEO, (char *)&timeout,
+              sizeof(timeout)) == -1)
             {
                 if(mType == AF_INET)
-                    Log::addFormatted(Log::ERROR, NETWORK_LOG_NAME, "Failed to set send timeout on IPv4 %s : %d - %s", mIPv4Address,
-                      mPort, std::strerror(errno));
+                    Log::addFormatted(Log::ERROR, NETWORK_LOG_NAME,
+                      "Failed to set send timeout on IPv4 %s : %d - %s", mIPv4Address, mPort,
+                      std::strerror(errno));
                 else
-                    Log::addFormatted(Log::ERROR, NETWORK_LOG_NAME, "Failed to set send timeout on IPv6 %s : %d - %s", mIPv6Address,
-                      mPort, std::strerror(errno));
+                    Log::addFormatted(Log::ERROR, NETWORK_LOG_NAME,
+                      "Failed to set send timeout on IPv6 %s : %d - %s", mIPv6Address, mPort,
+                      std::strerror(errno));
             }
         }
 
@@ -427,7 +513,8 @@ namespace NextCash
                     //Log::add(Log::VERBOSE, NETWORK_LOG_NAME, "Failed Receive");
                     if(errno != 11) // Resource temporarily unavailable because of MSG_DONTWAIT
                     {
-                        Log::addFormatted(Log::VERBOSE, NETWORK_LOG_NAME, "[%d] Receive failed : %s", mSocketID, std::strerror(errno));
+                        Log::addFormatted(Log::VERBOSE, NETWORK_LOG_NAME,
+                          "[%d] Receive failed : %s", mSocketID, std::strerror(errno));
                         close();
                     }
                     break;
@@ -470,8 +557,9 @@ namespace NextCash
                 if(::send(mSocketID, (char *)mBuffer, length, 0) == -1)
                 {
                     //Log::add(Log::VERBOSE, NETWORK_LOG_NAME, "Failed Send");
-                    Log::addFormatted(Log::VERBOSE, NETWORK_LOG_NAME, "[%d] Send of %d bytes failed : %s",
-                      mSocketID, length, std::strerror(errno));
+                    Log::addFormatted(Log::VERBOSE, NETWORK_LOG_NAME,
+                      "[%d] Send of %d bytes failed : %s", mSocketID, length,
+                      std::strerror(errno));
                     close();
                     return false;
                 }
@@ -493,14 +581,16 @@ namespace NextCash
             mSocketID = -1;
         }
 
-        Listener::Listener(sa_family_t pType, uint16_t pPort, unsigned int pListenBackLog, unsigned int pTimeoutSeconds)
+        Listener::Listener(sa_family_t pType, uint16_t pPort, unsigned int pListenBackLog,
+          unsigned int pTimeoutSeconds)
         {
             mTimeoutSeconds = pTimeoutSeconds;
             mSocketID = ::socket(pType, SOCK_STREAM, 6);
 
             if(mSocketID == -1)
             {
-                Log::addFormatted(Log::ERROR, NETWORK_LOG_NAME, "Listener socket create failed : %s", std::strerror(errno));
+                Log::addFormatted(Log::ERROR, NETWORK_LOG_NAME,
+                  "Listener socket create failed : %s", std::strerror(errno));
                 return;
             }
 
@@ -508,9 +598,11 @@ namespace NextCash
 
             //  Set listening socket to allow multiple connections
             int optionValue = -1;
-            if(::setsockopt(mSocketID, SOL_SOCKET, SO_REUSEADDR, (char *)&optionValue, sizeof(optionValue)) < 0)
+            if(::setsockopt(mSocketID, SOL_SOCKET, SO_REUSEADDR, (char *)&optionValue,
+              sizeof(optionValue)) < 0)
             {
-                Log::addFormatted(Log::ERROR, NETWORK_LOG_NAME, "Listener socket failed to set options : %s", std::strerror(errno));
+                Log::addFormatted(Log::ERROR, NETWORK_LOG_NAME,
+                  "Listener socket failed to set options : %s", std::strerror(errno));
                 ::close(mSocketID);
                 mSocketID = -1;
                 return;
@@ -530,7 +622,8 @@ namespace NextCash
 
                 if(bind(mSocketID, (struct sockaddr *)&address, sizeof(address)) < 0)
                 {
-                    Log::addFormatted(Log::ERROR, NETWORK_LOG_NAME, "Listener binding failed : %s", std::strerror(errno));
+                    Log::addFormatted(Log::ERROR, NETWORK_LOG_NAME,
+                      "Listener binding failed : %s", std::strerror(errno));
                     ::close(mSocketID);
                     mSocketID = -1;
                     return;
@@ -546,7 +639,8 @@ namespace NextCash
 
                 if(bind(mSocketID, (struct sockaddr *)&address, sizeof(address)) < 0)
                 {
-                    Log::addFormatted(Log::ERROR, NETWORK_LOG_NAME, "Listener binding failed : %s", std::strerror(errno));
+                    Log::addFormatted(Log::ERROR, NETWORK_LOG_NAME, "Listener binding failed : %s",
+                      std::strerror(errno));
                     ::close(mSocketID);
                     mSocketID = -1;
                     return;
@@ -555,7 +649,8 @@ namespace NextCash
 
             if(::listen(mSocketID, pListenBackLog) < 0)
             {
-                Log::addFormatted(Log::ERROR, NETWORK_LOG_NAME, "Listener failed to listen : %s", std::strerror(errno));
+                Log::addFormatted(Log::ERROR, NETWORK_LOG_NAME, "Listener failed to listen : %s",
+                  std::strerror(errno));
                 ::close(mSocketID);
                 mSocketID = -1;
                 return;
@@ -592,13 +687,15 @@ namespace NextCash
                 uint16_t port;
                 bool success = true;
 
-                for(int i=0;i<result;++i)
+                for(int i = 0; i < result; ++i)
                 {
                     // Get new connection
-                    newSocketID = ::accept(mSocketID, (struct sockaddr *)&peerAddress, &peerAddressSize);
+                    newSocketID = ::accept(mSocketID, (struct sockaddr *)&peerAddress,
+                      &peerAddressSize);
                     if(newSocketID < 0)
                     {
-                        Log::addFormatted(Log::VERBOSE, NETWORK_LOG_NAME, "Listener accept failed : %s", std::strerror(errno));
+                        Log::addFormatted(Log::VERBOSE, NETWORK_LOG_NAME,
+                          "Listener accept failed : %s", std::strerror(errno));
                         success = false;
                     }
                     else
@@ -606,21 +703,33 @@ namespace NextCash
                         // Create new connection and add it to the pending list
                         if(peerAddress.sin6_family == AF_INET6)
                         {
-                            port = Endian::convert(((struct sockaddr_in6*)&peerAddress)->sin6_port, Endian::BIG);
-                            std::memcpy(ip, (((struct sockaddr_in6*)&peerAddress)->sin6_addr.s6_addr), INET6_ADDRLEN);
+                            port = Endian::convert(((struct sockaddr_in6*)&peerAddress)->sin6_port,
+                              Endian::BIG);
+                            std::memcpy(ip,
+                              (((struct sockaddr_in6*)&peerAddress)->sin6_addr.s6_addr),
+                              INET6_ADDRLEN);
                             inet_ntop(peerAddress.sin6_family, ip, ipText, INET6_ADDRSTRLEN);
-                            Log::addFormatted(Log::DEBUG, NETWORK_LOG_NAME, "New IPv6 connection %s : %d (socket %d)", ipText, port, newSocketID);
+                            Log::addFormatted(Log::DEBUG, NETWORK_LOG_NAME,
+                              "New IPv6 connection %s : %d (socket %d)", ipText, port,
+                              newSocketID);
                         }
                         else if(peerAddress.sin6_family == AF_INET)
                         {
-                            port = Endian::convert(((struct sockaddr_in*)&peerAddress)->sin_port, Endian::BIG);
-                            std::memcpy(ip, &(((struct sockaddr_in*)&peerAddress)->sin_addr.s_addr), INET_ADDRLEN);
+                            port =
+                              Endian::convert(((struct sockaddr_in*)&peerAddress)->sin_port,
+                              Endian::BIG);
+                            std::memcpy(ip,
+                              &(((struct sockaddr_in*)&peerAddress)->sin_addr.s_addr),
+                              INET_ADDRLEN);
                             inet_ntop(peerAddress.sin6_family, ip, ipText, INET_ADDRSTRLEN);
-                            Log::addFormatted(Log::DEBUG, NETWORK_LOG_NAME, "New IPv4 connection %s : %d (socket %d)", ipText, port, newSocketID);
+                            Log::addFormatted(Log::DEBUG, NETWORK_LOG_NAME,
+                              "New IPv4 connection %s : %d (socket %d)", ipText, port,
+                              newSocketID);
                         }
                         else
                         {
-                            Log::addFormatted(Log::ERROR, NETWORK_LOG_NAME, "Unknown type for new connection");
+                            Log::addFormatted(Log::VERBOSE, NETWORK_LOG_NAME,
+                              "Unknown type for new connection");
                             success = false;
                             ::close(newSocketID);
                             continue;
@@ -628,12 +737,14 @@ namespace NextCash
 
                         try
                         {
-                            newConnection = new Connection(newSocketID, (struct sockaddr *)&peerAddress);
+                            newConnection = new Connection(newSocketID,
+                              (struct sockaddr *)&peerAddress);
                         }
                         catch(std::bad_alloc &pBadAlloc)
                         {
                             NextCash::Log::addFormatted(NextCash::Log::ERROR, NETWORK_LOG_NAME,
-                              "Bad allocation while allocating new connection : %s", pBadAlloc.what());
+                              "Bad allocation while allocating new connection : %s",
+                              pBadAlloc.what());
                             ::close(newSocketID);
                             continue;
                         }
@@ -653,7 +764,8 @@ namespace NextCash
             }
             else if(result < 0)
             {
-                Log::addFormatted(Log::ERROR, NETWORK_LOG_NAME, "Listener select failed : %s", std::strerror(errno));
+                Log::addFormatted(Log::ERROR, NETWORK_LOG_NAME, "Listener select failed : %s",
+                  std::strerror(errno));
                 return false;
             }
 
@@ -681,7 +793,8 @@ namespace NextCash
         void Listener::close()
         {
             // Close pending sockets
-            for(std::vector<Connection *>::iterator connection=mPendingConnections.begin();connection!=mPendingConnections.end();++connection)
+            for(std::vector<Connection *>::iterator connection = mPendingConnections.begin();
+              connection != mPendingConnections.end(); ++connection)
                 delete *connection;
 
             mPendingConnections.clear();
@@ -700,16 +813,20 @@ namespace NextCash
             timeout.tv_sec = pSeconds;
             timeout.tv_usec = 0;
 
-            if(setsockopt(mSocketID, SOL_SOCKET, SO_RCVTIMEO, (char *)&timeout, sizeof(timeout)) == -1)
+            if(setsockopt(mSocketID, SOL_SOCKET, SO_RCVTIMEO, (char *)&timeout,
+              sizeof(timeout)) == -1)
             {
-                Log::addFormatted(Log::ERROR, NETWORK_LOG_NAME, "Failed to set receive timeout on listener %s : port %d",
-                  mPort, std::strerror(errno));
+                Log::addFormatted(Log::ERROR, NETWORK_LOG_NAME,
+                  "Failed to set receive timeout on listener %s : port %d", mPort,
+                  std::strerror(errno));
             }
 
-            if(setsockopt(mSocketID, SOL_SOCKET, SO_SNDTIMEO, (char *)&timeout, sizeof(timeout)) == -1)
+            if(setsockopt(mSocketID, SOL_SOCKET, SO_SNDTIMEO, (char *)&timeout,
+              sizeof(timeout)) == -1)
             {
-                Log::addFormatted(Log::ERROR, NETWORK_LOG_NAME, "Failed to set send timeout on listener %s : port %d",
-                  mPort, std::strerror(errno));
+                Log::addFormatted(Log::ERROR, NETWORK_LOG_NAME,
+                  "Failed to set send timeout on listener %s : port %d", mPort,
+                  std::strerror(errno));
             }
         }
     }

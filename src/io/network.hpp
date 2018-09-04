@@ -1,5 +1,5 @@
 /**************************************************************************
- * Copyright 2017 NextCash, LLC                                           *
+ * Copyright 2017-2018 NextCash, LLC                                      *
  * Contributors :                                                         *
  *   Curtis Ellis <curtis@nextcash.tech>                                  *
  * Distributed under the MIT software license, see the accompanying       *
@@ -127,6 +127,79 @@ namespace NextCash
             std::vector<Connection *> mPendingConnections;
         };
     }
+
+    class IPAddress
+    {
+    public:
+
+        IPAddress()
+        {
+            std::memset(ip, 0, INET6_ADDRLEN);
+            port = 0;
+        }
+        IPAddress(const IPAddress &pCopy)
+        {
+            std::memcpy(ip, pCopy.ip, INET6_ADDRLEN);
+            port = pCopy.port;
+        }
+        IPAddress(uint8_t *pIP, uint16_t pPort)
+        {
+            std::memcpy(ip, pIP, INET6_ADDRLEN);
+            port = pPort;
+        }
+
+        void write(OutputStream *pStream) const;
+        bool read(InputStream *pStream);
+
+        bool matches(const IPAddress &pOther) const
+        {
+            return std::memcmp(ip, pOther.ip, INET6_ADDRLEN) == 0 && port == pOther.port;
+        }
+
+        bool operator == (const IPAddress &pRight) const
+        {
+            return std::memcmp(ip, pRight.ip, INET6_ADDRLEN) == 0 && port == pRight.port;
+        }
+
+        bool operator != (const IPAddress &pRight) const
+        {
+            return std::memcmp(ip, pRight.ip, INET6_ADDRLEN) != 0 || port != pRight.port;
+        }
+
+        void operator = (Network::Connection &pConnection)
+        {
+            if(pConnection.ipv6Bytes())
+                std::memcpy(ip, pConnection.ipv6Bytes(), INET6_ADDRLEN);
+            port = pConnection.port();
+        }
+
+        bool isValid() const
+        {
+            bool zeroes = true;
+            for(int i=0;i<INET6_ADDRLEN;i++)
+                if(ip[i] != 0)
+                    zeroes = false;
+            return !zeroes;
+        }
+
+        const IPAddress &operator = (const IPAddress &pRight)
+        {
+            port = pRight.port;
+            std::memcpy(ip, pRight.ip, INET6_ADDRLEN);
+            return *this;
+        }
+
+        void set(uint8_t *pIP, uint16_t pPort)
+        {
+            std::memcpy(ip, pIP, INET6_ADDRLEN);
+            port = pPort;
+        }
+
+        String text() const;
+
+        uint8_t ip[INET6_ADDRLEN];
+        uint16_t port;
+    };
 }
 
 #endif
