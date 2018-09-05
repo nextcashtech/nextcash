@@ -1168,7 +1168,8 @@ namespace NextCash
     }
 
     // Insert sorted, oldest first
-    inline void insertOldest(HashData *pItem, std::vector<HashData *> &pList, unsigned int pMaxCount)
+    inline void insertOldest(HashData *pItem, std::vector<HashData *> &pList,
+      unsigned int pMaxCount)
     {
         if(pList.size() == 0)
         {
@@ -1186,7 +1187,7 @@ namespace NextCash
 
         // Insert sorted
         bool inserted = false;
-        for(std::vector<HashData *>::iterator item=pList.begin();item!=pList.end();++item)
+        for(std::vector<HashData *>::iterator item = pList.begin(); item != pList.end(); ++item)
             if((*item)->compareAge(pItem) > 0)
             {
                 inserted = true;
@@ -1198,7 +1199,7 @@ namespace NextCash
             pList.push_back(pItem);
 
         if(pList.size() > pMaxCount)
-            pList.erase(--pList.end());
+            pList.pop_back();
     }
 
     //TODO This operation is expensive. Try to find a better method
@@ -1210,37 +1211,75 @@ namespace NextCash
 #endif
         if(pDataSize == 0)
         {
-            for(HashContainerList<HashData *>::Iterator item=mCache.begin();item!=mCache.end();++item)
+            for(HashContainerList<HashData *>::Iterator item = mCache.begin();
+              item != mCache.end(); ++item)
                 (*item)->setOld();
             return;
         }
 
         uint64_t currentSize = cacheDataSize();
         if(currentSize <= pDataSize)
+        {
+            // Log::addFormatted(Log::VERBOSE, NEXTCASH_HASH_DATA_SET_LOG_NAME,
+              // "Set %d is not big enough to prune", mID);
             return;
+        }
 
         double prunePercent = (double)(currentSize - pDataSize) / (double)currentSize;
         unsigned int pruneCount = (unsigned int)((double)mCache.size() * prunePercent);
-        unsigned int prunedCount = 0;
         std::vector<HashData *> oldestList;
-        if(pruneCount <= 0)
+        if(pruneCount == 0)
+        {
+            Log::addFormatted(Log::VERBOSE, NEXTCASH_HASH_DATA_SET_LOG_NAME,
+              "Set %d has no items to prune", mID);
             return;
+        }
 
         // Build list of oldest items
-        for(HashContainerList<HashData *>::Iterator item=mCache.begin();item!=mCache.end();++item)
+        for(HashContainerList<HashData *>::Iterator item = mCache.begin(); item != mCache.end();
+          ++item)
             insertOldest(*item, oldestList, pruneCount);
 
         // Remove all items below age of newest item in old list
-        if(oldestList.size() > 0)
+        if(oldestList.size() == 0)
         {
-            HashData *cutoff = oldestList.back();
-            for(HashContainerList<HashData *>::Iterator item=mCache.begin();item!=mCache.end();++item)
-                if((*item)->compareAge(cutoff) < 0)
+            Log::addFormatted(Log::VERBOSE, NEXTCASH_HASH_DATA_SET_LOG_NAME,
+              "Set %d has prune list is empty", mID);
+            return;
+        }
+
+        unsigned int prunedCount = 0;
+        HashData *cutoff = oldestList.back();
+        for(HashContainerList<HashData *>::Iterator item = mCache.begin();
+          item != mCache.end(); ++item)
+            if((*item)->compareAge(cutoff) < 0)
+            {
+                ++prunedCount;
+                (*item)->setOld();
+            }
+
+        if(prunedCount == 0)
+        {
+            Log::addFormatted(Log::VERBOSE, NEXTCASH_HASH_DATA_SET_LOG_NAME,
+              "Set %d pruning every other of %d items", mID, mCache.size());
+
+            // Prune every other item.
+            bool prune = false;
+            for(HashContainerList<HashData *>::Iterator item = mCache.begin();
+              item != mCache.end(); ++item)
+            {
+                if(prune)
                 {
                     ++prunedCount;
                     (*item)->setOld();
                 }
+                prune = !prune;
+            }
         }
+
+        if(prunedCount == 0)
+            Log::addFormatted(Log::WARNING, NEXTCASH_HASH_DATA_SET_LOG_NAME,
+              "Set %d failed to prune any of %d items", mID, mCache.size());
 
         // Log::addFormatted(Log::DEBUG, NEXTCASH_HASH_DATA_SET_LOG_NAME,
           // "Marked %d/%d items as old during pruning", prunedCount, pruneCount);
@@ -1345,6 +1384,8 @@ namespace NextCash
 
         if(mCache.size() == 0)
         {
+            // Log::addFormatted(Log::VERBOSE, NEXTCASH_HASH_DATA_SET_LOG_NAME,
+              // "Set %d save has no cache", mID);
             mLock.writeUnlock();
             return true;
         }
@@ -1387,6 +1428,8 @@ namespace NextCash
 
         if(!indexNeedsUpdated)
         {
+            // Log::addFormatted(Log::VERBOSE, NEXTCASH_HASH_DATA_SET_LOG_NAME,
+              // "Set %d save index not updated", mID);
             mLock.writeUnlock();
             return true;
         }
