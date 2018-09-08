@@ -567,14 +567,14 @@ namespace NextCash
 
             if(!subSet->save())
             {
-                Log::addFormatted(Log::ERROR, NEXTCASH_HASH_DATA_SET_LOG_NAME,
+                Log::addFormatted(Log::WARNING, NEXTCASH_HASH_DATA_SET_LOG_NAME,
                   "Failed %s set %d save", mName.text(), subSet->id());
                 success = false;
             }
 
             if(!subSet->cleanup(maxSetCacheDataSize))
             {
-                Log::addFormatted(Log::ERROR, NEXTCASH_HASH_DATA_SET_LOG_NAME,
+                Log::addFormatted(Log::WARNING, NEXTCASH_HASH_DATA_SET_LOG_NAME,
                   "Failed %s set %d save cleanup", mName.text(), subSet->id());
                 success = false;
             }
@@ -602,7 +602,7 @@ namespace NextCash
             subSet = data->getNext();
             if(subSet == NULL)
             {
-                Log::add(Log::VERBOSE, NEXTCASH_HASH_DATA_SET_LOG_NAME,
+                Log::add(Log::DEBUG, NEXTCASH_HASH_DATA_SET_LOG_NAME,
                   "No more save tasks remaining");
                 break;
             }
@@ -611,7 +611,7 @@ namespace NextCash
                 data->markComplete(subSet->id(), true);
             else
             {
-                Log::addFormatted(Log::VERBOSE, NEXTCASH_HASH_DATA_SET_LOG_NAME,
+                Log::addFormatted(Log::WARNING, NEXTCASH_HASH_DATA_SET_LOG_NAME,
                   "Failed save of set %d", subSet->id());
                 data->markComplete(subSet->id(), false);
             }
@@ -687,7 +687,7 @@ namespace NextCash
         }
 
         // Delete threads
-        Log::addFormatted(Log::VERBOSE, NEXTCASH_HASH_DATA_SET_LOG_NAME,
+        Log::addFormatted(Log::DEBUG, NEXTCASH_HASH_DATA_SET_LOG_NAME,
           "Deleting %s save threads", mName.text());
         for(i = 0; i < pThreadCount; ++i)
             delete threads[i];
