@@ -793,13 +793,31 @@ namespace NextCash
       HashDataSet<tHashDataType, tHashSize, tSampleSize, tSetCount>::SubSet::get(const Hash &pLookupValue,
       bool pForcePull)
     {
-        mLock.readLock();
+        bool writeLocked = false;
         if(pForcePull)
+        {
+            writeLocked = true;
+            mLock.writeLock("Get");
             pull(pLookupValue);
+        }
+        else
+            mLock.readLock();
         SubSetIterator result = mCache.get(pLookupValue);
-        if(!pForcePull && result == mCache.end() && pull(pLookupValue))
-            result = mCache.get(pLookupValue);
-        mLock.readUnlock();
+        if(!pForcePull && result == mCache.end())
+        {
+            if(!writeLocked)
+            {
+                writeLocked = true;
+                mLock.readUnlock();
+                mLock.writeLock("Get");
+            }
+            if(pull(pLookupValue))
+                result = mCache.get(pLookupValue);
+        }
+        if(writeLocked)
+            mLock.writeUnlock();
+        else
+            mLock.readUnlock();
         return result;
     }
 
