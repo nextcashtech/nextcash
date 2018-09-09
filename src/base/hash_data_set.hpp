@@ -187,6 +187,7 @@ namespace NextCash
 
             // Returns an iterator referencing the first matching item.
             SubSetIterator get(const Hash &pLookupValue, bool pForcePull = false);
+            HashData *getData(const Hash &pLookupValue, bool pForcePull = false);
 
             SubSetIterator end() { return mCache.end(); }
 
@@ -380,6 +381,7 @@ namespace NextCash
         // Set pForcePull to true if you want to ensure you get all matching values even if they
         //   are no longer cached.
         Iterator get(const Hash &pLookupValue, bool pForcePull = false);
+        HashData *getData(const Hash &pLookupValue, bool pForcePull = false);
 
         Iterator begin();
         Iterator end();
@@ -500,6 +502,17 @@ namespace NextCash
         SubSetIterator result = subSet->get(pLookupValue, pForcePull);
         mLock.readUnlock();
         return Iterator(subSet, result);
+    }
+
+    template <class tHashDataType, uint8_t tHashSize, uint16_t tSampleSize, uint16_t tSetCount>
+    HashData *HashDataSet<tHashDataType, tHashSize, tSampleSize, tSetCount>::getData(const Hash &pLookupValue,
+      bool pForcePull)
+    {
+        mLock.readLock();
+        SubSet *subSet = mSubSets + subSetOffset(pLookupValue);
+        HashData *result = subSet->getData(pLookupValue, pForcePull);
+        mLock.readUnlock();
+        return result;
     }
 
     template <class tHashDataType, uint8_t tHashSize, uint16_t tSampleSize, uint16_t tSetCount>
@@ -814,6 +827,52 @@ namespace NextCash
             if(pull(pLookupValue))
                 result = mCache.get(pLookupValue);
         }
+        if(writeLocked)
+            mLock.writeUnlock();
+        else
+            mLock.readUnlock();
+        return result;
+    }
+
+    template <class tHashDataType, uint8_t tHashSize, uint16_t tSampleSize, uint16_t tSetCount>
+    HashData *HashDataSet<tHashDataType, tHashSize, tSampleSize, tSetCount>::SubSet::getData(const Hash &pLookupValue,
+      bool pForcePull)
+    {
+        HashData *result = NULL;
+
+        bool writeLocked = false;
+        if(pForcePull)
+        {
+            writeLocked = true;
+            mLock.writeLock("Get Data");
+            pull(pLookupValue);
+        }
+        else
+            mLock.readLock();
+        SubSetIterator item = mCache.get(pLookupValue);
+        if(!pForcePull && item == mCache.end())
+        {
+            if(!writeLocked)
+            {
+                writeLocked = true;
+                mLock.readUnlock();
+                mLock.writeLock("Get Data");
+            }
+            if(pull(pLookupValue))
+                item = mCache.get(pLookupValue);
+        }
+
+        while(item != mCache.end() && item.hash() == pLookupValue)
+        {
+            if(!(*item)->markedRemove())
+            {
+                result = *item;
+                break;
+            }
+
+            ++item;
+        }
+
         if(writeLocked)
             mLock.writeUnlock();
         else
