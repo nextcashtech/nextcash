@@ -41,7 +41,8 @@ namespace NextCash
 
     bool HashData::readFromDataFile(unsigned int pHashSize, InputStream *pStream)
     {
-        // Hash has already been read from the file so set the file offset to the current location minus hash size
+        // Hash has already been read from the file so set the file offset to the current location
+        //   minus hash size
         mDataOffset = pStream->readOffset() - pHashSize;
         bool result = read(pStream);
         clearFlags();
@@ -73,7 +74,7 @@ namespace NextCash
             return true;
         }
 
-        uint64_t size()
+        stream_size size() const
         {
             return value.length() + sizeof(char *) + 4 + 4;
         }
@@ -89,7 +90,8 @@ namespace NextCash
 
         bool valuesMatch(const HashData *pRight) const
         {
-            return age == ((TestHashData *)pRight)->age && value == ((TestHashData *)pRight)->value;
+            return age == ((TestHashData *)pRight)->age &&
+              value == ((TestHashData *)pRight)->value;
         }
 
         int age;
@@ -102,7 +104,8 @@ namespace NextCash
 
     bool testHashDataSet()
     {
-        Log::add(Log::INFO, NEXTCASH_HASH_DATA_SET_LOG_NAME, "------------- Starting Hash Data Set Tests -------------");
+        Log::add(Log::INFO, NEXTCASH_HASH_DATA_SET_LOG_NAME,
+          "------------- Starting Hash Data Set Tests -------------");
 
         bool success = true;
         Hash hash(32);
@@ -120,9 +123,9 @@ namespace NextCash
 
         if(success)
         {
-            HashDataSet<TestHashData, 32, 64, 64> hashDataSet;
+            HashDataSet<TestHashData, 32, 64, 64> hashDataSet("TestSet");
 
-            hashDataSet.load("Test", "test_hash_data_set");
+            hashDataSet.load("test_hash_data_set");
             hashDataSet.setTargetCacheDataSize(1000000);
 
             TestHashData *lowest = NULL, *highest = NULL;
@@ -178,7 +181,8 @@ namespace NextCash
                 Log::add(Log::INFO, NEXTCASH_HASH_DATA_SET_LOG_NAME, "Pass hash data set size");
             else
             {
-                Log::addFormatted(Log::ERROR, NEXTCASH_HASH_DATA_SET_LOG_NAME, "Failed hash data set size : %d != %d",
+                Log::addFormatted(Log::ERROR, NEXTCASH_HASH_DATA_SET_LOG_NAME,
+                  "Failed hash data set size : %d != %d",
                   hashDataSet.size(), testSize + 1);
                 success = false;
             }
@@ -186,16 +190,19 @@ namespace NextCash
             found = hashDataSet.get(lowestHash);
             if(!found)
             {
-                Log::addFormatted(Log::ERROR, NEXTCASH_HASH_DATA_SET_LOG_NAME, "Failed hash data set lowest : not found : %s",
+                Log::addFormatted(Log::ERROR, NEXTCASH_HASH_DATA_SET_LOG_NAME,
+                  "Failed hash data set lowest : not found : %s",
                   lowestHash.hex().text());
                 success = false;
             }
             else if(((TestHashData *)(*found))->value == lowest->value)
-                Log::addFormatted(Log::INFO, NEXTCASH_HASH_DATA_SET_LOG_NAME, "Pass hash data set lowest : %s - %s",
+                Log::addFormatted(Log::INFO, NEXTCASH_HASH_DATA_SET_LOG_NAME,
+                  "Pass hash data set lowest : %s - %s",
                   ((TestHashData *)(*found))->value.text(), found.hash().hex().text());
             else
             {
-                Log::addFormatted(Log::ERROR, NEXTCASH_HASH_DATA_SET_LOG_NAME, "Failed hash data set lowest : wrong entry : %s - %s",
+                Log::addFormatted(Log::ERROR, NEXTCASH_HASH_DATA_SET_LOG_NAME,
+                  "Failed hash data set lowest : wrong entry : %s - %s",
                   ((TestHashData *)(*found))->value.text(), found.hash().hex().text());
                 success = false;
             }
@@ -203,16 +210,19 @@ namespace NextCash
             found = hashDataSet.get(highestHash);
             if(!found)
             {
-                Log::addFormatted(Log::ERROR, NEXTCASH_HASH_DATA_SET_LOG_NAME, "Failed hash data set highest : not found : %s",
+                Log::addFormatted(Log::ERROR, NEXTCASH_HASH_DATA_SET_LOG_NAME,
+                  "Failed hash data set highest : not found : %s",
                   highestHash.hex().text());
                 success = false;
             }
             else if(((TestHashData *)(*found))->value == highest->value)
-                Log::addFormatted(Log::INFO, NEXTCASH_HASH_DATA_SET_LOG_NAME, "Pass hash data set highest : %s - %s",
+                Log::addFormatted(Log::INFO, NEXTCASH_HASH_DATA_SET_LOG_NAME,
+                  "Pass hash data set highest : %s - %s",
                   ((TestHashData *)(*found))->value.text(), found.hash().hex().text());
             else
             {
-                Log::addFormatted(Log::ERROR, NEXTCASH_HASH_DATA_SET_LOG_NAME, "Failed hash data set highest : wrong entry : %s - %s",
+                Log::addFormatted(Log::ERROR, NEXTCASH_HASH_DATA_SET_LOG_NAME,
+                  "Failed hash data set highest : wrong entry : %s - %s",
                   ((TestHashData *)(*found))->value.text(), found.hash().hex().text());
                 success = false;
             }
@@ -221,7 +231,8 @@ namespace NextCash
             found = hashDataSet.get(hash);
             if(!found)
             {
-                Log::add(Log::ERROR, NEXTCASH_HASH_DATA_SET_LOG_NAME, "Failed hash data set duplicate : not found");
+                Log::add(Log::ERROR, NEXTCASH_HASH_DATA_SET_LOG_NAME,
+                  "Failed hash data set duplicate : not found");
                 success = false;
             }
             else
@@ -229,49 +240,59 @@ namespace NextCash
                 HashData *firstData = *found;
                 if(found.hash() == hash)
                 {
-                    if(((TestHashData *)(*found))->value == dupValue || ((TestHashData *)(*found))->value == nonDupValue ||
+                    if(((TestHashData *)(*found))->value == dupValue ||
+                      ((TestHashData *)(*found))->value == nonDupValue ||
                       ((TestHashData *)(*found))->value == data->value)
-                        Log::addFormatted(Log::INFO, NEXTCASH_HASH_DATA_SET_LOG_NAME, "Pass hash data set duplicate first : %s - %s",
+                        Log::addFormatted(Log::INFO, NEXTCASH_HASH_DATA_SET_LOG_NAME,
+                          "Pass hash data set duplicate first : %s - %s",
                           ((TestHashData *)(*found))->value.text(), found.hash().hex().text());
                     else
                     {
-                        Log::addFormatted(Log::ERROR, NEXTCASH_HASH_DATA_SET_LOG_NAME, "Failed hash data set duplicate first : wrong entry : %s - %s",
+                        Log::addFormatted(Log::ERROR, NEXTCASH_HASH_DATA_SET_LOG_NAME,
+                          "Failed hash data set duplicate first : wrong entry : %s - %s",
                           ((TestHashData *)(*found))->value.text(), found.hash().hex().text());
                         success = false;
                     }
                 }
                 else
                 {
-                    Log::addFormatted(Log::ERROR, NEXTCASH_HASH_DATA_SET_LOG_NAME, "Failed hash data set duplicate first : wrong hash",
+                    Log::addFormatted(Log::ERROR, NEXTCASH_HASH_DATA_SET_LOG_NAME,
+                      "Failed hash data set duplicate first : wrong hash",
                       found.hash().hex().text());
                     success = false;
                 }
 
                 ++found;
                 if(*found != firstData)
-                    Log::add(Log::INFO, NEXTCASH_HASH_DATA_SET_LOG_NAME, "Pass hash data set duplicate second incremented");
+                    Log::add(Log::INFO, NEXTCASH_HASH_DATA_SET_LOG_NAME,
+                      "Pass hash data set duplicate second incremented");
                 else
                 {
-                    Log::add(Log::ERROR, NEXTCASH_HASH_DATA_SET_LOG_NAME, "Failed hash data set duplicate second not incremented");
+                    Log::add(Log::ERROR, NEXTCASH_HASH_DATA_SET_LOG_NAME,
+                      "Failed hash data set duplicate second not incremented");
                     success = false;
                 }
 
                 if(found.hash() == hash)
                 {
-                    if(((TestHashData *)(*found))->value == dupValue || ((TestHashData *)(*found))->value == nonDupValue ||
+                    if(((TestHashData *)(*found))->value == dupValue ||
+                      ((TestHashData *)(*found))->value == nonDupValue ||
                       ((TestHashData *)(*found))->value == data->value)
-                        Log::addFormatted(Log::INFO, NEXTCASH_HASH_DATA_SET_LOG_NAME, "Pass hash data set duplicate second : %s - %s",
+                        Log::addFormatted(Log::INFO, NEXTCASH_HASH_DATA_SET_LOG_NAME,
+                          "Pass hash data set duplicate second : %s - %s",
                           ((TestHashData *)(*found))->value.text(), found.hash().hex().text());
                     else
                     {
-                        Log::addFormatted(Log::ERROR, NEXTCASH_HASH_DATA_SET_LOG_NAME, "Failed hash data set duplicate second : wrong entry : %s - %s",
+                        Log::addFormatted(Log::ERROR, NEXTCASH_HASH_DATA_SET_LOG_NAME,
+                          "Failed hash data set duplicate second : wrong entry : %s - %s",
                           ((TestHashData *)(*found))->value.text(), found.hash().hex().text());
                         success = false;
                     }
                 }
                 else
                 {
-                    Log::addFormatted(Log::ERROR, NEXTCASH_HASH_DATA_SET_LOG_NAME, "Failed hash data set duplicate second : wrong hash",
+                    Log::addFormatted(Log::ERROR, NEXTCASH_HASH_DATA_SET_LOG_NAME,
+                      "Failed hash data set duplicate second : wrong hash",
                       found.hash().hex().text());
                     success = false;
                 }
@@ -287,16 +308,18 @@ namespace NextCash
 
         if(success)
         {
-            HashDataSet<TestHashData, 32, 64, 64> hashDataSet;
+            HashDataSet<TestHashData, 32, 64, 64> hashDataSet("TestSet");
 
-            hashDataSet.load("Test", "test_hash_data_set");
+            hashDataSet.load("test_hash_data_set");
             hashDataSet.setTargetCacheDataSize(1000000);
 
             if(hashDataSet.size() == testSize + 1)
-                Log::addFormatted(Log::INFO, NEXTCASH_HASH_DATA_SET_LOG_NAME, "Pass hash data set load size : %d", testSize + 1);
+                Log::addFormatted(Log::INFO, NEXTCASH_HASH_DATA_SET_LOG_NAME,
+                  "Pass hash data set load size : %d", testSize + 1);
             else
             {
-                Log::addFormatted(Log::ERROR, NEXTCASH_HASH_DATA_SET_LOG_NAME, "Failed hash data set load size : %d != %d",
+                Log::addFormatted(Log::ERROR, NEXTCASH_HASH_DATA_SET_LOG_NAME,
+                  "Failed hash data set load size : %d != %d",
                   hashDataSet.size(), testSize + 1);
                 success = false;
             }
@@ -317,8 +340,8 @@ namespace NextCash
                 found = hashDataSet.get(hash);
                 if(!found)
                 {
-                    Log::addFormatted(Log::ERROR, NEXTCASH_HASH_DATA_SET_LOG_NAME, "Failed hash data set load : %s not found",
-                      data->value.text());
+                    Log::addFormatted(Log::ERROR, NEXTCASH_HASH_DATA_SET_LOG_NAME,
+                      "Failed hash data set load : %s not found", data->value.text());
                     checkSuccess = false;
                     success = false;
                 }
@@ -326,29 +349,35 @@ namespace NextCash
                 {
                     if(found.hash() != hash)
                     {
-                        Log::addFormatted(Log::ERROR, NEXTCASH_HASH_DATA_SET_LOG_NAME, "Failed hash data set load : wrong hash : %s",
+                        Log::addFormatted(Log::ERROR, NEXTCASH_HASH_DATA_SET_LOG_NAME,
+                          "Failed hash data set load : wrong hash : %s",
                           found.hash().hex().text());
                         checkSuccess = false;
                         success = false;
                     }
-                    else if(((TestHashData *)(*found))->value != data->value && ((TestHashData *)(*found))->value != dupValue &&
+                    else if(((TestHashData *)(*found))->value != data->value &&
+                      ((TestHashData *)(*found))->value != dupValue &&
                       ((TestHashData *)(*found))->value != nonDupValue)
                     {
-                        Log::addFormatted(Log::ERROR, NEXTCASH_HASH_DATA_SET_LOG_NAME, "Failed hash data set load : wrong value : %s - %s",
+                        Log::addFormatted(Log::ERROR, NEXTCASH_HASH_DATA_SET_LOG_NAME,
+                          "Failed hash data set load : wrong value : %s - %s",
                           ((TestHashData *)(*found))->value.text(), found.hash().hex().text());
                         checkSuccess = false;
                         success = false;
                     }
                     // else
-                        // Log::addFormatted(Log::INFO, NEXTCASH_HASH_DATA_SET_LOG_NAME, "Pass hash data set load : %s - %s",
-                          // ((TestHashData *)(*found))->value.text(), found.hash().hex().text());
+                        // Log::addFormatted(Log::INFO, NEXTCASH_HASH_DATA_SET_LOG_NAME,
+                            // "Pass hash data set load : %s - %s",
+                            // ((TestHashData *)(*found))->value.text(),
+                            // found.hash().hex().text());
                 }
 
                 delete data;
             }
 
             if(checkSuccess)
-                Log::addFormatted(Log::INFO, NEXTCASH_HASH_DATA_SET_LOG_NAME, "Pass hash data set load check %d lookups", testSize);
+                Log::addFormatted(Log::INFO, NEXTCASH_HASH_DATA_SET_LOG_NAME,
+                  "Pass hash data set load check %d lookups", testSize);
 
             for(unsigned int i=testSize;i<testSizeLarger;++i)
             {
@@ -367,7 +396,7 @@ namespace NextCash
             }
 
             checkSuccess = true;
-            for(unsigned int i=testSize;i<testSizeLarger;++i)
+            for(unsigned int i = testSize; i < testSizeLarger; ++i)
             {
                 // Create new value
                 data = new TestHashData();
@@ -382,7 +411,8 @@ namespace NextCash
                 found = hashDataSet.get(hash);
                 if(!found)
                 {
-                    Log::addFormatted(Log::ERROR, NEXTCASH_HASH_DATA_SET_LOG_NAME, "Failed hash data set load : %s not found",
+                    Log::addFormatted(Log::ERROR, NEXTCASH_HASH_DATA_SET_LOG_NAME,
+                      "Failed hash data set load : %s not found",
                       data->value.text());
                     checkSuccess = false;
                     success = false;
@@ -391,33 +421,39 @@ namespace NextCash
                 {
                     if(found.hash() != hash)
                     {
-                        Log::addFormatted(Log::ERROR, NEXTCASH_HASH_DATA_SET_LOG_NAME, "Failed hash data set load : wrong hash : %s",
+                        Log::addFormatted(Log::ERROR, NEXTCASH_HASH_DATA_SET_LOG_NAME,
+                          "Failed hash data set load : wrong hash : %s",
                           found.hash().hex().text());
                         checkSuccess = false;
                         success = false;
                     }
-                    else if(((TestHashData *)(*found))->value != data->value && ((TestHashData *)(*found))->value != dupValue &&
+                    else if(((TestHashData *)(*found))->value != data->value &&
+                      ((TestHashData *)(*found))->value != dupValue &&
                       ((TestHashData *)(*found))->value != nonDupValue)
                     {
-                        Log::addFormatted(Log::ERROR, NEXTCASH_HASH_DATA_SET_LOG_NAME, "Failed hash data set load : wrong value : %s - %s",
+                        Log::addFormatted(Log::ERROR, NEXTCASH_HASH_DATA_SET_LOG_NAME,
+                          "Failed hash data set load : wrong value : %s - %s",
                           ((TestHashData *)(*found))->value.text(), found.hash().hex().text());
                         checkSuccess = false;
                         success = false;
                     }
                     // else
-                        // Log::addFormatted(Log::INFO, NEXTCASH_HASH_DATA_SET_LOG_NAME, "Pass hash data set load : %s - %s",
-                          // ((TestHashData *)(*found))->value.text(), found.hash().hex().text());
+                        // Log::addFormatted(Log::INFO, NEXTCASH_HASH_DATA_SET_LOG_NAME,
+                            // "Pass hash data set load : %s - %s",
+                            // ((TestHashData *)(*found))->value.text(),
+                            // found.hash().hex().text());
                 }
 
                 delete data;
             }
 
             if(checkSuccess)
-                Log::addFormatted(Log::INFO, NEXTCASH_HASH_DATA_SET_LOG_NAME, "Pass hash data set check %d lookups", testSizeLarger);
+                Log::addFormatted(Log::INFO, NEXTCASH_HASH_DATA_SET_LOG_NAME,
+                  "Pass hash data set check %d lookups", testSizeLarger);
 
             // Check removing items
             removedSize = hashDataSet.size();
-            for(unsigned int i=0;i<testSizeLarger;i+=(testSize/10))
+            for(unsigned int i = 0; i < testSizeLarger; i += (testSize / 10))
             {
                 // Create new value
                 data = new TestHashData();
@@ -436,11 +472,13 @@ namespace NextCash
                 {
                     (*found)->setRemove();
                     --removedSize;
+                    Log::addFormatted(Log::DEBUG, NEXTCASH_HASH_DATA_SET_LOG_NAME,
+                      "Marked item for removal : %s", ((TestHashData *)(*found))->value.text());
                 }
             }
 
             // Check marking items as old
-            for(unsigned int i=50;i<testSizeLarger;i+=(testSize/10))
+            for(unsigned int i = 50; i < testSizeLarger; i += (testSize / 10))
             {
                 // Create new value
                 data = new TestHashData();
@@ -458,6 +496,8 @@ namespace NextCash
                 {
                     (*found)->setOld();
                     ++markedOldCount;
+                    Log::addFormatted(Log::DEBUG, NEXTCASH_HASH_DATA_SET_LOG_NAME,
+                      "Marked item as old : %s", ((TestHashData *)(*found))->value.text());
                 }
             }
 
@@ -465,20 +505,22 @@ namespace NextCash
             hashDataSet.save();
 
             if(hashDataSet.size() == removedSize)
-                Log::addFormatted(Log::INFO, NEXTCASH_HASH_DATA_SET_LOG_NAME, "Pass hash data set remove size : %d", removedSize);
+                Log::addFormatted(Log::INFO, NEXTCASH_HASH_DATA_SET_LOG_NAME,
+                  "Pass hash data set remove size : %d", removedSize);
             else
             {
-                Log::addFormatted(Log::ERROR, NEXTCASH_HASH_DATA_SET_LOG_NAME, "Failed hash data set remove size : %d != %d",
-                  hashDataSet.size(), removedSize);
+                Log::addFormatted(Log::ERROR, NEXTCASH_HASH_DATA_SET_LOG_NAME,
+                  "Failed hash data set remove size : %d != %d", hashDataSet.size(), removedSize);
                 success = false;
             }
 
             if(hashDataSet.cacheSize() == hashDataSet.size() - markedOldCount)
-                Log::addFormatted(Log::INFO, NEXTCASH_HASH_DATA_SET_LOG_NAME, "Pass hash data set old cache size : %d",
-                  hashDataSet.cacheSize());
+                Log::addFormatted(Log::INFO, NEXTCASH_HASH_DATA_SET_LOG_NAME,
+                  "Pass hash data set old cache size : %d", hashDataSet.cacheSize());
             else
             {
-                Log::addFormatted(Log::ERROR, NEXTCASH_HASH_DATA_SET_LOG_NAME, "Failed hash data set old cache size : %d != %d",
+                Log::addFormatted(Log::ERROR, NEXTCASH_HASH_DATA_SET_LOG_NAME,
+                  "Failed hash data set old cache size : %d != %d",
                   hashDataSet.cacheSize(), hashDataSet.size() - markedOldCount);
                 success = false;
             }
@@ -486,23 +528,25 @@ namespace NextCash
 
         if(success)
         {
-            HashDataSet<TestHashData, 32, 64, 64> hashDataSet;
+            HashDataSet<TestHashData, 32, 64, 64> hashDataSet("TestSet");
 
-            hashDataSet.load("Test", "test_hash_data_set");
+            hashDataSet.load("test_hash_data_set");
 
             // Set max cache data size to 75% of current size
             uint64_t cacheMaxSize = (uint64_t)((double)hashDataSet.cacheDataSize() * 0.75);
             hashDataSet.setTargetCacheDataSize(cacheMaxSize);
 
-            // Force cache to prune
+            // Force cache to trim
             hashDataSet.save();
 
             if(hashDataSet.size() == removedSize)
-                Log::addFormatted(Log::INFO, NEXTCASH_HASH_DATA_SET_LOG_NAME, "Pass hash data set prune size : %d",
+                Log::addFormatted(Log::INFO, NEXTCASH_HASH_DATA_SET_LOG_NAME,
+                  "Pass hash data set trim size : %d",
                   removedSize);
             else
             {
-                Log::addFormatted(Log::ERROR, NEXTCASH_HASH_DATA_SET_LOG_NAME, "Failed hash data set prune size : %d != %d",
+                Log::addFormatted(Log::ERROR, NEXTCASH_HASH_DATA_SET_LOG_NAME,
+                  "Failed hash data set trim size : %d != %d",
                   hashDataSet.size(), removedSize);
                 success = false;
             }
@@ -511,17 +555,19 @@ namespace NextCash
             uint64_t bufferDataSize = (uint64_t)((double)cacheMaxSize * 1.1);
 
             if(hashDataSet.cacheDataSize() < bufferDataSize)
-                Log::addFormatted(Log::INFO, NEXTCASH_HASH_DATA_SET_LOG_NAME, "Pass hash data set prune cache data size : %d < %d",
+                Log::addFormatted(Log::INFO, NEXTCASH_HASH_DATA_SET_LOG_NAME,
+                  "Pass hash data set trim cache data size : %d < %d",
                   hashDataSet.cacheDataSize(), bufferDataSize);
             else
             {
-                Log::addFormatted(Log::ERROR, NEXTCASH_HASH_DATA_SET_LOG_NAME, "Failed hash data set prune cache data size : %d >= %d",
+                Log::addFormatted(Log::ERROR, NEXTCASH_HASH_DATA_SET_LOG_NAME,
+                  "Failed hash data set trim cache data size : %d >= %d",
                   hashDataSet.cacheDataSize(), bufferDataSize);
                 success = false;
             }
 
             checkSuccess = true;
-            for(unsigned int i=0;i<testSize;++i)
+            for(unsigned int i = 0; i < testSize; ++i)
             {
                 // Create new value
                 data = new TestHashData();
@@ -535,47 +581,47 @@ namespace NextCash
 
                 found = hashDataSet.get(hash);
 
-                if(i % (testSize/10) == 0)
+                if(i % (testSize / 10) == 0)
                 {
                     if(found)
                     {
-                        Log::addFormatted(Log::ERROR, NEXTCASH_HASH_DATA_SET_LOG_NAME, "Failed hash data set after prune : %s not removed : %s",
+                        Log::addFormatted(Log::ERROR, NEXTCASH_HASH_DATA_SET_LOG_NAME,
+                          "Failed hash data set after trim : %s not removed : %s",
                           data->value.text(), hash.hex().text());
                         checkSuccess = false;
                         success = false;
-                        break;
                     }
                 }
                 else
                 {
                     if(!found)
                     {
-                        Log::addFormatted(Log::ERROR, NEXTCASH_HASH_DATA_SET_LOG_NAME, "Failed hash data set after prune : %s not found : %s",
+                        Log::addFormatted(Log::ERROR, NEXTCASH_HASH_DATA_SET_LOG_NAME,
+                          "Failed hash data set after trim : %s not found : %s",
                           data->value.text(), hash.hex().text());
                         checkSuccess = false;
                         success = false;
-                        break;
                     }
                     else
                     {
                         if(found.hash() != hash)
                         {
-                            Log::addFormatted(Log::ERROR, NEXTCASH_HASH_DATA_SET_LOG_NAME, "Failed hash data set after prune : wrong hash : %s",
+                            Log::addFormatted(Log::ERROR, NEXTCASH_HASH_DATA_SET_LOG_NAME,
+                              "Failed hash data set after trim : wrong hash : %s",
                               found.hash().hex().text());
                             checkSuccess = false;
                             success = false;
                         }
-                        else if(((TestHashData *)(*found))->value != data->value && ((TestHashData *)(*found))->value != dupValue &&
+                        else if(((TestHashData *)(*found))->value != data->value &&
+                          ((TestHashData *)(*found))->value != dupValue &&
                           ((TestHashData *)(*found))->value != nonDupValue)
                         {
-                            Log::addFormatted(Log::ERROR, NEXTCASH_HASH_DATA_SET_LOG_NAME, "Failed hash data set load : wrong value : %s - %s",
+                            Log::addFormatted(Log::ERROR, NEXTCASH_HASH_DATA_SET_LOG_NAME,
+                              "Failed hash data set load : wrong value : %s - %s",
                               ((TestHashData *)(*found))->value.text(), found.hash().hex().text());
                             checkSuccess = false;
                             success = false;
                         }
-                        // else
-                            // Log::addFormatted(Log::INFO, NEXTCASH_HASH_DATA_SET_LOG_NAME, "Pass hash data set load : %s - %s",
-                              // ((TestHashData *)(*found))->value.text(), found.hash().hex().text());
                     }
                 }
 
@@ -583,7 +629,8 @@ namespace NextCash
             }
 
             if(checkSuccess)
-                Log::addFormatted(Log::INFO, NEXTCASH_HASH_DATA_SET_LOG_NAME, "Pass hash data set after prune check %d lookups", testSize);
+                Log::addFormatted(Log::INFO, NEXTCASH_HASH_DATA_SET_LOG_NAME,
+                  "Pass hash data set after trim check %d lookups", testSize);
         }
 
         return success;

@@ -28,8 +28,8 @@
 namespace NextCash
 {
     // A data class that can be used within a HashDataSet.
-    // NOTE: The objects size can't increase after being initially added to the hash data set or it
-    //   will overwrite the next item in the file
+    // NOTE: The objects read/write size can't increase after being initially added to the hash
+    //   data set or it will overwrite the next item in the file.
     class HashData
     {
     public:
@@ -66,7 +66,7 @@ namespace NextCash
         virtual bool write(OutputStream *pStream) = 0;
 
         // Returns the size(bytes) in memory of the object
-        virtual uint64_t size() = 0;
+        virtual stream_size size() const = 0;
 
         // Evaluates the relative age of two objects.
         // Used to determine which objects to drop from cache
@@ -178,7 +178,11 @@ namespace NextCash
 
             stream_size size() const { return mFileSize + mNewSize; }
             stream_size cacheSize() const { return mCache.size(); }
-            stream_size cacheDataSize() { return mCacheRawDataSize + (mCache.size() * (tHashSize + 12)); } // 12 = 8 byte memory pointer + 4 byte size count
+            static const stream_size staticCacheItemSize =
+              Hash::memorySize(tHashSize) + // Hash in cache.
+              sizeof(void *); // Data pointer in cache.
+            stream_size cacheDataSize() // 12 = 8 byte memory pointer + 4 byte size count
+              { return mCacheRawDataSize + (mCache.size() * staticCacheItemSize); }
 
             // Inserts a new item corresponding to the lookup.
             bool insert(const Hash &pLookupValue, HashData *pValue, bool pRejectMatching);
@@ -196,32 +200,35 @@ namespace NextCash
             // If pPullMatchingFunction then only items that return true will be pulled.
             bool pull(const Hash &pLookupValue, HashData *pMatching = NULL);
 
-            bool load(const char *pFilePath, unsigned int pID);
-            bool save();
-            bool cleanup(uint64_t pMaxCacheDataSize);
+            bool load(const char *pName, const char *pFilePath, unsigned int pID);
+            bool save(const char *pName, uint64_t pMaxCacheDataSize);
+
+            // Rewrite data file filling in gaps from removed data.
+            bool defragment();
 
         private:
 
-            Hash pullHash(InputStream *pDataFile, stream_size pFileOffset)
+            bool pullHash(InputStream *pDataFile, stream_size pFileOffset, Hash &pHash)
             {
 #ifdef PROFILER_ON
-                NextCash::Profiler profiler("Hash SubSet Save Pull Hash");
+                NextCash::Profiler profiler("Hash SubSet Pull Hash");
 #endif
                 if(!pDataFile->setReadOffset(pFileOffset))
                 {
                     Log::addFormatted(Log::ERROR, NEXTCASH_HASH_DATA_SET_LOG_NAME,
-                      "Failed to pull hash at index offset %d/%d", pFileOffset, pDataFile->length());
-                    return Hash();
+                      "Failed to pull hash at index offset %d/%d", pFileOffset,
+                      pDataFile->length());
+                    return false;
                 }
 
-                Hash result(tHashSize);
-                if(!result.read(pDataFile))
+                if(!pHash.read(pDataFile, tHashSize))
                 {
                     Log::addFormatted(Log::ERROR, NEXTCASH_HASH_DATA_SET_LOG_NAME,
-                      "Failed to pull hash at index offset %d/%d", pFileOffset, pDataFile->length());
-                    return Hash();
+                      "Failed to pull hash at index offset %d/%d", pFileOffset,
+                      pDataFile->length());
+                    return false;
                 }
-                return result;
+                return true;
             }
 
             void loadSamples(InputStream *pIndexFile);
@@ -233,11 +240,16 @@ namespace NextCash
             bool loadCache();
             bool saveCache();
 
-            // Prune old items from the cache until it is under the specified data size
-            void pruneCache(stream_size pDataSize);
+            // Mark items in the cache as old until it is under the specified data size.
+            // Only called by trimeCache.
+            void markOld(stream_size pDataSize);
 
-            ReadersLock mLock;
-            String mFilePath;
+            // Remove items from cache based on "age" and data size specified.
+            // Only called by save.
+            bool trimCache(uint64_t pMaxCacheDataSize);
+
+            MutexWithConstantName mLock;
+            const char *mFilePath;
             stream_size mFileSize, mNewSize, mCacheRawDataSize;
             unsigned int mID;
             HashContainerList<HashData *> mCache;
@@ -256,7 +268,8 @@ namespace NextCash
 
     public:
 
-        HashDataSet() : mLock("HashDataSet") { mTargetCacheDataSize = 0; mIsValid = false; }
+        HashDataSet(const char *pName) : mLock(String(pName) + "Lock")
+          { mName = pName; mTargetCacheDataSize = 0; mIsValid = false; }
         ~HashDataSet() {}
 
         bool isValid() const { return mIsValid; }
@@ -386,7 +399,7 @@ namespace NextCash
         Iterator begin();
         Iterator end();
 
-        virtual bool load(const char *pName, const char *pFilePath);
+        virtual bool load(const char *pFilePath);
         virtual bool save();
         virtual bool saveMultiThreaded(unsigned int pThreadCount = 4);
 
@@ -394,9 +407,10 @@ namespace NextCash
         {
         public:
 
-            SaveThreadData(SubSet *pFirstSubSet, stream_size pMaxSetCacheDataSize) :
+            SaveThreadData(const char *pName, SubSet *pFirstSubSet, stream_size pMaxSetCacheDataSize) :
               mutex("SaveThreadData")
             {
+                name = pName;
                 nextSubSet = pFirstSubSet;
                 maxSetCacheDataSize = pMaxSetCacheDataSize;
                 offset = 0;
@@ -409,6 +423,7 @@ namespace NextCash
             }
 
             Mutex mutex;
+            const char *name;
             SubSet *nextSubSet;
             stream_size maxSetCacheDataSize;
             unsigned int offset;
@@ -473,9 +488,10 @@ namespace NextCash
 #ifdef PROFILER_ON
         NextCash::Profiler profiler("Hash Set Insert");
 #endif
-        mLock.readLock();
-        bool result = mSubSets[subSetOffset(pLookupValue)].insert(pLookupValue, pValue, pRejectMatching);
-        mLock.readUnlock();
+        mLock.writeLock("Insert");
+        bool result = mSubSets[subSetOffset(pLookupValue)].insert(pLookupValue, pValue,
+          pRejectMatching);
+        mLock.writeUnlock();
         return result;
     }
 
@@ -486,9 +502,9 @@ namespace NextCash
 #ifdef PROFILER_ON
         NextCash::Profiler profiler("Hash Set Remove If Matching");
 #endif
-        mLock.readLock();
+        mLock.writeLock("Remove");
         bool result = mSubSets[subSetOffset(pLookupValue)].removeIfMatching(pLookupValue, pValue);
-        mLock.readUnlock();
+        mLock.writeUnlock();
         return result;
     }
 
@@ -516,17 +532,15 @@ namespace NextCash
     }
 
     template <class tHashDataType, uint8_t tHashSize, uint16_t tSampleSize, uint16_t tSetCount>
-    bool HashDataSet<tHashDataType, tHashSize, tSampleSize, tSetCount>::load(const char *pName,
-      const char *pFilePath)
+    bool HashDataSet<tHashDataType, tHashSize, tSampleSize, tSetCount>::load(const char *pFilePath)
     {
         mLock.writeLock("Load");
         mIsValid = true;
-        mName = pName;
         mFilePath = pFilePath;
         if(!createDirectory(mFilePath))
         {
-            Log::addFormatted(Log::ERROR, NEXTCASH_HASH_DATA_SET_LOG_NAME,
-              "%s Failed to create directory : %s", mName.text(), mFilePath.text());
+            Log::addFormatted(Log::ERROR, mName.text(), "Failed to create directory : %s",
+              mFilePath);
             mIsValid = false;
             mLock.writeUnlock();
             return false;
@@ -537,11 +551,11 @@ namespace NextCash
         {
             if(getTime() - lastReport > 10)
             {
-                Log::addFormatted(Log::INFO, NEXTCASH_HASH_DATA_SET_LOG_NAME,
-                  "%s load is %2d%% Complete", mName.text(), (int)(((float)i / (float)tSetCount) * 100.0f));
+                Log::addFormatted(Log::INFO, mName.text(), "Load is %2d%% Complete",
+                  (int)(((float)i / (float)tSetCount) * 100.0f));
                 lastReport = getTime();
             }
-            if(!subSet->load(mFilePath, i))
+            if(!subSet->load(mName.text(), mFilePath, i))
                 mIsValid = false;
             ++subSet;
         }
@@ -556,8 +570,7 @@ namespace NextCash
 
         if(!mIsValid)
         {
-            Log::addFormatted(Log::ERROR, NEXTCASH_HASH_DATA_SET_LOG_NAME,
-              "%s : can't save invalid data set", mName.text());
+            Log::add(Log::ERROR, mName.text(), "Can't save invalid data set");
             mLock.writeUnlock();
             return false;
         }
@@ -568,27 +581,19 @@ namespace NextCash
         bool success = true;
         if(mTargetCacheDataSize > 0)
             maxSetCacheDataSize = mTargetCacheDataSize / tSetCount;
-        for(unsigned int i=0;i<tSetCount;++i)
+        for(unsigned int i = 0; i < tSetCount; ++i)
         {
             if(getTime() - lastReport > 10)
             {
-                Log::addFormatted(Log::INFO, NEXTCASH_HASH_DATA_SET_LOG_NAME,
-                  "%s save is %2d%% Complete", mName.text(),
+                Log::addFormatted(Log::INFO, mName.text(), "Save is %2d%% Complete",
                   (int)(((float)i / (float)tSetCount) * 100.0f));
                 lastReport = getTime();
             }
 
-            if(!subSet->save())
+            if(!subSet->save(mName.text(), maxSetCacheDataSize))
             {
-                Log::addFormatted(Log::WARNING, NEXTCASH_HASH_DATA_SET_LOG_NAME,
-                  "Failed %s set %d save", mName.text(), subSet->id());
-                success = false;
-            }
-
-            if(!subSet->cleanup(maxSetCacheDataSize))
-            {
-                Log::addFormatted(Log::WARNING, NEXTCASH_HASH_DATA_SET_LOG_NAME,
-                  "Failed %s set %d save cleanup", mName.text(), subSet->id());
+                Log::addFormatted(Log::WARNING, mName.text(), "Failed set %d save",
+                  subSet->id());
                 success = false;
             }
 
@@ -604,8 +609,7 @@ namespace NextCash
         SaveThreadData *data = (SaveThreadData *)Thread::getParameter();
         if(data == NULL)
         {
-            Log::add(NextCash::Log::WARNING, NEXTCASH_HASH_DATA_SET_LOG_NAME,
-              "Thread parameter is null. Stopping");
+            Log::add(NextCash::Log::WARNING, data->name, "Thread parameter is null. Stopping");
             return;
         }
 
@@ -615,17 +619,15 @@ namespace NextCash
             subSet = data->getNext();
             if(subSet == NULL)
             {
-                Log::add(Log::DEBUG, NEXTCASH_HASH_DATA_SET_LOG_NAME,
-                  "No more save tasks remaining");
+                Log::add(Log::DEBUG, data->name, "No more save tasks remaining");
                 break;
             }
 
-            if(subSet->save() && subSet->cleanup(data->maxSetCacheDataSize))
+            if(subSet->save(data->name, data->maxSetCacheDataSize))
                 data->markComplete(subSet->id(), true);
             else
             {
-                Log::addFormatted(Log::WARNING, NEXTCASH_HASH_DATA_SET_LOG_NAME,
-                  "Failed save of set %d", subSet->id());
+                Log::addFormatted(Log::WARNING, data->name, "Failed save of set %d", subSet->id());
                 data->markComplete(subSet->id(), false);
             }
         }
@@ -638,8 +640,7 @@ namespace NextCash
 
         if(!mIsValid)
         {
-            Log::addFormatted(Log::ERROR, NEXTCASH_HASH_DATA_SET_LOG_NAME,
-              "%s : can't save invalid data set", mName.text());
+            Log::add(Log::ERROR, mName.text(), "Can't save invalid data set");
             mLock.writeUnlock();
             return false;
         }
@@ -647,7 +648,7 @@ namespace NextCash
         uint64_t maxSetCacheDataSize = 0;
         if(mTargetCacheDataSize > 0)
             maxSetCacheDataSize = mTargetCacheDataSize / tSetCount;
-        SaveThreadData threadData(mSubSets, maxSetCacheDataSize);
+        SaveThreadData threadData(mName.text(), mSubSets, maxSetCacheDataSize);
         Thread *threads[pThreadCount];
         int32_t lastReport = getTime();
         unsigned int i;
@@ -673,8 +674,7 @@ namespace NextCash
                     if(threadData.setComplete[i])
                         ++completedCount;
                     else if(report)
-                        Log::addFormatted(Log::INFO, NEXTCASH_HASH_DATA_SET_LOG_NAME,
-                          "%s save waiting for set %d", mName.text(), i);
+                        Log::addFormatted(Log::INFO, mName.text(), "Save waiting for set %d", i);
 
                 if(report)
                     lastReport = getTime();
@@ -689,8 +689,7 @@ namespace NextCash
                     if(threadData.setComplete[i])
                         ++completedCount;
 
-                Log::addFormatted(Log::INFO, NEXTCASH_HASH_DATA_SET_LOG_NAME,
-                  "%s save is %2d%% Complete", mName.text(),
+                Log::addFormatted(Log::INFO, mName.text(), "Save is %2d%% Complete",
                   (int)(((float)completedCount / (float)tSetCount) * 100.0f));
 
                 lastReport = getTime();
@@ -700,8 +699,7 @@ namespace NextCash
         }
 
         // Delete threads
-        Log::addFormatted(Log::DEBUG, NEXTCASH_HASH_DATA_SET_LOG_NAME,
-          "Deleting %s save threads", mName.text());
+        Log::add(Log::DEBUG, mName.text(), "Deleting save threads");
         for(i = 0; i < pThreadCount; ++i)
             delete threads[i];
 
@@ -736,7 +734,7 @@ namespace NextCash
         NextCash::Profiler profiler("Hash SubSet Insert");
 #endif
         bool result = false;
-        mLock.writeLock();
+        mLock.lock();
         if(pRejectMatching)
         {
             if(mCache.insertIfNotMatching(pLookupValue, pValue, hashDataValuesMatch))
@@ -757,18 +755,18 @@ namespace NextCash
             pValue->setNew();
             result = true;
         }
-        mLock.writeUnlock();
+        mLock.unlock();
         return result;
     }
 
     template <class tHashDataType, uint8_t tHashSize, uint16_t tSampleSize, uint16_t tSetCount>
-    bool HashDataSet<tHashDataType, tHashSize, tSampleSize, tSetCount>::SubSet::removeIfMatching(const Hash &pLookupValue,
-      HashData *pValue)
+    bool HashDataSet<tHashDataType, tHashSize, tSampleSize, tSetCount>::SubSet::removeIfMatching(
+      const Hash &pLookupValue, HashData *pValue)
     {
 #ifdef PROFILER_ON
         NextCash::Profiler profiler("Hash SubSet Remove If Matching");
 #endif
-        mLock.writeLock();
+        mLock.lock();
 
         bool result = false;
         SubSetIterator item = mCache.get(pLookupValue);
@@ -797,70 +795,42 @@ namespace NextCash
             }
         }
 
-        mLock.writeUnlock();
+        mLock.unlock();
         return result;
     }
 
     template <class tHashDataType, uint8_t tHashSize, uint16_t tSampleSize, uint16_t tSetCount>
     typename HashDataSet<tHashDataType, tHashSize, tSampleSize, tSetCount>::SubSetIterator
-      HashDataSet<tHashDataType, tHashSize, tSampleSize, tSetCount>::SubSet::get(const Hash &pLookupValue,
-      bool pForcePull)
+      HashDataSet<tHashDataType, tHashSize, tSampleSize, tSetCount>::SubSet::get(
+      const Hash &pLookupValue, bool pForcePull)
     {
-        bool writeLocked = false;
+        mLock.lock();
+
         if(pForcePull)
-        {
-            writeLocked = true;
-            mLock.writeLock("Get");
             pull(pLookupValue);
-        }
-        else
-            mLock.readLock();
+
         SubSetIterator result = mCache.get(pLookupValue);
-        if(!pForcePull && result == mCache.end())
-        {
-            if(!writeLocked)
-            {
-                writeLocked = true;
-                mLock.readUnlock();
-                mLock.writeLock("Get");
-            }
-            if(pull(pLookupValue))
-                result = mCache.get(pLookupValue);
-        }
-        if(writeLocked)
-            mLock.writeUnlock();
-        else
-            mLock.readUnlock();
+        if(result == mCache.end() && !pForcePull && pull(pLookupValue))
+            result = mCache.get(pLookupValue);
+
+        mLock.unlock();
         return result;
     }
 
     template <class tHashDataType, uint8_t tHashSize, uint16_t tSampleSize, uint16_t tSetCount>
-    HashData *HashDataSet<tHashDataType, tHashSize, tSampleSize, tSetCount>::SubSet::getData(const Hash &pLookupValue,
-      bool pForcePull)
+    HashData *HashDataSet<tHashDataType, tHashSize, tSampleSize, tSetCount>::SubSet::getData(
+      const Hash &pLookupValue, bool pForcePull)
     {
+        mLock.lock();
+
         HashData *result = NULL;
 
-        bool writeLocked = false;
         if(pForcePull)
-        {
-            writeLocked = true;
-            mLock.writeLock("Get Data");
             pull(pLookupValue);
-        }
-        else
-            mLock.readLock();
+
         SubSetIterator item = mCache.get(pLookupValue);
-        if(!pForcePull && item == mCache.end())
-        {
-            if(!writeLocked)
-            {
-                writeLocked = true;
-                mLock.readUnlock();
-                mLock.writeLock("Get Data");
-            }
-            if(pull(pLookupValue))
-                item = mCache.get(pLookupValue);
-        }
+        if(item == mCache.end() && !pForcePull && pull(pLookupValue))
+            item = mCache.get(pLookupValue);
 
         while(item != mCache.end() && item.hash() == pLookupValue)
         {
@@ -873,16 +843,13 @@ namespace NextCash
             ++item;
         }
 
-        if(writeLocked)
-            mLock.writeUnlock();
-        else
-            mLock.readUnlock();
+        mLock.unlock();
         return result;
     }
 
     template <class tHashDataType, uint8_t tHashSize, uint16_t tSampleSize, uint16_t tSetCount>
-    bool HashDataSet<tHashDataType, tHashSize, tSampleSize, tSetCount>::SubSet::pull(const Hash &pLookupValue,
-      HashData *pMatching)
+    bool HashDataSet<tHashDataType, tHashSize, tSampleSize, tSetCount>::SubSet::pull(
+      const Hash &pLookupValue, HashData *pMatching)
     {
         if(mFileSize == 0)
             return false;
@@ -892,25 +859,25 @@ namespace NextCash
         Hash hash(tHashSize);
         stream_size first = 0, last = (mFileSize - 1) * sizeof(stream_size), begin, end, current;
         String filePathName;
-        filePathName.writeFormatted("%s%s%04x.index", mFilePath.text(), PATH_SEPARATOR, mID);
+        filePathName.writeFormatted("%s%s%04x.index", mFilePath, PATH_SEPARATOR, mID);
         FileInputStream indexFile(filePathName);
-        filePathName.writeFormatted("%s%s%04x.data", mFilePath.text(), PATH_SEPARATOR, mID);
+        filePathName.writeFormatted("%s%s%04x.data", mFilePath, PATH_SEPARATOR, mID);
         FileInputStream dataFile(filePathName);
 
         if(!indexFile.isValid())
         {
-            Log::add(Log::ERROR, NEXTCASH_HASH_DATA_SET_LOG_NAME, "Failed to open index file in pull");
+            Log::add(Log::ERROR, NEXTCASH_HASH_DATA_SET_LOG_NAME,
+              "Failed to open index file in pull");
             return false;
         }
 
         if(!dataFile.isValid())
         {
-            Log::add(Log::ERROR, NEXTCASH_HASH_DATA_SET_LOG_NAME, "Failed to open index file in pull");
+            Log::add(Log::ERROR, NEXTCASH_HASH_DATA_SET_LOG_NAME,
+              "Failed to open index file in pull");
             return false;
         }
 
-        // Log::addFormatted(Log::VERBOSE, NEXTCASH_HASH_DATA_SET_LOG_NAME,
-          // "Pull : %s", pLookupValue.hex().text());
         if(mSamples != NULL)
         {
             if(!findSample(pLookupValue, &indexFile, &dataFile, begin, end))
@@ -976,8 +943,6 @@ namespace NextCash
                 dataFile.setReadOffset(dataOffset);
                 if(!hash.read(&dataFile))
                     return false;
-                // Log::addFormatted(Log::VERBOSE, NEXTCASH_HASH_DATA_SET_LOG_NAME,
-                  // "Binary : %s", hash.hex().text());
 
                 // Determine which half the desired item is in
                 compare = pLookupValue.compare(hash);
@@ -1163,20 +1128,21 @@ namespace NextCash
     template <class tHashDataType, uint8_t tHashSize, uint16_t tSampleSize, uint16_t tSetCount>
     bool HashDataSet<tHashDataType, tHashSize, tSampleSize, tSetCount>::SubSet::loadCache()
     {
+        for(HashContainerList<HashData *>::Iterator item = mCache.begin();
+          item != mCache.end(); ++item)
+            delete *item;
         mCache.clear();
         mCacheRawDataSize = 0;
 
         // Open cache file
         String filePathName;
-        filePathName.writeFormatted("%s%s%04x.cache", mFilePath.text(), PATH_SEPARATOR, mID);
+        filePathName.writeFormatted("%s%s%04x.cache", mFilePath, PATH_SEPARATOR, mID);
         FileInputStream *cacheFile = new FileInputStream(filePathName);
         HashData *next;
         Hash hash(tHashSize);
 
         if(!cacheFile->isValid())
         {
-            // Log::addFormatted(Log::DEBUG, NEXTCASH_HASH_DATA_SET_LOG_NAME,
-              // "Failed to open subset cache file %04x for reading : %s", mID, filePathName.text());
             delete cacheFile;
             return false;
         }
@@ -1220,7 +1186,7 @@ namespace NextCash
     {
         // Open cache file
         String filePathName;
-        filePathName.writeFormatted("%s%s%04x.cache", mFilePath.text(), PATH_SEPARATOR, mID);
+        filePathName.writeFormatted("%s%s%04x.cache", mFilePath, PATH_SEPARATOR, mID);
         FileOutputStream *cacheFile = new FileOutputStream(filePathName, true);
 
         if(!cacheFile->isValid())
@@ -1232,7 +1198,8 @@ namespace NextCash
         }
 
         stream_size dataOffset;
-        for(HashContainerList<HashData *>::Iterator item=mCache.begin();item!=mCache.end();++item)
+        for(HashContainerList<HashData *>::Iterator item = mCache.begin(); item != mCache.end();
+          ++item)
         {
             dataOffset = (*item)->dataOffset();
             cacheFile->write(&dataOffset, sizeof(stream_size));
@@ -1279,12 +1246,66 @@ namespace NextCash
             pList.pop_back();
     }
 
+    template <class tHashDataType, uint8_t tHashSize, uint16_t tSampleSize, uint16_t tSetCount>
+    bool HashDataSet<tHashDataType, tHashSize, tSampleSize, tSetCount>::SubSet::load(const char *pName,
+      const char *pFilePath, unsigned int pID)
+    {
+        mLock.lock();
+
+        for(HashContainerList<HashData *>::Iterator item = mCache.begin();
+          item != mCache.end(); ++item)
+            delete *item;
+        mCache.clear();
+        mCacheRawDataSize = 0;
+
+        String filePathName;
+        bool created = false;
+
+        mFilePath = pFilePath;
+        mID = pID;
+
+        // Open index file
+        filePathName.writeFormatted("%s%s%04x.index", mFilePath, PATH_SEPARATOR, mID);
+        if(!fileExists(filePathName))
+        {
+            // Create index file
+            FileOutputStream indexOutFile(filePathName, true);
+            created = true;
+        }
+        FileInputStream indexFile(filePathName);
+        indexFile.setReadOffset(0);
+
+        if(!indexFile.isValid())
+        {
+            Log::addFormatted(Log::ERROR, pName,
+              "Failed to open index file : %s", filePathName.text());
+            mLock.unlock();
+            return false;
+        }
+
+        mFileSize = indexFile.length() / sizeof(stream_size);
+        mNewSize = 0;
+
+        // Open data file
+        if(created)
+        {
+            filePathName.writeFormatted("%s%s%04x.data", mFilePath, PATH_SEPARATOR, mID);
+            FileOutputStream dataOutFile(filePathName, true); // Create data file
+        }
+
+        loadSamples(&indexFile);
+        loadCache();
+
+        mLock.unlock();
+        return true;
+    }
+
     //TODO This operation is expensive. Try to find a better method
     template <class tHashDataType, uint8_t tHashSize, uint16_t tSampleSize, uint16_t tSetCount>
-    void HashDataSet<tHashDataType, tHashSize, tSampleSize, tSetCount>::SubSet::pruneCache(stream_size pDataSize)
+    void HashDataSet<tHashDataType, tHashSize, tSampleSize, tSetCount>::SubSet::markOld(stream_size pDataSize)
     {
 #ifdef PROFILER_ON
-        NextCash::Profiler profiler("Hash SubSet Prune");
+        NextCash::Profiler profiler("Hash SubSet Mark Old");
 #endif
         if(pDataSize == 0)
         {
@@ -1298,172 +1319,138 @@ namespace NextCash
         if(currentSize <= pDataSize)
         {
             // Log::addFormatted(Log::VERBOSE, NEXTCASH_HASH_DATA_SET_LOG_NAME,
-              // "Set %d is not big enough to prune", mID);
+              // "Set %d is not big enough to mark old", mID);
             return;
         }
 
-        double prunePercent = (double)(currentSize - pDataSize) / (double)currentSize;
-        unsigned int pruneCount = (unsigned int)((double)mCache.size() * prunePercent);
+        double markPercent = ((double)(currentSize - pDataSize) / (double)currentSize) * 1.25;
+        unsigned int markCount = (unsigned int)((double)mCache.size() * markPercent);
         std::vector<HashData *> oldestList;
-        if(pruneCount == 0)
+        if(markCount == 0)
         {
             Log::addFormatted(Log::VERBOSE, NEXTCASH_HASH_DATA_SET_LOG_NAME,
-              "Set %d has no items to prune", mID);
+              "Set %d has no items to mark old", mID);
             return;
         }
 
         // Build list of oldest items
         for(HashContainerList<HashData *>::Iterator item = mCache.begin(); item != mCache.end();
           ++item)
-            insertOldest(*item, oldestList, pruneCount);
+            insertOldest(*item, oldestList, markCount);
 
         // Remove all items below age of newest item in old list
         if(oldestList.size() == 0)
         {
             Log::addFormatted(Log::VERBOSE, NEXTCASH_HASH_DATA_SET_LOG_NAME,
-              "Set %d has prune list is empty", mID);
+              "Set %d has mark old list is empty", mID);
             return;
         }
 
-        unsigned int prunedCount = 0;
+        unsigned int markedCount = 0;
         HashData *cutoff = oldestList.back();
+        stream_size markedSize = 0;
         for(HashContainerList<HashData *>::Iterator item = mCache.begin();
           item != mCache.end(); ++item)
-            if((*item)->compareAge(cutoff) < 0)
+            if((*item)->isOld())
             {
-                ++prunedCount;
+                ++markedCount;
+                markedSize += (*item)->size() + staticCacheItemSize;
+            }
+            else if((*item)->compareAge(cutoff) < 0)
+            {
                 (*item)->setOld();
+                ++markedCount;
+                markedSize += (*item)->size() + staticCacheItemSize;
             }
 
-        if(prunedCount == 0)
+        if(currentSize - markedSize > pDataSize)
         {
-            Log::addFormatted(Log::VERBOSE, NEXTCASH_HASH_DATA_SET_LOG_NAME,
-              "Set %d pruning every other of %d items", mID, mCache.size());
-
-            // Prune every other item.
-            bool prune = false;
+            // Mark every other item as old.
+            bool markThisOld = false;
             for(HashContainerList<HashData *>::Iterator item = mCache.begin();
               item != mCache.end(); ++item)
             {
-                if(prune)
+                if(markThisOld && !(*item)->isOld())
                 {
-                    ++prunedCount;
                     (*item)->setOld();
+                    ++markedCount;
+                    markedSize += (*item)->size() + staticCacheItemSize;
+                    if(currentSize - markedSize < pDataSize)
+                        break;
+                    markThisOld = false;
                 }
-                prune = !prune;
+                else
+                    markThisOld = true;
             }
         }
 
-        if(prunedCount == 0)
+        if(currentSize - markedSize > pDataSize)
+        {
+            // Mark every other item as old.
+            bool markThisOld = false;
+            for(HashContainerList<HashData *>::Iterator item = mCache.begin();
+              item != mCache.end(); ++item)
+            {
+                if(markThisOld && !(*item)->isOld())
+                {
+                    (*item)->setOld();
+                    ++markedCount;
+                    markedSize += (*item)->size() + staticCacheItemSize;
+                    if(currentSize - markedSize < pDataSize)
+                        break;
+                    markThisOld = false;
+                }
+                else
+                    markThisOld = true;
+            }
+        }
+
+        if(currentSize - markedSize > pDataSize)
             Log::addFormatted(Log::WARNING, NEXTCASH_HASH_DATA_SET_LOG_NAME,
-              "Set %d failed to prune any of %d items", mID, mCache.size());
-
-        // Log::addFormatted(Log::DEBUG, NEXTCASH_HASH_DATA_SET_LOG_NAME,
-          // "Marked %d/%d items as old during pruning", prunedCount, pruneCount);
+              "Set %d failed to mark enough old. Marked %d/%d items (%d/%d)", mID, markedCount,
+              mCache.size(), markedSize, currentSize);
     }
 
     template <class tHashDataType, uint8_t tHashSize, uint16_t tSampleSize, uint16_t tSetCount>
-    bool HashDataSet<tHashDataType, tHashSize, tSampleSize, tSetCount>::SubSet::load(const char *pFilePath, unsigned int pID)
-    {
-        mLock.writeLock("Load");
-
-        mCache.clear();
-        mCacheRawDataSize = 0;
-
-        String filePathName;
-        bool created = false;
-
-        mFilePath = pFilePath;
-        mID = pID;
-
-        // Open index file
-        filePathName.writeFormatted("%s%s%04x.index", mFilePath.text(), PATH_SEPARATOR, mID);
-        if(!fileExists(filePathName))
-        {
-            // Create index file
-            FileOutputStream indexOutFile(filePathName, true);
-            created = true;
-        }
-        FileInputStream indexFile(filePathName);
-        indexFile.setReadOffset(0);
-
-        if(!indexFile.isValid())
-        {
-            Log::addFormatted(Log::ERROR, NEXTCASH_HASH_DATA_SET_LOG_NAME,
-              "Failed to open index file : %s", filePathName.text());
-            mLock.writeUnlock();
-            return false;
-        }
-
-        mFileSize = indexFile.length() / sizeof(stream_size);
-        mNewSize = 0;
-
-        // Open data file
-        filePathName.writeFormatted("%s%s%04x.data", mFilePath.text(), PATH_SEPARATOR, mID);
-        if(created)
-            FileOutputStream dataOutFile(filePathName, true); // Create data file
-
-        loadSamples(&indexFile);
-        loadCache();
-
-        mLock.writeUnlock();
-        return true;
-    }
-
-    template <class tHashDataType, uint8_t tHashSize, uint16_t tSampleSize, uint16_t tSetCount>
-    bool HashDataSet<tHashDataType, tHashSize, tSampleSize, tSetCount>::SubSet::cleanup(uint64_t pMaxCacheDataSize)
+    bool HashDataSet<tHashDataType, tHashSize, tSampleSize, tSetCount>::SubSet::trimCache(uint64_t pMaxCacheDataSize)
     {
 #ifdef PROFILER_ON
         NextCash::Profiler profiler("Hash SubSet Clean");
 #endif
+
         // Mark items as old to keep cache data size under max
-        pruneCache(pMaxCacheDataSize);
+        markOld(pMaxCacheDataSize);
 
         // Remove old and removed items from the cache
-        // unsigned int prunedCount = 0;
-        // unsigned int previousSize = mCache.size();
-        for(HashContainerList<HashData *>::Iterator item=mCache.begin();item!=mCache.end();)
+        for(HashContainerList<HashData *>::Iterator item = mCache.begin(); item != mCache.end();)
         {
-            if((*item)->isOld() || (*item)->markedRemove())
+            if((*item)->isOld())
             {
                 mCacheRawDataSize -= (*item)->size();
                 delete *item;
                 item = mCache.erase(item);
-                // ++prunedCount;
             }
             else
                 ++item;
         }
 
-        // Log::addFormatted(Log::DEBUG, NEXTCASH_HASH_DATA_SET_LOG_NAME,
-          // "Pruned %d/%d items from cache to new size %d", prunedCount, previousSize, mCache.size());
-
-        saveCache();
-
-        // Open index file
-        String filePathName;
-        filePathName.writeFormatted("%s%s%04x.index", mFilePath.text(), PATH_SEPARATOR, mID);
-        FileInputStream indexFile(filePathName);
-
-        // Reload samples
-        loadSamples(&indexFile);
-
-        return true;
+        return saveCache();
     }
 
     template <class tHashDataType, uint8_t tHashSize, uint16_t tSampleSize, uint16_t tSetCount>
-    bool HashDataSet<tHashDataType, tHashSize, tSampleSize, tSetCount>::SubSet::save()
+    bool HashDataSet<tHashDataType, tHashSize, tSampleSize, tSetCount>::SubSet::save(
+      const char *pName, uint64_t pMaxCacheDataSize)
     {
 #ifdef PROFILER_ON
         NextCash::Profiler profiler("Hash SubSet Save");
 #endif
-        mLock.writeLock("Save");
+        mLock.lock();
 
         if(mCache.size() == 0)
         {
-            // Log::addFormatted(Log::VERBOSE, NEXTCASH_HASH_DATA_SET_LOG_NAME,
+            // Log::addFormatted(Log::VERBOSE, pName,
               // "Set %d save has no cache", mID);
-            mLock.writeUnlock();
+            mLock.unlock();
             return true;
         }
 
@@ -1473,28 +1460,39 @@ namespace NextCash
         NextCash::Profiler profilerWriteData("Hash SubSet Save Write Data");
 #endif
         // Reopen data file as an output stream
-        filePathName.writeFormatted("%s%s%04x.data", mFilePath.text(), PATH_SEPARATOR, mID);
+        filePathName.writeFormatted("%s%s%04x.data", mFilePath, PATH_SEPARATOR, mID);
         FileOutputStream *dataOutFile = new FileOutputStream(filePathName);
         HashContainerList<HashData *>::Iterator item;
         uint64_t newCount = 0;
         bool indexNeedsUpdated = false;
 
         // Write all cached data to file, update or append, so they all have file offsets
-        for(item = mCache.begin(); item != mCache.end(); ++item)
+        for(item = mCache.begin(); item != mCache.end();)
         {
             if((*item)->markedRemove())
             {
-                if((*item)->wasWritten())
+                if(!(*item)->isNew())
+                {
                     indexNeedsUpdated = true;
+                    ++item;
+                }
+                else
+                {
+                    mCacheRawDataSize -= (*item)->size();
+                    delete *item;
+                    item = mCache.erase(item);
+                }
             }
             else
             {
-                (*item)->writeToDataFile(item.hash(), dataOutFile);
+                if((*item)->isModified() || !(*item)->wasWritten())
+                    (*item)->writeToDataFile(item.hash(), dataOutFile);
                 if((*item)->isNew())
                 {
                     ++newCount;
                     indexNeedsUpdated = true;
                 }
+                ++item;
             }
         }
 
@@ -1505,9 +1503,11 @@ namespace NextCash
 
         if(!indexNeedsUpdated)
         {
-            // Log::addFormatted(Log::VERBOSE, NEXTCASH_HASH_DATA_SET_LOG_NAME,
+            trimCache(pMaxCacheDataSize);
+
+            // Log::addFormatted(Log::VERBOSE, pName,
               // "Set %d save index not updated", mID);
-            mLock.writeUnlock();
+            mLock.unlock();
             return true;
         }
 
@@ -1515,7 +1515,7 @@ namespace NextCash
         NextCash::Profiler profilerReadIndex("Hash SubSet Save Read Index");
 #endif
         // Read entire index file
-        filePathName.writeFormatted("%s%s%04x.index", mFilePath.text(), PATH_SEPARATOR, mID);
+        filePathName.writeFormatted("%s%s%04x.index", mFilePath, PATH_SEPARATOR, mID);
         FileInputStream *indexFile = new FileInputStream(filePathName);
         uint64_t previousSize = indexFile->length() / sizeof(stream_size);
         DistributedVector<stream_size> indices(tSetCount);
@@ -1566,7 +1566,6 @@ namespace NextCash
         // Update indices
         DistributedVector<Hash>::Iterator hash;
         DistributedVector<stream_size>::Iterator index;
-        Hash currentHash;
         int compare;
         bool found;
         int32_t lastReport = getTime();
@@ -1575,14 +1574,14 @@ namespace NextCash
         unsigned int readHeadersCount = 0;//, previousIndices = indices.size();
         bool success = true;
 
-        filePathName.writeFormatted("%s%s%04x.data", mFilePath.text(), PATH_SEPARATOR, mID);
+        filePathName.writeFormatted("%s%s%04x.data", mFilePath, PATH_SEPARATOR, mID);
         FileInputStream dataFile(filePathName);
 
-        for(item = mCache.begin(); item != mCache.end() && success; ++item, ++cacheOffset)
+        for(item = mCache.begin(); item != mCache.end() && success; ++cacheOffset)
         {
             if(getTime() - lastReport > 10)
             {
-                Log::addFormatted(Log::INFO, NEXTCASH_HASH_DATA_SET_LOG_NAME,
+                Log::addFormatted(Log::INFO, pName,
                   "Set %d save index update is %2d%% Complete", mID,
                   (int)(((float)cacheOffset / (float)mCache.size()) * 100.0f));
 
@@ -1591,11 +1590,9 @@ namespace NextCash
 
             if((*item)->markedRemove())
             {
-                (*item)->clearNew();
-
                 // Check that it was previously added to the index and data file.
                 // Otherwise it isn't in current indices and doesn't need removed.
-                if((*item)->wasWritten())
+                if(!(*item)->isNew())
                 {
                     // Remove from indices.
                     // They aren't sorted by file offset so in this scenario a linear search is
@@ -1614,13 +1611,17 @@ namespace NextCash
 
                     if(!found)
                     {
-                        Log::addFormatted(Log::ERROR, NEXTCASH_HASH_DATA_SET_LOG_NAME,
+                        Log::addFormatted(Log::ERROR, pName,
                           "Failed to find index to remove for file offset %d : %s",
                           (*item)->dataOffset(), item.hash().hex().text());
                         success = false;
                         break;
                     }
                 }
+
+                mCacheRawDataSize -= (*item)->size();
+                delete *item;
+                item = mCache.erase(item);
             }
             else if((*item)->isNew())
             {
@@ -1629,13 +1630,14 @@ namespace NextCash
 #endif
                 // For new items perform insert sort into existing indices.
                 // This costs more processor time to do the insert for every new item.
-                // This saves file reads by not requiring a read of every existing indice like a
+                // This saves file reads by not requiring a read of every existing index like a
                 //   merge sort would.
                 if(indices.size () == 0)
                 {
 #ifdef PROFILER_ON
                     profilerIndexInsertPush.start();
 #endif
+
                     // Add as only item
                     indices.push_back((*item)->dataOffset());
                     hashes.push_back(item.hash());
@@ -1646,17 +1648,16 @@ namespace NextCash
 #ifdef PROFILER_ON
                     profilerIndexInsert.stop();
 #endif
+                    ++item;
                     continue;
                 }
 
                 // Check first entry
-                currentHash = hashes.front();
-                if(currentHash.isEmpty())
+                hash = hashes.begin();
+                if(hash->isEmpty())
                 {
                     // Fetch data
-                    currentHash = pullHash(&dataFile, indices.front());
-                    ++readHeadersCount;
-                    if(currentHash.isEmpty())
+                    if(!pullHash(&dataFile, indices.front(), *hash))
                     {
                         success = false;
 #ifdef PROFILER_ON
@@ -1664,34 +1665,35 @@ namespace NextCash
 #endif
                         break;
                     }
-                    hashes.front() = currentHash;
+                    ++readHeadersCount;
                 }
 
-                compare = item.hash().compare(currentHash);
+                compare = item.hash().compare(*hash);
                 if(compare <= 0)
                 {
 #ifdef PROFILER_ON
                     profilerIndexInsertPush.start();
 #endif
+
                     // Insert as first
                     indices.insert(indices.begin(), (*item)->dataOffset());
                     hashes.insert(hashes.begin(), item.hash());
                     (*item)->clearNew();
+
 #ifdef PROFILER_ON
                     profilerIndexInsertPush.stop();
                     profilerIndexInsert.stop();
 #endif
+                    ++item;
                     continue;
                 }
 
                 // Check last entry
-                currentHash = hashes.back();
-                if(currentHash.isEmpty())
+                hash = hashes.end() - 1;
+                if(hash->isEmpty())
                 {
                     // Fetch data
-                    currentHash = pullHash(&dataFile, indices.back());
-                    ++readHeadersCount;
-                    if(currentHash.isEmpty())
+                    if(!pullHash(&dataFile, indices.back(), *hash))
                     {
                         success = false;
 #ifdef PROFILER_ON
@@ -1699,15 +1701,16 @@ namespace NextCash
 #endif
                         break;
                     }
-                    hashes.back() = currentHash;
+                    ++readHeadersCount;
                 }
 
-                compare = item.hash().compare(currentHash);
+                compare = item.hash().compare(*hash);
                 if(compare >= 0)
                 {
 #ifdef PROFILER_ON
                     profilerIndexInsertPush.start();
 #endif
+
                     // Add to end
                     indices.push_back((*item)->dataOffset());
                     hashes.push_back(item.hash());
@@ -1716,6 +1719,7 @@ namespace NextCash
                     profilerIndexInsertPush.stop();
                     profilerIndexInsert.stop();
 #endif
+                    ++item;
                     continue;
                 }
 
@@ -1728,76 +1732,45 @@ namespace NextCash
                     current = (begin + end) / 2;
 
                     // Pull "current" entry (if it isn't already)
-                    currentHash = hashes[current];
-                    if(currentHash.isEmpty())
+                    hash = hashes.begin() + current;
+                    index = indices.begin() + current;
+                    if(hash->isEmpty())
                     {
                         // Fetch data
-                        currentHash = pullHash(&dataFile, indices[current]);
-                        ++readHeadersCount;
-                        if(currentHash.isEmpty())
+                        if(!pullHash(&dataFile, *index, *hash))
                         {
                             success = false;
                             break;
                         }
-                        hashes[current] = currentHash;
+                        ++readHeadersCount;
                     }
 
-                    compare = item.hash().compare(currentHash);
+                    compare = item.hash().compare(*hash);
                     if(current == begin || compare == 0)
                     {
 #ifdef PROFILER_ON
                         profilerIndexInsertPush.start();
 #endif
-                        if(compare < 0)
+                        if(current != begin && compare < 0)
                         {
                             // Insert before current
-                            index = indices.begin();
-                            index += current;
                             indices.insert(index, (*item)->dataOffset());
-                            (*item)->clearNew();
-
-                            // Log::addFormatted(Log::VERBOSE, NEXTCASH_HASH_DATA_SET_LOG_NAME,
-                              // "Inserted after : %s", hashes[current-1]->id.hex().text());
-
-                            // Log::addFormatted(Log::VERBOSE, NEXTCASH_HASH_DATA_SET_LOG_NAME,
-                              // "Inserted index : %s", (*item)->id.hex().text());
-
-                            // Log::addFormatted(Log::VERBOSE, NEXTCASH_HASH_DATA_SET_LOG_NAME,
-                              // "Inserted befor : %s", hashes[current]->id.hex().text());
-
-                            hash = hashes.begin();
-                            hash += current;
                             hashes.insert(hash, item.hash());
-#ifdef PROFILER_ON
-                            profilerIndexInsertPush.stop();
-#endif
-                            break;
+                            (*item)->clearNew();
                         }
                         else //if(compare >= 0)
                         {
                             // Insert after current
-                            index = indices.begin();
-                            index += current + 1;
+                            ++index;
+                            ++hash;
                             indices.insert(index, (*item)->dataOffset());
-                            (*item)->clearNew();
-
-                            // Log::addFormatted(Log::VERBOSE, NEXTCASH_HASH_DATA_SET_LOG_NAME,
-                              // "Inserted after : %s", hashes[current]->id.hex().text());
-
-                            // Log::addFormatted(Log::VERBOSE, NEXTCASH_HASH_DATA_SET_LOG_NAME,
-                              // "Inserted index : %s", (*item)->id.hex().text());
-
-                            // Log::addFormatted(Log::VERBOSE, NEXTCASH_HASH_DATA_SET_LOG_NAME,
-                              // "Inserted befor : %s", hashes[current+1]->id.hex().text());
-
-                            hash = hashes.begin();
-                            hash += current + 1;
                             hashes.insert(hash, item.hash());
-#ifdef PROFILER_ON
-                            profilerIndexInsertPush.stop();
-#endif
-                            break;
+                            (*item)->clearNew();
                         }
+#ifdef PROFILER_ON
+                        profilerIndexInsertPush.stop();
+#endif
+                        break;
                     }
 
                     if(compare > 0)
@@ -1808,7 +1781,10 @@ namespace NextCash
 #ifdef PROFILER_ON
                 profilerIndexInsert.stop();
 #endif
+                ++item;
             }
+            else
+                ++item;
         }
 #ifdef PROFILER_ON
         profilerUpdateIndex.stop();
@@ -1820,7 +1796,7 @@ namespace NextCash
             NextCash::Profiler profilerWriteIndex("Hash SubSet Save Write Index");
 #endif
             // Open index file as an output stream
-            filePathName.writeFormatted("%s%s%04x.index", mFilePath.text(), PATH_SEPARATOR, mID);
+            filePathName.writeFormatted("%s%s%04x.index", mFilePath, PATH_SEPARATOR, mID);
             FileOutputStream *indexOutFile = new FileOutputStream(filePathName, true);
 
             // Write the new index
@@ -1835,15 +1811,38 @@ namespace NextCash
             mFileSize = indexOutFile->length() / sizeof(stream_size);
             mNewSize = 0;
 
-            // Reopen index file as an input stream
             delete indexOutFile;
 #ifdef PROFILER_ON
             profilerWriteIndex.stop();
 #endif
+
+            // Open index file
+            filePathName.writeFormatted("%s%s%04x.index", mFilePath, PATH_SEPARATOR, mID);
+            FileInputStream indexFile(filePathName);
+
+            // Reload samples
+            loadSamples(&indexFile);
+
+            trimCache(pMaxCacheDataSize);
         }
 
-        mLock.writeUnlock();
+        mLock.unlock();
         return true;
+    }
+
+    template <class tHashDataType, uint8_t tHashSize, uint16_t tSampleSize, uint16_t tSetCount>
+    bool HashDataSet<tHashDataType, tHashSize, tSampleSize, tSetCount>::SubSet::defragment()
+    {
+        // Open current index file.
+        // Create new temp index file.
+        // Open current data file.
+        // Create new temp data file.
+        // Parse through index file.
+        //   Pull each associated item from the current data file and append it to the temp data
+        //     file.
+        //   Append new data offset to the temp index file.
+        // Remove current files and replace with temp files.
+        return false;
     }
 
     bool testHashDataSet();
