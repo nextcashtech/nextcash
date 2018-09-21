@@ -1,5 +1,5 @@
 /**************************************************************************
- * Copyright 2017 NextCash, LLC                                           *
+ * Copyright 2017-2018 NextCash, LLC                                      *
  * Contributors :                                                         *
  *   Curtis Ellis <curtis@nextcash.tech>                                  *
  * Distributed under the MIT software license, see the accompanying       *
@@ -27,48 +27,48 @@ namespace NextCash
     {
     public:
 
-        Hash() : mMutex("Hash") { mData = NULL; } // Create empty
-        Hash(unsigned int pSize) : mMutex("Hash") { mData = NULL; allocate(pSize); } // Create specific size, zeroized
-        Hash(unsigned int pSize, int64_t pValue); // Create from integer value (arithmetic)
-        Hash(const char *pHex); // Create from hex text
-        Hash(InputStream *pStream, unsigned int pSize) : mMutex("Hash")
-          { mData = NULL; allocate(pSize); read(pStream); }
+        Hash() { mSize = 0; mData = NULL; } // Create empty.
+        // Create specific size, zeroized.
+        Hash(uint8_t pSize) { mSize = 0; mData = NULL; allocate(pSize); zeroize(); }
+        Hash(uint8_t pSize, int64_t pValue); // Create from integer value (arithmetic)
+        Hash(const char *pHex); // Create from hex text.
+        Hash(InputStream *pStream, uint8_t pSize)
+          { mSize = 0; mData = NULL; allocate(pSize); read(pStream); }
         Hash(const Hash &pCopy);
-        ~Hash() { deallocate(); }
+        ~Hash() { if(mData != NULL) delete[] mData; }
 
         const Hash &operator = (const Hash &pRight);
+
+        // Return the size in memory of a hash of a specific size.
+        static constexpr stream_size memorySize(stream_size pSize)
+        {
+            return sizeof(uint8_t) + sizeof(uint8_t *) + (sizeof(uint8_t) * pSize);
+        }
 
         bool isEmpty() const { return mData == NULL; }
         bool isZero() const;
 
         unsigned int size() const
         {
-            if(mData == NULL)
+            if(isEmpty())
                 return 0;
-            return mData->size;
+            return mSize;
         }
-        const uint8_t *data() const
-        {
-            if(mData == NULL)
-                return NULL;
-            return mData->data;
-        }
+        const uint8_t *data() const { return mData; }
 
         // Set the number of bytes in the hash
-        void setSize(unsigned int pSize)
-        {
-            if(pSize == 0)
-            {
-                deallocate();
-                return;
-            }
-
-            if(mData == NULL || mData->size != pSize)
-                allocate(pSize);
-        }
+        void setSize(uint8_t pSize) { allocate(pSize); }
 
         // Set to zero size. Makes hash "empty"
-        void clear() { setSize(0); }
+        void clear()
+        {
+            if(!isEmpty())
+            {
+                delete[] mData;
+                mData = NULL;
+            }
+            mSize = 0;
+        }
 
         void zeroize(); // Set all bytes to zero
         void setMax(); // Set all bytes to 0xff
@@ -85,46 +85,43 @@ namespace NextCash
 
         void setByte(unsigned int pOffset, uint8_t pValue)
         {
-            if(mData == NULL || pOffset >= mData->size)
+            if(isEmpty() || pOffset >= mSize)
                 return;
-            makeExclusive();
-            mData->data[pOffset] = pValue;
+            mData[pOffset] = pValue;
         }
         uint8_t getByte(unsigned int pOffset) const
         {
-            if(mData == NULL || pOffset >= mData->size)
+            if(isEmpty() || pOffset >= mSize)
                 return 0;
-            return mData->data[pOffset];
+            return mData[pOffset];
         }
 
         void write(OutputStream *pStream) const
         {
-            if(mData == NULL)
+            if(isEmpty())
                 return;
-            pStream->write(mData->data, mData->size);
+            pStream->write(mData, mSize);
         }
 
         bool read(InputStream *pStream)
         {
-            if(mData == NULL || pStream->remaining() < mData->size)
+            if(isEmpty() || pStream->remaining() < mSize)
                 return false;
-            makeExclusive();
-            pStream->read(mData->data, mData->size);
+            pStream->read(mData, mSize);
             return true;
         }
 
         bool read(InputStream *pStream, stream_size pSize)
         {
-            setSize(pSize);
+            allocate(pSize);
             return read(pStream);
         }
 
         // RawOutputStream virtual
         void write(const void *pInput, stream_size pSize)
         {
-            setSize(pSize);
-            makeExclusive();
-            std::memcpy(mData->data, pInput, pSize);
+            allocate(pSize);
+            std::memcpy(mData, pInput, pSize);
         }
 
         // Consecutive zero bits at most significant endian
@@ -142,40 +139,40 @@ namespace NextCash
 
         bool operator == (const Hash &pRight) const
         {
-            if(mData == NULL)
-                return pRight.mData == NULL;
-            if(pRight.mData == NULL)
+            if(isEmpty())
+                return pRight.isEmpty();
+            if(pRight.isEmpty())
                 return false;
-            if(mData->size != pRight.mData->size)
+            if(mSize != pRight.mSize)
                 return false;
-            return std::memcmp(mData->data, pRight.mData->data, mData->size) == 0;
+            return std::memcmp(mData, pRight.mData, mSize) == 0;
         }
 
         bool operator != (const Hash &pRight) const
         {
-            if(mData == NULL)
-                return pRight.mData != NULL;
-            if(pRight.mData == NULL)
+            if(isEmpty())
+                return !pRight.isEmpty();
+            if(pRight.isEmpty())
                 return true;
-            if(mData->size != pRight.mData->size)
+            if(mSize != pRight.mSize)
                 return true;
-            return std::memcmp(mData->data, pRight.mData->data, mData->size) != 0;
+            return std::memcmp(mData, pRight.mData, mSize) != 0;
         }
 
         uint8_t lookup8() const // Used to split into 256 (0x100) piles
         {
-            if(mData == NULL)
+            if(isEmpty())
                 return 0;
             else
-                return mData->data[0];
+                return mData[0];
         }
 
         uint16_t lookup16() const
         {
-            if(mData == NULL || mData->size < 2)
+            if(isEmpty() || mSize < 2)
                 return 0;
             else
-                return (uint16_t)(mData->data[0] << 8) | (uint16_t)mData->data[1];
+                return (uint16_t)(mData[0] << 8) | (uint16_t)mData[1];
         }
 
         // Calculate the SipHash-2-4 "Short ID" and put it in pHash
@@ -226,33 +223,33 @@ namespace NextCash
 
         Hash &operator +=(int64_t pValue)
         {
-            if(mData == NULL)
+            if(isEmpty())
                 return *this;
-            Hash value(mData->size, pValue);
+            Hash value(mSize, pValue);
             *this += value;
             return *this;
         }
         Hash &operator -=(int64_t pValue)
         {
-            if(mData == NULL)
+            if(isEmpty())
                 return *this;
-            Hash value(mData->size, pValue);
+            Hash value(mSize, pValue);
             *this -= value;
             return *this;
         }
         Hash &operator *=(int64_t pValue)
         {
-            if(mData == NULL)
+            if(isEmpty())
                 return *this;
-            Hash value(mData->size, pValue);
+            Hash value(mSize, pValue);
             *this *= value;
             return *this;
         }
         Hash &operator /=(int64_t pValue)
         {
-            if(mData == NULL)
+            if(isEmpty())
                 return *this;
-            Hash value(mData->size, pValue);
+            Hash value(mSize, pValue);
             *this /= value;
             return *this;
         }
@@ -285,36 +282,10 @@ namespace NextCash
 
     private:
 
-        class Data
-        {
-        public:
+        void allocate(uint8_t pSize);
 
-            Data(unsigned int pSize) : mutex("Hash Data")
-            {
-                size = pSize;
-                data = new uint8_t[pSize];
-                references = 1;
-                std::memset(data, 0, pSize); // Zeroize
-            }
-            ~Data() { delete[] data; }
-
-            unsigned int size;
-            uint8_t *data;
-            int references;
-            MutexWithConstantName mutex;
-
-        private:
-            Data(const Data &pCopy);
-            Data &operator = (const Data &pRight);
-        };
-
-        void makeExclusive();
-        void allocate(unsigned int pSize);
-        void deallocate(bool pLocked = false);
-
-        MutexWithConstantName mMutex;
-        Data *mData;
-        static unsigned int mCount;
+        uint8_t mSize;
+        uint8_t *mData;
 
     };
 
@@ -406,19 +377,20 @@ namespace NextCash
         bool remove(const Hash &pHash);
 
         // Returns true if the new item was inserted
-        // Returns false if an item with a matching value and hash was found and no insert was done.
-        // pValuesMatch must be a function that takes two tType parameters and returns true if the values match.
+        // Returns false if an item with a matching value and hash was found and no insert was
+        //   done.
+        // pValuesMatch must be a function that takes two tType parameters and returns true if the
+        //   values match.
         // Inserts after all items with matching hashes.
         bool insertIfNotMatching(const Hash &pHash, tType &pData,
           bool (*pValuesMatch)(tType &pLeft, tType &pRight));
 
         void clear()
         {
-            for(SubIterator item=mList.begin();item!=mList.end();++item)
+            for(SubIterator item = mList.begin(); item != mList.end(); ++item)
                 delete *item;
             mList.clear();
         }
-        void clearNoDelete() { mList.clear(); }
 
         class Iterator
         {
@@ -516,12 +488,13 @@ namespace NextCash
     template <class tType>
     HashContainerList<tType>::~HashContainerList()
     {
-        for(SubIterator item=mList.begin();item!=mList.end();++item)
+        for(SubIterator item = mList.begin(); item != mList.end(); ++item)
             delete *item;
     }
 
     template <class tType>
-    typename HashContainerList<tType>::SubIterator HashContainerList<tType>::findInsertBefore(const Hash &pHash, bool pFirst)
+    typename HashContainerList<tType>::SubIterator HashContainerList<tType>::findInsertBefore(
+      const Hash &pHash, bool pFirst)
     {
 #ifdef PROFILER_ON
         Profiler profiler("Hash Container Find Insert Before");
@@ -540,16 +513,14 @@ namespace NextCash
         Data **top = afterLast - 1;
         Data **current = afterLast;
 
-        if(compare == 0)
-            current = top;
-        else if(mList.size() > 1)
+        if(mList.size() > 1)
         {
             compare = mList.front()->hash.compare(pHash);
             if(compare >= 0)
                 return mList.begin(); // Insert at the beginning
         }
-        else
-            return mList.begin(); // Only one item in list and it is after the specified hash, so insert before it
+        else // Only one item in list and it is after the specified hash, soinsert before it.
+            return mList.begin();
 
         if(current == afterLast) // Check if already found
         {
@@ -622,7 +593,7 @@ namespace NextCash
     bool HashContainerList<tType>::remove(const Hash &pHash)
     {
         bool result = false;
-        for(Iterator item=get(pHash);item!=end()&&item.hash() == pHash;)
+        for(Iterator item = get(pHash); item != end() && item.hash() == pHash;)
         {
             delete *item;
             item = erase(item);

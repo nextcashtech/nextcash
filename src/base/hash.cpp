@@ -1,5 +1,5 @@
 /**************************************************************************
- * Copyright 2017 NextCash, LLC                                           *
+ * Copyright 2017-2018 NextCash, LLC                                      *
  * Contributors :                                                         *
  *   Curtis Ellis <curtis@nextcash.tech>                                  *
  * Distributed under the MIT software license, see the accompanying       *
@@ -16,143 +16,83 @@
 
 namespace NextCash
 {
-    unsigned int Hash::mCount = 0;
-
-    Hash::Hash(const char *pHex) : mMutex("Hash")
+    Hash::Hash(const char *pHex)
     {
+        mSize = 0;
         mData = NULL;
         setHex(pHex);
     }
 
-    Hash::Hash(const Hash &pCopy) : mMutex("Hash")
+    Hash::Hash(const Hash &pCopy)
     {
-        if(pCopy.mData != NULL)
-        {
-            mMutex.lock();
-            pCopy.mData->mutex.lock();
-            mData = pCopy.mData;
-            ++mData->references;
-            pCopy.mData->mutex.unlock();
-            mMutex.unlock();
-        }
-        else
+        mSize = pCopy.mSize;
+        if(mSize == 0)
             mData = NULL;
+        else
+        {
+            mData = new uint8_t[mSize];
+            std::memcpy(mData, pCopy.mData, mSize);
+        }
     }
 
-    Hash::Hash(unsigned int pSize, int64_t pValue) : mMutex("Hash")
+    Hash::Hash(uint8_t pSize, int64_t pValue)
     {
+        mSize = 0;
         mData = NULL;
         allocate(pSize);
 
         // Assign value
         zeroize();
-        for(unsigned int i=0;i<8&&i<mData->size;++i)
-            mData->data[i] = pValue >> (i * 8);
+        for(uint8_t i = 0; i < 8 && i < mSize; ++i)
+            mData[i] = pValue >> (i * 8);
 
         if(pValue < 0)
-            for(unsigned int i=8;i<mData->size;++i)
-                mData->data[i] = 0xff;
+            for(uint8_t i = 8; i < mSize; ++i)
+                mData[i] = 0xff;
     }
 
-    void Hash::makeExclusive()
+    void Hash::allocate(uint8_t pSize)
     {
-        mMutex.lock();
-        if(mData == NULL)
+        if(pSize == 0)
         {
-            mMutex.unlock();
+            clear();
             return;
         }
-
-        mData->mutex.lock();
-
-        if(mData->references == 1)
-        {
-            mData->mutex.unlock();
-            mMutex.unlock();
-            return; // Already exclusive
-        }
-
-        // Create new exclusive data
-        ++mCount;
-        Data *oldData = mData;
-        mData = new Data(oldData->size);
-        std::memcpy(mData->data, oldData->data, oldData->size);
-
-        --oldData->references;
-        oldData->mutex.unlock();
-        mMutex.unlock();
-    }
-
-    void Hash::allocate(unsigned int pSize)
-    {
-        mMutex.lock();
 
         if(mData != NULL)
         {
-            if(mData->size == pSize)
-            {
-                mMutex.unlock();
+            if(mSize == pSize)
                 return;
-            }
 
-            deallocate(true);
+            delete[] mData;
         }
 
-        if(pSize > 0)
-        {
-            ++mCount;
-            mData = new Data(pSize);
-        }
-
-        mMutex.unlock();
-    }
-
-    void Hash::deallocate(bool pLocked)
-    {
-        if(!pLocked)
-            mMutex.lock();
-
-        if(mData == NULL)
-        {
-            mMutex.unlock();
-            return;
-        }
-
-        mData->mutex.lock();
-
-        // Dereference data
-        if(mData->references == 0)
-            Log::add(Log::ERROR, NEXTCASH_HASH_LOG_NAME, "Deallocating zero reference hash");
-
-        --mData->references;
-        if(mData->references == 0)
-        {
-            // No more references to this data
-            --mCount;
-            delete mData;
-        }
-        else
-            mData->mutex.unlock();
-        mData = NULL;
-
-        if(!pLocked)
-            mMutex.unlock();
+        mSize = pSize;
+        mData = new uint8_t[mSize];
     }
 
     const Hash &Hash::operator = (const Hash &pRight)
     {
-        mMutex.lock();
-
-        deallocate(true);
-        if(pRight.mData != NULL)
+        if(pRight.mData == NULL)
         {
-            pRight.mData->mutex.lock();
-            mData = pRight.mData;
-            ++mData->references;
-            pRight.mData->mutex.unlock();
+            clear();
+            return *this;
         }
 
-        mMutex.unlock();
+        if(mData != NULL)
+        {
+            if(mSize == pRight.mSize)
+            {
+                std::memcpy(mData, pRight.mData, mSize);
+                return *this;
+            }
+
+            delete[] mData;
+        }
+
+        mSize = pRight.mSize;
+        mData = new uint8_t[mSize];
+        std::memcpy(mData, pRight.mData, mSize);
         return *this;
     }
 
@@ -160,38 +100,34 @@ namespace NextCash
     {
         if(mData == NULL)
             return false; // Empty is not zero
-        for(unsigned int i=0;i<mData->size;i++)
-            if(mData->data[i] != 0)
+        uint8_t *byte = mData;
+        for(uint8_t i = 0; i < mSize; ++i, ++byte)
+            if(*byte != 0)
                 return false;
         return true;
     }
 
     void Hash::zeroize()
     {
-        if(mData == NULL)
-            return;
-        makeExclusive();
-        std::memset(mData->data, 0, mData->size);
+        if(mData != NULL)
+            std::memset(mData, 0, mSize);
     }
 
     void Hash::setMax()
     {
-        if(mData == NULL)
-            return;
-        makeExclusive();
-        std::memset(mData->data, 0xff, mData->size);
+        if(mData != NULL)
+            std::memset(mData, 0xff, mSize);
     }
 
     void Hash::randomize()
     {
         if(mData == NULL)
             return;
-        makeExclusive();
         uint32_t random;
-        for(unsigned int i=0;i<mData->size-3;i+=4)
+        for(uint8_t i = 0; i < mSize; ++i)
         {
             random = Math::randomInt();
-            mData->data[i] = random & 0xff;
+            mData[i] = random & 0xff;
         }
     }
 
@@ -213,14 +149,14 @@ namespace NextCash
                 return 1;
         }
 
-        if(mData->size < pRight.mData->size)
+        if(mSize < pRight.mSize)
             return -1;
-        if(mData->size > pRight.mData->size)
+        if(mSize > pRight.mSize)
             return 1;
 
-        const uint8_t *left = mData->data + mData->size - 1;
-        const uint8_t *right = pRight.mData->data + mData->size - 1;
-        for(unsigned int i=0;i<mData->size;++i,--left,--right)
+        const uint8_t *left = mData + mSize - 1;
+        const uint8_t *right = pRight.mData + mSize - 1;
+        for(uint8_t i = 0; i < mSize; ++i, --left, --right)
         {
             if(*left < *right)
                 return -1;
@@ -232,7 +168,7 @@ namespace NextCash
 
     bool Hash::getShortID(Hash &pHash, const Hash &pHeaderHash)
     {
-        if(mData == NULL || mData->size != 32 || pHeaderHash.size() != 32)
+        if(mData == NULL || mSize != 32 || pHeaderHash.size() != 32)
         {
             pHash.clear();
             return false;
@@ -241,19 +177,19 @@ namespace NextCash
         // Use first two little endian 64 bit integers from header hash as keys
         uint64_t key0 = 0;
         uint64_t key1 = 0;
-        unsigned int i;
-        const uint8_t *byte = pHeaderHash.mData->data;
-        for(i=0;i<8;++i)
+        uint8_t i;
+        const uint8_t *byte = pHeaderHash.mData;
+        for(i = 0; i < 8; ++i)
             key0 |= (uint64_t)*byte++ << (i * 8);
-        for(i=0;i<8;++i)
+        for(i = 0; i < 8; ++i)
             key1 |= (uint64_t)*byte++ << (i * 8);
 
-        uint64_t sipHash24Value = Digest::sipHash24(mData->data, 32, key0, key1);
+        uint64_t sipHash24Value = Digest::sipHash24(mData, 32, key0, key1);
 
         // Put 6 least significant bytes of sipHash24Value into result
         pHash.setSize(6);
-        for(i=0;i<6;++i)
-            pHash.mData->data[i] = (sipHash24Value >> (i * 8)) & 0xff;
+        for(i = 0; i < 6; ++i)
+            pHash.mData[i] = (sipHash24Value >> (i * 8)) & 0xff;
 
         return true;
     }
@@ -264,8 +200,8 @@ namespace NextCash
             return 0;
 
         unsigned int result = 0;
-        const uint8_t *byte = mData->data + mData->size - 1;
-        for(unsigned int i=0;i<mData->size;++i,--byte)
+        const uint8_t *byte = mData + mSize - 1;
+        for(uint8_t i = 0; i < mSize; ++i, --byte)
         {
             if(*byte == 0)
                 result += 8;
@@ -287,7 +223,7 @@ namespace NextCash
     unsigned int leadingZeroBits(uint8_t pByte)
     {
         unsigned int result = 0;
-        for(int j=7;j>=0;--j)
+        for(int j = 7; j >= 0; --j)
         {
             if(pByte >> j != 0)
                 return result;
@@ -303,8 +239,8 @@ namespace NextCash
             return 0;
 
         unsigned int result = 0;
-        const uint8_t *byte = mData->data + mData->size - 1;
-        for(unsigned int i=0;i<mData->size;++i,--byte)
+        const uint8_t *byte = mData + mSize - 1;
+        for(uint8_t i = 0; i < mSize; ++i, --byte)
         {
             if(*byte == 0)
                 ++result;
@@ -317,15 +253,15 @@ namespace NextCash
 
     uint64_t Hash::shiftBytesDown(unsigned int pByteShift) const
     {
-        if(mData == NULL || pByteShift >= mData->size)
+        if(mData == NULL || pByteShift >= mSize)
             return 0;
 
         // Get least significant byte of shifted value
-        const uint8_t *byte = mData->data + mData->size - pByteShift;
+        const uint8_t *byte = mData + mSize - pByteShift;
         uint64_t result = 0;
 
         // Add all available bytes to value
-        for(unsigned int i=0;i<8 && byte>=mData->data;++i,--byte)
+        for(uint8_t i = 0; i < 8 && byte >= mData; ++i, --byte)
             result &= (uint64_t)*byte << (i * 8);
 
         return result;
@@ -337,12 +273,12 @@ namespace NextCash
             return *this;
 
         zeroize();
-        for(unsigned int i=0;i<8&&i<mData->size;++i)
-            mData->data[i] = pValue >> (i * 8);
+        for(uint8_t i = 0; i < 8 && i < mSize; ++i)
+            mData[i] = pValue >> (i * 8);
         if(pValue < 0)
         {
-            for(unsigned int i=8;i<mData->size;++i)
-                mData->data[i] = 0xff;
+            for(uint8_t i = 8; i < mSize; ++i)
+                mData[i] = 0xff;
         }
         return *this;
     }
@@ -351,10 +287,10 @@ namespace NextCash
     {
         if(mData == NULL)
             return Hash();
-        Hash result(mData->size);
-        const uint8_t *byte = mData->data;
-        uint8_t *resultByte = result.mData->data;
-        for(unsigned int i=0;i<mData->size;++i,++byte,++resultByte)
+        Hash result(mSize);
+        const uint8_t *byte = mData;
+        uint8_t *resultByte = result.mData;
+        for(uint8_t i = 0; i < mSize; ++i, ++byte, ++resultByte)
             *resultByte = ~*byte;
         return result;
     }
@@ -364,10 +300,9 @@ namespace NextCash
         if(mData == NULL)
             return Hash();
         Hash result(*this);
-        result.makeExclusive();
-        const uint8_t *byte = mData->data;
-        uint8_t *resultByte = result.mData->data;
-        for(unsigned int i=0;i<mData->size;++i,++byte,++resultByte)
+        const uint8_t *byte = mData;
+        uint8_t *resultByte = result.mData;
+        for(uint8_t i = 0; i < mSize; ++i, ++byte, ++resultByte)
             *resultByte = ~*byte;
         ++result;
         return result;
@@ -377,10 +312,9 @@ namespace NextCash
     {
         if(mData == NULL)
             return *this;
-        makeExclusive();
         // Prefix operator
-        unsigned int i = 0;
-        while(++mData->data[i] == 0 && i < mData->size - 1)
+        uint8_t i = 0;
+        while(++mData[i] == 0 && i < mSize - 1)
             ++i;
         return *this;
     }
@@ -389,10 +323,9 @@ namespace NextCash
     {
         if(mData == NULL)
             return *this;
-        makeExclusive();
         // Prefix operator
-        unsigned int i = 0;
-        while(--mData->data[i] == (uint8_t)-1 && i < mData->size - 1)
+        uint8_t i = 0;
+        while(--mData[i] == (uint8_t)-1 && i < mSize - 1)
             ++i;
         return *this;
     }
@@ -401,13 +334,12 @@ namespace NextCash
     {
         if(mData == NULL || pValue.mData == NULL)
             return *this;
-        makeExclusive();
         uint64_t carry = 0;
-        uint8_t *byte = mData->data;
-        const uint8_t *valueByte = pValue.mData->data;
-        if(pValue.mData->size != mData->size)
+        uint8_t *byte = mData;
+        const uint8_t *valueByte = pValue.mData;
+        if(pValue.mSize != mSize)
             return *this; // Error
-        for(unsigned int i=0;i<mData->size;++i,++byte,++valueByte)
+        for(uint8_t i = 0; i < mSize; ++i, ++byte, ++valueByte)
         {
             uint64_t n = carry + *byte + *valueByte;
             *byte = n & 0xff;
@@ -424,21 +356,22 @@ namespace NextCash
         Hash copy = *this;
 
         const uint8_t *valueByte;
-        const uint8_t *copyByte = copy.mData->data;
+        const uint8_t *copyByte = copy.mData;
 
-        if(pValue.mData->size != mData->size)
+        if(pValue.mSize != mSize)
             return *this; // Error
 
         zeroize();
 
-        for(unsigned int j=0;j<mData->size;++j)
+        for(uint8_t j=0;j<mSize;++j)
         {
             uint64_t carry = 0;
-            valueByte = pValue.mData->data;
-            for(int i=0;i+j<mData->size;++i)
+            valueByte = pValue.mData;
+            for(uint8_t i=0;i+j<mSize;++i)
             {
-                uint64_t n = (uint64_t)carry + (uint64_t)mData->data[i + j] + ((uint64_t)*copyByte * (uint64_t)*valueByte);
-                mData->data[i + j] = n & 0xff;
+                uint64_t n = (uint64_t)carry + (uint64_t)mData[i + j] +
+                  ((uint64_t)*copyByte * (uint64_t)*valueByte);
+                mData[i + j] = n & 0xff;
                 carry = n >> 8;
                 ++valueByte;
             }
@@ -448,7 +381,7 @@ namespace NextCash
         return *this;
     }
 
-    Hash &Hash::operator /=(const Hash &pValue)
+    Hash &Hash::operator /= (const Hash &pValue)
     {
         if(mData == NULL || pValue.mData == NULL)
             return *this;
@@ -459,8 +392,8 @@ namespace NextCash
         zeroize();
 
         // The quotient.
-        int numBits = (mData->size * 8) - num.leadingZeroBits();
-        int divBits = (mData->size * 8) - div.leadingZeroBits();
+        int numBits = (mSize * 8) - num.leadingZeroBits();
+        int divBits = (mSize * 8) - div.leadingZeroBits();
 
         if(divBits == 0)
             return *this; // Divide by zero
@@ -476,7 +409,7 @@ namespace NextCash
             if(num.compare(div) >= 0)
             {
                 num -= div;
-                mData->data[shift / 8] |= (1 << (shift & 7)); // Set a bit of the result.
+                mData[shift / 8] |= (1 << (shift & 7)); // Set a bit of the result.
             }
 
             // Shift back.
@@ -499,12 +432,12 @@ namespace NextCash
         pShiftBits = pShiftBits % 8;
         zeroize();
 
-        for(unsigned int i=0;i<mData->size;++i)
+        for(uint8_t i=0;i<mSize;++i)
         {
-            if(i + offset + 1 < mData->size && pShiftBits != 0)
-                mData->data[i + offset + 1] |= (copy.mData->data[i] >> (8 - pShiftBits));
-            if(i + offset < mData->size)
-                mData->data[i + offset] |= (copy.mData->data[i] << pShiftBits);
+            if(i + offset + 1 < mSize && pShiftBits != 0)
+                mData[i + offset + 1] |= (copy.mData[i] >> (8 - pShiftBits));
+            if(i + offset < mSize)
+                mData[i + offset] |= (copy.mData[i] << pShiftBits);
         }
 
         return *this;
@@ -521,12 +454,12 @@ namespace NextCash
         pShiftBits = pShiftBits % 8;
         zeroize();
 
-        for(unsigned int i=0;i<mData->size;++i)
+        for(uint8_t i=0;i<mSize;++i)
         {
             if((int)i - offset - 1 >= 0 && pShiftBits != 0)
-                mData->data[(int)i - offset - 1] |= (copy.mData->data[i] << (8 - pShiftBits));
+                mData[(int)i - offset - 1] |= (copy.mData[i] << (8 - pShiftBits));
             if((int)i - offset >= 0)
-                mData->data[i - offset] |= (copy.mData->data[i] >> pShiftBits);
+                mData[i - offset] |= (copy.mData[i] >> pShiftBits);
         }
 
         return *this;
@@ -547,11 +480,11 @@ namespace NextCash
         }
 
         if(length >= 0 && length < 32)
-            mData->data[length] = (pTargetBits >> 16) & 0xff;
+            mData[length] = (pTargetBits >> 16) & 0xff;
         if(length - 1 >= 0 && length - 1 < 32)
-            mData->data[length-1] = (pTargetBits >> 8) & 0xff;
+            mData[length-1] = (pTargetBits >> 8) & 0xff;
         if(length - 2 >= 0 && length - 2 < 32)
-            mData->data[length-2] = pTargetBits & 0xff;
+            mData[length-2] = pTargetBits & 0xff;
     }
 
     void Hash::getDifficulty(uint32_t &pTargetBits, uint32_t pMax) const
@@ -562,13 +495,13 @@ namespace NextCash
             return;
         }
 
-        uint8_t length = mData->size - leadingZeroBytes();
+        uint8_t length = mSize - leadingZeroBytes();
         uint32_t value = 0;
 
         for(int i=1;i<4;++i)
         {
             value <<= 8;
-            if((int)length - i < (int)mData->size)
+            if((int)length - i < (int)mSize)
                 value += getByte(length - i);
         }
 
@@ -607,9 +540,9 @@ namespace NextCash
     String Hash::hex() const
     {
         String result;
-        if(mData == NULL)
+        if(mData == NULL || mSize == 0)
             return result;
-        result.writeReverseHex(mData->data, mData->size);
+        result.writeReverseHex(mData, mSize);
         return result;
     }
 
@@ -619,7 +552,7 @@ namespace NextCash
         String result;
         if(mData == NULL)
             return result;
-        result.writeHex(mData->data, mData->size);
+        result.writeHex(mData, mSize);
         return result;
     }
 
@@ -628,10 +561,9 @@ namespace NextCash
     {
         unsigned int length = std::strlen(pHex);
         setSize(length / 2);
-        makeExclusive();
 
         const char *hexChar = pHex + length - 1;
-        uint8_t *byte = mData->data;
+        uint8_t *byte = mData;
         bool second = false;
 
         while(hexChar >= pHex)
@@ -654,10 +586,9 @@ namespace NextCash
     {
         unsigned int length = std::strlen(pHex);
         setSize(length / 2);
-        makeExclusive();
 
         const char *hexChar = pHex;
-        uint8_t *byte = mData->data;
+        uint8_t *byte = mData;
         bool second = false;
 
         for(unsigned int i=0;i<length;++i)
@@ -1301,8 +1232,8 @@ namespace NextCash
         retrieve = hashStringList.get(l1);
         if(retrieve == hashStringList.end())
         {
-            Log::addFormatted(Log::ERROR, NEXTCASH_HASH_LOG_NAME, "Failed hash string list 0 : not found",
-              workHash.hex().text());
+            Log::addFormatted(Log::ERROR, NEXTCASH_HASH_LOG_NAME,
+              "Failed hash string list 0 : not found", workHash.hex().text());
             success = false;
         }
         else if(*retrieve != string1)
@@ -1319,8 +1250,8 @@ namespace NextCash
         retrieve = hashStringList.get(l1);
         if(retrieve == hashStringList.end())
         {
-            Log::addFormatted(Log::ERROR, NEXTCASH_HASH_LOG_NAME, "Failed hash string list 1 : not found",
-              workHash.hex().text());
+            Log::addFormatted(Log::ERROR, NEXTCASH_HASH_LOG_NAME,
+              "Failed hash string list 1 : not found", workHash.hex().text());
             success = false;
         }
         else if(*retrieve != string1)
@@ -1335,8 +1266,8 @@ namespace NextCash
         retrieve = hashStringList.get(l2);
         if(retrieve == hashStringList.end())
         {
-            Log::addFormatted(Log::ERROR, NEXTCASH_HASH_LOG_NAME, "Failed hash string list 2 : not found",
-              workHash.hex().text());
+            Log::addFormatted(Log::ERROR, NEXTCASH_HASH_LOG_NAME,
+              "Failed hash string list 2 : not found", workHash.hex().text());
             success = false;
         }
         else if(*retrieve != string2)
@@ -1368,14 +1299,14 @@ namespace NextCash
         retrieve = hashStringList.get(l1);
         if(retrieve == hashStringList.end())
         {
-            Log::addFormatted(Log::ERROR, NEXTCASH_HASH_LOG_NAME, "Failed hash string list r1 : not found",
-              workHash.hex().text());
+            Log::addFormatted(Log::ERROR, NEXTCASH_HASH_LOG_NAME,
+              "Failed hash string list r1 : not found", workHash.hex().text());
             success = false;
         }
         else if(*retrieve != string1)
         {
-            Log::addFormatted(Log::ERROR, NEXTCASH_HASH_LOG_NAME, "Failed hash string list r1 : %s",
-              (*retrieve)->text());
+            Log::addFormatted(Log::ERROR, NEXTCASH_HASH_LOG_NAME,
+              "Failed hash string list r1 : %s", (*retrieve)->text());
             success = false;
         }
         else
@@ -1384,14 +1315,14 @@ namespace NextCash
         retrieve = hashStringList.get(l2);
         if(retrieve == hashStringList.end())
         {
-            Log::addFormatted(Log::ERROR, NEXTCASH_HASH_LOG_NAME, "Failed hash string list r2 : not found",
-              workHash.hex().text());
+            Log::addFormatted(Log::ERROR, NEXTCASH_HASH_LOG_NAME,
+              "Failed hash string list r2 : not found", workHash.hex().text());
             success = false;
         }
         else if(*retrieve != string2)
         {
-            Log::addFormatted(Log::ERROR, NEXTCASH_HASH_LOG_NAME, "Failed hash string list r2 : %s",
-              (*retrieve)->text());
+            Log::addFormatted(Log::ERROR, NEXTCASH_HASH_LOG_NAME,
+              "Failed hash string list r2 : %s", (*retrieve)->text());
             success = false;
         }
         else
@@ -1408,7 +1339,8 @@ namespace NextCash
 
         String *firstTest = NULL;
         String *lastTest = NULL;
-        for(HashContainerList<String *>::Iterator item=hashStringList.begin();item!=hashStringList.end();++item)
+        for(HashContainerList<String *>::Iterator item = hashStringList.begin();
+          item != hashStringList.end(); ++item)
         {
             if(firstTest == NULL)
                 firstTest = *item;
@@ -1423,14 +1355,14 @@ namespace NextCash
 
         if(firstTest == NULL)
         {
-            Log::addFormatted(Log::ERROR, NEXTCASH_HASH_LOG_NAME, "Failed hash string list iterate first : not found",
-              workHash.hex().text());
+            Log::addFormatted(Log::ERROR, NEXTCASH_HASH_LOG_NAME,
+              "Failed hash string list iterate first : not found", workHash.hex().text());
             success = false;
         }
         else if(firstTest != firstString)
         {
-            Log::addFormatted(Log::ERROR, NEXTCASH_HASH_LOG_NAME, "Failed hash string list iterate first : %s",
-              firstTest->text());
+            Log::addFormatted(Log::ERROR, NEXTCASH_HASH_LOG_NAME,
+              "Failed hash string list iterate first : %s", firstTest->text());
             success = false;
         }
         else
@@ -1438,14 +1370,14 @@ namespace NextCash
 
         if(lastTest == NULL)
         {
-            Log::addFormatted(Log::ERROR, NEXTCASH_HASH_LOG_NAME, "Failed hash string list iterate last : not found",
-              workHash.hex().text());
+            Log::addFormatted(Log::ERROR, NEXTCASH_HASH_LOG_NAME,
+              "Failed hash string list iterate last : not found", workHash.hex().text());
             success = false;
         }
         else if(lastTest != lastString)
         {
-            Log::addFormatted(Log::ERROR, NEXTCASH_HASH_LOG_NAME, "Failed hash string list iterate last : %s",
-              lastTest->text());
+            Log::addFormatted(Log::ERROR, NEXTCASH_HASH_LOG_NAME,
+              "Failed hash string list iterate last : %s", lastTest->text());
             success = false;
         }
         else
@@ -1455,14 +1387,14 @@ namespace NextCash
         retrieve = hashStringList.get(l1);
         if(retrieve == hashStringList.end())
         {
-            Log::addFormatted(Log::ERROR, NEXTCASH_HASH_LOG_NAME, "Failed hash string list get first : not found",
-              workHash.hex().text());
+            Log::addFormatted(Log::ERROR, NEXTCASH_HASH_LOG_NAME,
+              "Failed hash string list get first : not found", workHash.hex().text());
             success = false;
         }
         else if(*retrieve != firstString)
         {
-            Log::addFormatted(Log::ERROR, NEXTCASH_HASH_LOG_NAME, "Failed hash string list get first : %s",
-              (*retrieve)->text());
+            Log::addFormatted(Log::ERROR, NEXTCASH_HASH_LOG_NAME,
+              "Failed hash string list get first : %s", (*retrieve)->text());
             success = false;
         }
         else
@@ -1472,20 +1404,21 @@ namespace NextCash
         retrieve = hashStringList.get(l1);
         if(retrieve == hashStringList.end())
         {
-            Log::addFormatted(Log::ERROR, NEXTCASH_HASH_LOG_NAME, "Failed hash string list get last : not found",
-              workHash.hex().text());
+            Log::addFormatted(Log::ERROR, NEXTCASH_HASH_LOG_NAME,
+              "Failed hash string list get last : not found", workHash.hex().text());
             success = false;
         }
         else if(*retrieve != lastString)
         {
-            Log::addFormatted(Log::ERROR, NEXTCASH_HASH_LOG_NAME, "Failed hash string list get last : %s",
-              (*retrieve)->text());
+            Log::addFormatted(Log::ERROR, NEXTCASH_HASH_LOG_NAME,
+              "Failed hash string list get last : %s", (*retrieve)->text());
             success = false;
         }
         else
             Log::add(Log::INFO, NEXTCASH_HASH_LOG_NAME, "Passed hash string list get last");
 
-        for(HashContainerList<String *>::Iterator item=hashStringList.begin();item!=hashStringList.end();++item)
+        for(HashContainerList<String *>::Iterator item = hashStringList.begin();
+          item != hashStringList.end(); ++item)
             if(*item != NULL)
                 delete *item;
 
