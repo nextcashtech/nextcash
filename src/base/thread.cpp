@@ -29,16 +29,20 @@ namespace NextCash
         sThreadMutex.lock();
 
         mName = pName;
-        ID newID = sNextThreadID++;
+        mID = sNextThreadID++;
 
         // Setup thread data
-        sThreads.emplace(newID, new Data(newID, pName, pParameter));
+        sThreads.emplace(mID, new Data(mID, pName, pParameter));
 
         // Create thread
         mThread = new std::thread(pFunction);
-        std::thread::id internalID = mThread->get_id();
-        sThreadIDs[internalID] = newID;
-        sThreads[newID]->internalID = internalID;
+        mInternalID = mThread->get_id();
+        sThreadIDs[mInternalID] = mID;
+        sThreads[mID]->internalID = mInternalID;
+
+        if(sThreads.size() > 50)
+            Log::addFormatted(Log::WARNING, THREAD_LOG_NAME, "There are %d active threads",
+              sThreads.size());
 
         sThreadMutex.unlock();
 
@@ -52,47 +56,63 @@ namespace NextCash
 
         sThreadMutex.lock();
 
-        std::map<std::thread::id, ID>::iterator id = sThreadIDs.find(mThread->get_id());
-        if(id != sThreadIDs.end())
-        {
-            std::map<ID, Data *>::iterator data = sThreads.find(id->second);
-            if(data != sThreads.end())
-            {
-                delete data->second;
-                sThreads.erase(data);
-            }
+        std::map<std::thread::id, ID>::iterator id = sThreadIDs.find(mInternalID);
+        if(id == sThreadIDs.end())
+            Log::addFormatted(Log::WARNING, THREAD_LOG_NAME,
+              "Failed to find thread id to destroy : (0x%04x) %s", mID, mName.text());
+        else
             sThreadIDs.erase(id);
+
+        std::map<ID, Data *>::iterator data = sThreads.find(mID);
+        if(data == sThreads.end())
+            Log::addFormatted(Log::WARNING, THREAD_LOG_NAME,
+              "Failed to find thread data to destroy : (0x%04x) %s", mID, mName.text());
+        else
+        {
+            delete data->second;
+            sThreads.erase(data);
         }
 
         sThreadMutex.unlock();
-
         delete mThread;
     }
 
-    Thread::Data *Thread::currentData()
+    Thread::Data *Thread::currentData(bool pLocked)
     {
         std::thread::id currentID = std::this_thread::get_id();
         if(currentID == sMainThreadID)
             return NULL;
 
+        if(!pLocked)
+            sThreadMutex.lock();
+
+        Thread::Data *result = NULL;
         std::map<std::thread::id, ID>::iterator id = sThreadIDs.find(currentID);
         if(id != sThreadIDs.end())
         {
             std::map<ID, Data *>::iterator data = sThreads.find(id->second);
             if(data != sThreads.end())
-                return data->second;
+                result = data->second;
         }
 
-        return NULL;
+        if(!pLocked)
+            sThreadMutex.unlock();
+        return result;
     }
 
-    Thread::Data *Thread::getData(const ID &pID)
+    Thread::Data *Thread::getData(const ID &pID, bool pLocked)
     {
+        if(!pLocked)
+            sThreadMutex.lock();
+
+        Thread::Data *result = NULL;
         std::map<ID, Data *>::iterator data = sThreads.find(pID);
         if(data != sThreads.end())
-            return data->second;
-        else
-            return NULL;
+            result = data->second;
+
+        if(!pLocked)
+            sThreadMutex.unlock();
+        return result;
     }
 
     const char *Thread::currentName(int pTimeoutMilliseconds)
@@ -101,11 +121,10 @@ namespace NextCash
         if(currentID == sMainThreadID)
             return "Main";
 
-        const char *result = NULL;
-
         sThreadMutex.lock();
 
-        Data *data = currentData();
+        const char *result = NULL;
+        Data *data = currentData(true);
         if(data != NULL)
             result = data->name.text();
 
@@ -115,11 +134,10 @@ namespace NextCash
 
     void *Thread::getParameter(int pTimeoutMilliseconds)
     {
-        void *result = NULL;
-
         sThreadMutex.lock();
 
-        Data *data = currentData();
+        void *result = NULL;
+        Data *data = currentData(true);
         if(data != NULL && !data->parameterUsed)
         {
             result = data->parameter;
@@ -134,15 +152,11 @@ namespace NextCash
     {
         std::thread::id currentID = std::this_thread::get_id();
         if(currentID == sMainThreadID)
-        {
-            sThreadMutex.unlock();
             return 1;
-        }
-
-        ID result = NullThreadID;
 
         sThreadMutex.lock();
 
+        ID result = NullThreadID;
         std::map<std::thread::id, ID>::iterator id = sThreadIDs.find(currentID);
         if(id != sThreadIDs.end())
             result = id->second;
@@ -163,11 +177,10 @@ namespace NextCash
 
     const char *Thread::name(const ID &pID)
     {
-        const char *result = NULL;
-
         sThreadMutex.lock();
 
-        Data *data = getData(pID);
+        const char *result = NULL;
+        Data *data = getData(pID, true);
         if(data != NULL)
             result = data->name.text();
 

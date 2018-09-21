@@ -45,11 +45,14 @@ namespace NextCash
         ~Thread();
 
         const char *name() { return mName; }
+        ID id() const { return mID; }
 
     private:
 
         String mName;
         std::thread *mThread;
+        ID mID;
+        std::thread::id mInternalID;
 
         class Data
         {
@@ -94,8 +97,8 @@ namespace NextCash
 
         };
 
-        static Data *currentData();
-        static Data *getData(const ID &pID);
+        static Data *currentData(bool pLocked = false);
+        static Data *getData(const ID &pID, bool pLocked = false);
 
         static std::thread::id sMainThreadID;
         static std::mutex sThreadMutex;
