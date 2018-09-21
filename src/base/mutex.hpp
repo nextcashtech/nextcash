@@ -25,6 +25,13 @@ namespace NextCash
         void lock();
         void unlock();
 
+        size_t memorySize()
+        {
+            // sizeof(std::mutex) = 40
+            static size_t staticSize = sizeof(std::mutex) + sizeof(Thread::ID);
+            return staticSize + mName.memorySize();
+        }
+
     private:
 
         std::mutex mMutex;
@@ -41,6 +48,9 @@ namespace NextCash
 
         void lock();
         void unlock();
+
+        // sizeof(std::mutex) = 40
+        static const size_t memorySize = sizeof(std::mutex) + sizeof(const char *);
 
     private:
 
