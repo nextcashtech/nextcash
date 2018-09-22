@@ -240,6 +240,9 @@ namespace NextCash
 
     stream_size OutputStream::writeString(const char *pString, bool pWriteNull)
     {
+        if(pString == NULL)
+            return 0;
+
         stream_size length = 0;
         const char *ptr = pString;
         while(*ptr)

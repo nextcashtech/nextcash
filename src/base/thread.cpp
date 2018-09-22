@@ -40,11 +40,15 @@ namespace NextCash
         sThreadIDs[mInternalID] = mID;
         sThreads[mID]->internalID = mInternalID;
 
-        if(sThreads.size() > 50)
-            Log::addFormatted(Log::WARNING, THREAD_LOG_NAME, "There are %d active threads",
-              sThreads.size());
+        unsigned int threadCount = sThreads.size();
 
         sThreadMutex.unlock();
+
+        // Log entries must be done outside of sThreadMutex lock because they will request the
+        //   thread name, requiring a lock on that same mutex.
+        if(threadCount > 50)
+            Log::addFormatted(Log::WARNING, THREAD_LOG_NAME, "There are %d active threads",
+              threadCount);
 
         Log::addFormatted(Log::DEBUG, THREAD_LOG_NAME, "Started thread : %s", mName.text());
     }
@@ -57,16 +61,16 @@ namespace NextCash
         sThreadMutex.lock();
 
         std::map<std::thread::id, ID>::iterator id = sThreadIDs.find(mInternalID);
+        bool failedID = false;
         if(id == sThreadIDs.end())
-            Log::addFormatted(Log::WARNING, THREAD_LOG_NAME,
-              "Failed to find thread id to destroy : (0x%04x) %s", mID, mName.text());
+            failedID = true;
         else
             sThreadIDs.erase(id);
 
         std::map<ID, Data *>::iterator data = sThreads.find(mID);
+        bool failedData = false;
         if(data == sThreads.end())
-            Log::addFormatted(Log::WARNING, THREAD_LOG_NAME,
-              "Failed to find thread data to destroy : (0x%04x) %s", mID, mName.text());
+            failedData = true;
         else
         {
             delete data->second;
@@ -75,6 +79,37 @@ namespace NextCash
 
         sThreadMutex.unlock();
         delete mThread;
+
+        // Log entries must be done outside of sThreadMutex lock because they will request the
+        //   thread name, requiring a lock on that same mutex.
+        if(failedID)
+            Log::addFormatted(Log::WARNING, THREAD_LOG_NAME,
+              "Failed to find thread id to destroy : (0x%04x) %s", mID, mName.text());
+        if(failedData)
+            Log::addFormatted(Log::WARNING, THREAD_LOG_NAME,
+              "Failed to find thread data to destroy : (0x%04x) %s", mID, mName.text());
+    }
+
+    Thread::Data *Thread::internalData(std::thread::id pInternalID, bool pLocked)
+    {
+        if(pInternalID == sMainThreadID)
+            return NULL;
+
+        if(!pLocked)
+            sThreadMutex.lock();
+
+        Thread::Data *result = NULL;
+        std::map<std::thread::id, ID>::iterator id = sThreadIDs.find(pInternalID);
+        if(id != sThreadIDs.end())
+        {
+            std::map<ID, Data *>::iterator data = sThreads.find(id->second);
+            if(data != sThreads.end())
+                result = data->second;
+        }
+
+        if(!pLocked)
+            sThreadMutex.unlock();
+        return result;
     }
 
     Thread::Data *Thread::currentData(bool pLocked)
@@ -124,7 +159,7 @@ namespace NextCash
         sThreadMutex.lock();
 
         const char *result = NULL;
-        Data *data = currentData(true);
+        Data *data = internalData(currentID, true);
         if(data != NULL)
             result = data->name.text();
 
@@ -134,10 +169,14 @@ namespace NextCash
 
     void *Thread::getParameter(int pTimeoutMilliseconds)
     {
+        std::thread::id currentID = std::this_thread::get_id();
+        if(currentID == sMainThreadID)
+            return NULL;
+
         sThreadMutex.lock();
 
         void *result = NULL;
-        Data *data = currentData(true);
+        Data *data = internalData(currentID, true);
         if(data != NULL && !data->parameterUsed)
         {
             result = data->parameter;
