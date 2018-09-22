@@ -245,76 +245,82 @@ namespace NextCash
         // Output entry level
         switch(pLevel)
         {
-            case DEBUG:
-                if(mUseColor)
-                    startForegroundColor(mStream, GREY);
-                entryColor = GREY;
-                mStream->writeString("DEBUG\t");
-                break;
-            case VERBOSE:
-                if(mUseColor)
-                    startForegroundColor(mStream, LIGHT_GREY);
-                entryColor = LIGHT_GREY;
-                mStream->writeString("VERBOSE");
-                if(mUseColor)
-                    endColor(mStream);
-                mStream->writeByte('\t');
-                break;
-            case INFO:
-                if(mUseColor)
-                    startForegroundColor(mStream, WHITE);
-                entryColor = WHITE;
-                mStream->writeString("INFO");
-                if(mUseColor)
-                    endColor(mStream);
-                mStream->writeByte('\t');
-                break;
-            case WARNING:
-                if(mUseColor)
-                    startForegroundColor(mStream, YELLOW);
-                entryColor = YELLOW;
-                mStream->writeString("WARNING");
-                if(mUseColor)
-                    endColor(mStream);
-                mStream->writeByte('\t');
-                break;
-            case ERROR:
-                if(mUseColor)
-                    startForegroundColor(mStream, RED);
-                entryColor = RED;
-                mStream->writeString("ERROR");
-                if(mUseColor)
-                    endColor(mStream);
-                mStream->writeByte('\t');
-                break;
-            case NOTIFICATION:
-                if(mUseColor)
-                    startForegroundColor(mStream, ORANGE);
-                entryColor = ORANGE;
-                mStream->writeString("NOTIFICATION");
-                if(mUseColor)
-                    endColor(mStream);
-                mStream->writeByte('\t');
-                break;
-            case CRITICAL:
-                if(mUseColor)
-                    startForegroundColor(mStream, RED);
-                entryColor = RED;
-                mStream->writeString("CRITICAL");
-                if(mUseColor)
-                    endColor(mStream);
-                mStream->writeByte('\t');
-                break;
-            default:
-                mStream->writeByte('\t');
-                break;
+        case DEBUG:
+            if(mUseColor)
+                startForegroundColor(mStream, GREY);
+            entryColor = GREY;
+            mStream->writeString("DEBUG\t");
+            break;
+        case VERBOSE:
+            if(mUseColor)
+                startForegroundColor(mStream, LIGHT_GREY);
+            entryColor = LIGHT_GREY;
+            mStream->writeString("VERBOSE");
+            if(mUseColor)
+                endColor(mStream);
+            mStream->writeByte('\t');
+            break;
+        case INFO:
+            if(mUseColor)
+                startForegroundColor(mStream, WHITE);
+            entryColor = WHITE;
+            mStream->writeString("INFO");
+            if(mUseColor)
+                endColor(mStream);
+            mStream->writeByte('\t');
+            break;
+        case WARNING:
+            if(mUseColor)
+                startForegroundColor(mStream, YELLOW);
+            entryColor = YELLOW;
+            mStream->writeString("WARNING");
+            if(mUseColor)
+                endColor(mStream);
+            mStream->writeByte('\t');
+            break;
+        case ERROR:
+            if(mUseColor)
+                startForegroundColor(mStream, RED);
+            entryColor = RED;
+            mStream->writeString("ERROR");
+            if(mUseColor)
+                endColor(mStream);
+            mStream->writeByte('\t');
+            break;
+        case NOTIFICATION:
+            if(mUseColor)
+                startForegroundColor(mStream, ORANGE);
+            entryColor = ORANGE;
+            mStream->writeString("NOTIFICATION");
+            if(mUseColor)
+                endColor(mStream);
+            mStream->writeByte('\t');
+            break;
+        case CRITICAL:
+            if(mUseColor)
+                startForegroundColor(mStream, RED);
+            entryColor = RED;
+            mStream->writeString("CRITICAL");
+            if(mUseColor)
+                endColor(mStream);
+            mStream->writeByte('\t');
+            break;
+        default:
+            mStream->writeByte('\t');
+            break;
         }
 
         // Output thread ID
         if(mUseColor)
             startForegroundColor(mStream, LIGHT_BLUE);
-        mStream->writeString(Thread::currentName());
-        mStream->writeByte('\t');
+        const char *threadName = Thread::currentName();
+        if(threadName != NULL)
+        {
+            mStream->writeString(threadName);
+            mStream->writeByte('\t');
+        }
+        else
+            mStream->writeString("Unknown\t");
         if(mUseColor)
             endColor(mStream);
 

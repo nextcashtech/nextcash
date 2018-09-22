@@ -97,6 +97,7 @@ namespace NextCash
 
         };
 
+        static Data *internalData(std::thread::id pInternalID, bool pLocked = false);
         static Data *currentData(bool pLocked = false);
         static Data *getData(const ID &pID, bool pLocked = false);
 
