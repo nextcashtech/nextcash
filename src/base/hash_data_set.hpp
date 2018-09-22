@@ -540,7 +540,7 @@ namespace NextCash
         if(!createDirectory(mFilePath))
         {
             Log::addFormatted(Log::ERROR, mName.text(), "Failed to create directory : %s",
-              mFilePath);
+              mFilePath.text());
             mIsValid = false;
             mLock.writeUnlock();
             return false;
