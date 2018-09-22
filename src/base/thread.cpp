@@ -47,7 +47,7 @@ namespace NextCash
         // Log entries must be done outside of sThreadMutex lock because they will request the
         //   thread name, requiring a lock on that same mutex.
         if(threadCount > 50)
-            Log::addFormatted(Log::WARNING, THREAD_LOG_NAME, "There are %d active threads",
+            Log::addFormatted(Log::DEBUG, THREAD_LOG_NAME, "There are %d active threads",
               threadCount);
 
         Log::addFormatted(Log::DEBUG, THREAD_LOG_NAME, "Started thread : %s", mName.text());
