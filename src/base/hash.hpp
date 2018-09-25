@@ -336,6 +336,10 @@ namespace NextCash
 
             Hash hash;
             tType data;
+
+        private:
+            Data(const Data &pCopy);
+            const Data &operator = (const Data &pRight);
         };
 
         std::vector<Data *> mList;
@@ -503,7 +507,6 @@ namespace NextCash
             return mList.end(); // Insert at the end (as only item)
 
         int compare = mList.back()->hash.compare(pHash);
-
         if(compare <= 0)
             return mList.end(); // Insert at the end
 
@@ -522,36 +525,29 @@ namespace NextCash
         else // Only one item in list and it is after the specified hash, soinsert before it.
             return mList.begin();
 
-        if(current == afterLast) // Check if already found
+        while(true)
         {
-            bool done = false;
-            while(!done)
+            // Break the set in two halves
+            current = bottom + ((top - bottom) / 2);
+
+            // Bottom and top are next to each other and have both been checked
+            if(current == bottom)
             {
-                // Break the set in two halves
-                current = bottom + ((top - bottom) / 2);
-
-                // Bottom and top are next to each other and have both been checked
-                if(current == bottom)
-                {
-                    // Top is the item to insert before, since bottom is below the specified hash
-                    current = top;
-                    break;
-                }
-
-                compare = pHash.compare((*current)->hash);
-
-                // Determine which half the desired item is in
-                if(compare > 0)
-                    bottom = current;
-                else if(compare < 0)
-                    top = current;
-                else
-                    break; // Matching item found
+                // Top is the item to insert before, since bottom is below the specified hash
+                current = top;
+                break;
             }
-        }
 
-        if(current == afterLast)
-            return mList.end(); // Insert at the end
+            compare = pHash.compare((*current)->hash);
+
+            // Determine which half the desired item is in
+            if(compare > 0)
+                bottom = current;
+            else if(compare < 0)
+                top = current;
+            else
+                break; // Matching item found
+        }
 
         if(pFirst && current < afterLast)
         {
