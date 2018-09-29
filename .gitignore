@@ -1,6 +1,6 @@
 
 .objects/
-include/
+.include/
 test
 test.debug
 lib*.a

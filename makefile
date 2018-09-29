@@ -1,13 +1,13 @@
 
 COMPILER=g++
-COMPILE_FLAGS=-I./include -std=c++11 -Wall -pthread
+COMPILE_FLAGS=-I./.include -std=c++11 -Wall -pthread
 # To Turn profiler on add this to the end of the previous line -DPROFILER_ON
 LINK_FLAGS=-pthread
 HEADER_FILES=$(wildcard src/*/*.hpp)
 SOURCE_FILES=$(wildcard src/*/*.cpp)
 SRC_SUB_DIRECTORIES=$(wildcard src/*)
 OBJECT_DIRECTORY=.objects
-HEADER_DIRECTORY=include
+HEADER_DIRECTORY=.include
 OBJECTS=$(patsubst %.cpp,${OBJECT_DIRECTORY}/%.o,${SOURCE_FILES})
 DEBUG_OBJECTS=$(patsubst %.cpp,${OBJECT_DIRECTORY}/%.o.debug,${SOURCE_FILES})
 OUTPUT=nextcash
@@ -105,4 +105,4 @@ clean:
 	@echo ----------------------------------------------------------------------------------------------------
 	@echo "\tCLEANING"
 	@echo ----------------------------------------------------------------------------------------------------
-	@rm -vfr include ${OBJECT_DIRECTORY} test test.debug ${OUTPUT} ${OUTPUT}.debug *.a
+	@rm -vfr ${HEADER_DIRECTORY} ${OBJECT_DIRECTORY} test test.debug ${OUTPUT} ${OUTPUT}.debug *.a
