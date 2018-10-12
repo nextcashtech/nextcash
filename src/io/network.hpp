@@ -195,6 +195,8 @@ namespace NextCash
             port = pPort;
         }
 
+        bool setText(const char *pText);
+
         String text() const;
 
         uint8_t ip[INET6_ADDRLEN];

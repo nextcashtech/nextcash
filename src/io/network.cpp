@@ -61,6 +61,26 @@ namespace NextCash
         return result;
     }
 
+    bool IPAddress::setText(const char *pText)
+    {
+        struct in6_addr address6;
+        if(inet_pton(AF_INET6, pText, &address6) == 1)
+        {
+            std::memcpy(ip, address6.s6_addr, INET6_ADDRLEN);
+            return true;
+        }
+
+        struct in_addr address4;
+        if(inet_pton(AF_INET, pText, &address4) != 1)
+            return false;
+
+        std::memset(ip, 0, INET6_ADDRLEN);
+        std::memset(ip + INET6_ADDRLEN - INET_ADDRLEN - 2, 0xff, 2);
+        std::memcpy(ip + INET6_ADDRLEN - INET_ADDRLEN, (uint8_t *)&address4.s_addr,
+          INET_ADDRLEN);
+        return true;
+    }
+
     namespace Network
     {
         bool list(const char *pName, IPList &pList)
