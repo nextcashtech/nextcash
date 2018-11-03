@@ -112,7 +112,7 @@ namespace NextCash
         }
 
         // Uses local time.
-        void writeFormattedTime(time_t pTime, const char *pFormat = "%F %T"); // YYYY-MM-DD HH:MM::SS
+        void writeFormattedTime(time_t pTime, bool pLocal = true, const char *pFormat = "%F %T"); // YYYY-MM-DD HH:MM::SS
 
         // Write with printf formatting codes.
         bool writeFormatted(const char *pFormatting, ...);

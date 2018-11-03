@@ -42,7 +42,7 @@ namespace NextCash
             return;
 
         String dateTimeString;
-        dateTimeString.writeFormattedTime(std::time(NULL), "%Y%m%d.%H%M");
+        dateTimeString.writeFormattedTime(std::time(NULL), true, "%Y%m%d.%H%M");
         String newFilePathName;
         const char *lastDot = NULL;
         const char *ptr = pFilePathName;
@@ -227,7 +227,7 @@ namespace NextCash
 
         // Output data/time stamp
         String dateTimeString;
-        dateTimeString.writeFormattedTime(std::time(NULL), mDateTimeFormat);
+        dateTimeString.writeFormattedTime(std::time(NULL), true, mDateTimeFormat);
         unsigned int entryColor = WHITE;
 
         mMutex.lock();

@@ -404,13 +404,16 @@ namespace NextCash
         *character = '\0';
     }
 
-    void String::writeFormattedTime(time_t pTime, const char *pFormat)
+    void String::writeFormattedTime(time_t pTime, bool pLocal, const char *pFormat)
     {
         clear();
         mData = new char[64];
 
         struct tm *timeinfo;
-        timeinfo = std::localtime(&pTime);
+        if(pLocal)
+            timeinfo = std::localtime(&pTime);
+        else
+            timeinfo = std::gmtime(&pTime); // UTC
         std::strftime(mData, 64, pFormat, timeinfo);
     }
 
@@ -803,14 +806,14 @@ namespace NextCash
          ******************************************************************************************/
         uint32_t testTime = 306250788;
         String testTimeString;
-        testTimeString.writeFormattedTime(testTime);
+        testTimeString.writeFormattedTime(testTime, false);
 
-        if(testTimeString == "1979-09-15 07:39:48")
+        if(testTimeString == "1979-09-15 13:39:48")
             Log::addFormatted(Log::INFO, NEXTCASH_STRING_LOG_NAME, "Passed format time : %s", testTimeString.text());
         else
         {
             Log::addFormatted(Log::ERROR, NEXTCASH_STRING_LOG_NAME,
-              "Failed format time : %s != 1979-09-15 07:39:48", testTimeString.text());
+              "Failed format time : %s != 1979-09-15 13:39:48", testTimeString.text());
             result = false;
         }
 
