@@ -211,7 +211,8 @@ namespace NextCash
             bool pullHash(InputStream *pDataFile, stream_size pFileOffset, Hash &pHash)
             {
 #ifdef PROFILER_ON
-                NextCash::Profiler profiler("Hash SubSet Pull Hash");
+                ProfilerReference profiler(getProfiler(PROFILER_SET, PROFILER_HASH_SET_PULL_ID,
+                  PROFILER_HASH_SET_PULL_NAME, true));
 #endif
                 if(!pDataFile->setReadOffset(pFileOffset))
                 {
@@ -486,7 +487,8 @@ namespace NextCash
       HashData *pValue, bool pRejectMatching)
     {
 #ifdef PROFILER_ON
-        NextCash::Profiler profiler("Hash Set Insert");
+        ProfilerReference profiler(getProfiler(PROFILER_SET, PROFILER_HASH_SET_INSERT_ID,
+          PROFILER_HASH_SET_INSERT_NAME, true));
 #endif
         mLock.writeLock("Insert");
         bool result = mSubSets[subSetOffset(pLookupValue)].insert(pLookupValue, pValue,
@@ -499,9 +501,6 @@ namespace NextCash
     bool HashDataSet<tHashDataType, tHashSize, tSampleSize, tSetCount>::removeIfMatching(const Hash &pLookupValue,
       HashData *pValue)
     {
-#ifdef PROFILER_ON
-        NextCash::Profiler profiler("Hash Set Remove If Matching");
-#endif
         mLock.writeLock("Remove");
         bool result = mSubSets[subSetOffset(pLookupValue)].removeIfMatching(pLookupValue, pValue);
         mLock.writeUnlock();
@@ -609,7 +608,7 @@ namespace NextCash
         SaveThreadData *data = (SaveThreadData *)Thread::getParameter();
         if(data == NULL)
         {
-            Log::add(NextCash::Log::WARNING, data->name, "Thread parameter is null. Stopping");
+            Log::add(Log::WARNING, data->name, "Thread parameter is null. Stopping");
             return;
         }
 
@@ -730,9 +729,6 @@ namespace NextCash
     bool HashDataSet<tHashDataType, tHashSize, tSampleSize, tSetCount>::SubSet::insert(
       const Hash &pLookupValue, HashData *pValue, bool pRejectMatching)
     {
-#ifdef PROFILER_ON
-        NextCash::Profiler profiler("Hash SubSet Insert");
-#endif
         bool result = false;
         mLock.lock();
         if(pRejectMatching)
@@ -763,9 +759,6 @@ namespace NextCash
     bool HashDataSet<tHashDataType, tHashSize, tSampleSize, tSetCount>::SubSet::removeIfMatching(
       const Hash &pLookupValue, HashData *pValue)
     {
-#ifdef PROFILER_ON
-        NextCash::Profiler profiler("Hash SubSet Remove If Matching");
-#endif
         mLock.lock();
 
         bool result = false;
@@ -1304,9 +1297,6 @@ namespace NextCash
     template <class tHashDataType, uint8_t tHashSize, uint16_t tSampleSize, uint16_t tSetCount>
     void HashDataSet<tHashDataType, tHashSize, tSampleSize, tSetCount>::SubSet::markOld(stream_size pDataSize)
     {
-#ifdef PROFILER_ON
-        NextCash::Profiler profiler("Hash SubSet Mark Old");
-#endif
         if(pDataSize == 0)
         {
             for(HashContainerList<HashData *>::Iterator item = mCache.begin();
@@ -1414,10 +1404,6 @@ namespace NextCash
     template <class tHashDataType, uint8_t tHashSize, uint16_t tSampleSize, uint16_t tSetCount>
     bool HashDataSet<tHashDataType, tHashSize, tSampleSize, tSetCount>::SubSet::trimCache(uint64_t pMaxCacheDataSize)
     {
-#ifdef PROFILER_ON
-        NextCash::Profiler profiler("Hash SubSet Clean");
-#endif
-
         // Mark items as old to keep cache data size under max
         markOld(pMaxCacheDataSize);
 
@@ -1442,7 +1428,8 @@ namespace NextCash
       const char *pName, uint64_t pMaxCacheDataSize)
     {
 #ifdef PROFILER_ON
-        NextCash::Profiler profiler("Hash SubSet Save");
+        ProfilerReference profiler(getProfiler(PROFILER_SET, PROFILER_HASH_SET_SUB_SAVE_ID,
+          PROFILER_HASH_SET_SUB_SAVE_NAME, true));
 #endif
         mLock.lock();
 
@@ -1456,9 +1443,6 @@ namespace NextCash
 
         String filePathName;
 
-#ifdef PROFILER_ON
-        NextCash::Profiler profilerWriteData("Hash SubSet Save Write Data");
-#endif
         // Reopen data file as an output stream
         filePathName.writeFormatted("%s%s%04x.data", mFilePath, PATH_SEPARATOR, mID);
         FileOutputStream *dataOutFile = new FileOutputStream(filePathName);
@@ -1497,9 +1481,6 @@ namespace NextCash
         }
 
         delete dataOutFile;
-#ifdef PROFILER_ON
-        profilerWriteData.stop();
-#endif
 
         if(!indexNeedsUpdated)
         {
@@ -1511,9 +1492,6 @@ namespace NextCash
             return true;
         }
 
-#ifdef PROFILER_ON
-        NextCash::Profiler profilerReadIndex("Hash SubSet Save Read Index");
-#endif
         // Read entire index file
         filePathName.writeFormatted("%s%s%04x.index", mFilePath, PATH_SEPARATOR, mID);
         FileInputStream *indexFile = new FileInputStream(filePathName);
@@ -1554,15 +1532,7 @@ namespace NextCash
         delete indexFile;
         indices.refresh();
         hashes.refresh();
-#ifdef PROFILER_ON
-        profilerReadIndex.stop();
-#endif
 
-#ifdef PROFILER_ON
-        NextCash::Profiler profilerUpdateIndex("Hash SubSet Save Update Index");
-        NextCash::Profiler profilerIndexInsert("Hash SubSet Save Index Insert", false);
-        NextCash::Profiler profilerIndexInsertPush("Hash SubSet Save Index Insert Push", false);
-#endif
         // Update indices
         DistributedVector<Hash>::Iterator hash;
         DistributedVector<stream_size>::Iterator index;
@@ -1625,29 +1595,16 @@ namespace NextCash
             }
             else if((*item)->isNew())
             {
-#ifdef PROFILER_ON
-                profilerIndexInsert.start();
-#endif
                 // For new items perform insert sort into existing indices.
                 // This costs more processor time to do the insert for every new item.
                 // This saves file reads by not requiring a read of every existing index like a
                 //   merge sort would.
                 if(indices.size () == 0)
                 {
-#ifdef PROFILER_ON
-                    profilerIndexInsertPush.start();
-#endif
-
                     // Add as only item
                     indices.push_back((*item)->dataOffset());
                     hashes.push_back(item.hash());
-#ifdef PROFILER_ON
-                    profilerIndexInsertPush.stop();
-#endif
                     (*item)->clearNew();
-#ifdef PROFILER_ON
-                    profilerIndexInsert.stop();
-#endif
                     ++item;
                     continue;
                 }
@@ -1660,9 +1617,6 @@ namespace NextCash
                     if(!pullHash(&dataFile, indices.front(), *hash))
                     {
                         success = false;
-#ifdef PROFILER_ON
-                        profilerIndexInsert.stop();
-#endif
                         break;
                     }
                     ++readHeadersCount;
@@ -1671,19 +1625,12 @@ namespace NextCash
                 compare = item.hash().compare(*hash);
                 if(compare <= 0)
                 {
-#ifdef PROFILER_ON
-                    profilerIndexInsertPush.start();
-#endif
 
                     // Insert as first
                     indices.insert(indices.begin(), (*item)->dataOffset());
                     hashes.insert(hashes.begin(), item.hash());
                     (*item)->clearNew();
 
-#ifdef PROFILER_ON
-                    profilerIndexInsertPush.stop();
-                    profilerIndexInsert.stop();
-#endif
                     ++item;
                     continue;
                 }
@@ -1696,9 +1643,6 @@ namespace NextCash
                     if(!pullHash(&dataFile, indices.back(), *hash))
                     {
                         success = false;
-#ifdef PROFILER_ON
-                        profilerIndexInsert.stop();
-#endif
                         break;
                     }
                     ++readHeadersCount;
@@ -1707,18 +1651,10 @@ namespace NextCash
                 compare = item.hash().compare(*hash);
                 if(compare >= 0)
                 {
-#ifdef PROFILER_ON
-                    profilerIndexInsertPush.start();
-#endif
-
                     // Add to end
                     indices.push_back((*item)->dataOffset());
                     hashes.push_back(item.hash());
                     (*item)->clearNew();
-#ifdef PROFILER_ON
-                    profilerIndexInsertPush.stop();
-                    profilerIndexInsert.stop();
-#endif
                     ++item;
                     continue;
                 }
@@ -1748,9 +1684,6 @@ namespace NextCash
                     compare = item.hash().compare(*hash);
                     if(current == begin || compare == 0)
                     {
-#ifdef PROFILER_ON
-                        profilerIndexInsertPush.start();
-#endif
                         if(current != begin && compare < 0)
                         {
                             // Insert before current
@@ -1767,9 +1700,6 @@ namespace NextCash
                             hashes.insert(hash, item.hash());
                             (*item)->clearNew();
                         }
-#ifdef PROFILER_ON
-                        profilerIndexInsertPush.stop();
-#endif
                         break;
                     }
 
@@ -1778,23 +1708,14 @@ namespace NextCash
                     else //if(compare < 0)
                         end = current;
                 }
-#ifdef PROFILER_ON
-                profilerIndexInsert.stop();
-#endif
                 ++item;
             }
             else
                 ++item;
         }
-#ifdef PROFILER_ON
-        profilerUpdateIndex.stop();
-#endif
 
         if(success)
         {
-#ifdef PROFILER_ON
-            NextCash::Profiler profilerWriteIndex("Hash SubSet Save Write Index");
-#endif
             // Open index file as an output stream
             filePathName.writeFormatted("%s%s%04x.index", mFilePath, PATH_SEPARATOR, mID);
             FileOutputStream *indexOutFile = new FileOutputStream(filePathName, true);
@@ -1812,9 +1733,6 @@ namespace NextCash
             mNewSize = 0;
 
             delete indexOutFile;
-#ifdef PROFILER_ON
-            profilerWriteIndex.stop();
-#endif
 
             // Open index file
             filePathName.writeFormatted("%s%s%04x.index", mFilePath, PATH_SEPARATOR, mID);

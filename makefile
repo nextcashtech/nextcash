@@ -1,6 +1,6 @@
 
 COMPILER=g++
-COMPILE_FLAGS=-I./.include -std=c++11 -Wall -pthread
+COMPILE_FLAGS=-I./.include -std=c++11 -Wall -pthread -DPROFILER_ON
 # To Turn profiler on add this to the end of the previous line -DPROFILER_ON
 LINK_FLAGS=-pthread
 HEADER_FILES=$(wildcard src/*/*.hpp)

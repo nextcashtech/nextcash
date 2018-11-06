@@ -501,7 +501,8 @@ namespace NextCash
       const Hash &pHash, bool pFirst)
     {
 #ifdef PROFILER_ON
-        Profiler profiler("Hash Container Find Insert Before");
+        ProfilerReference profiler(getProfiler(PROFILER_SET, PROFILER_HASH_CONT_FIND_ID,
+          PROFILER_HASH_CONT_FIND_NAME, true));
 #endif
         if(mList.size() == 0)
             return mList.end(); // Insert at the end (as only item)
@@ -572,13 +573,11 @@ namespace NextCash
     void HashContainerList<tType>::insert(const Hash &pHash, tType &pData)
     {
 #ifdef PROFILER_ON
-        Profiler profiler("Hash Container Insert");
+        ProfilerReference profiler(getProfiler(PROFILER_SET, PROFILER_HASH_CONT_INSERT_ID,
+          PROFILER_HASH_CONT_INSERT_NAME, true));
 #endif
         SubIterator insertBefore = findInsertBefore(pHash, false);
 
-#ifdef PROFILER_ON
-        Profiler profilerCheck("Hash Container Insert Push");
-#endif
         if(insertBefore == mList.end())
             mList.push_back(new Data(pHash, pData)); // Insert at the end
         else
@@ -603,13 +602,11 @@ namespace NextCash
       bool (*pValuesMatch)(tType &pLeft, tType &pRight))
     {
 #ifdef PROFILER_ON
-        Profiler profiler("Hash Container Insert Not Matching");
+        ProfilerReference profiler(getProfiler(PROFILER_SET, PROFILER_HASH_CONT_INSERT_NM_ID,
+          PROFILER_HASH_CONT_INSERT_NM_NAME, true));
 #endif
         SubIterator item = findInsertBefore(pHash, true);
 
-#ifdef PROFILER_ON
-        Profiler profilerCheck("Hash Container Insert Check Match");
-#endif
         // Iterate through any matching hashes to check for a matching value
         bool wasIncremented = false;
         while(item != mList.end() && (*item)->hash == pHash)
@@ -619,13 +616,7 @@ namespace NextCash
             ++item;
             wasIncremented = true;
         }
-#ifdef PROFILER_ON
-        profilerCheck.stop();
-#endif
 
-#ifdef PROFILER_ON
-        Profiler profilerPush("Hash Container Insert Push");
-#endif
         // No items with matching hash and value, so insert
         // This will insert after all values with matching hashes
         if(item == mList.end())
