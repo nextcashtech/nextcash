@@ -24,7 +24,7 @@ namespace NextCash
     std::map<std::thread::id, Thread::ID> Thread::sThreadIDs;
     std::map<Thread::ID, Thread::Data *> Thread::sThreads;
 
-    Thread::Thread(const char *pName, void (*pFunction)(), void *pParameter)
+    Thread::Thread(const char *pName, void (*pFunction)(void *pParameter), void *pParameter)
     {
         sThreadMutex.lock();
 
@@ -32,10 +32,10 @@ namespace NextCash
         mID = sNextThreadID++;
 
         // Setup thread data
-        sThreads.emplace(mID, new Data(mID, pName, pParameter));
+        sThreads.emplace(mID, new Data(mID, pName));
 
         // Create thread
-        mThread = new std::thread(pFunction);
+        mThread = new std::thread(pFunction, pParameter);
         mInternalID = mThread->get_id();
         sThreadIDs[mInternalID] = mID;
         sThreads[mID]->internalID = mInternalID;
@@ -162,26 +162,6 @@ namespace NextCash
         Data *data = internalData(currentID, true);
         if(data != NULL)
             result = data->name.text();
-
-        sThreadMutex.unlock();
-        return result;
-    }
-
-    void *Thread::getParameter(int pTimeoutMilliseconds)
-    {
-        std::thread::id currentID = std::this_thread::get_id();
-        if(currentID == sMainThreadID)
-            return NULL;
-
-        sThreadMutex.lock();
-
-        void *result = NULL;
-        Data *data = internalData(currentID, true);
-        if(data != NULL && !data->parameterUsed)
-        {
-            result = data->parameter;
-            data->parameterUsed = true;
-        }
 
         sThreadMutex.unlock();
         return result;

@@ -41,7 +41,7 @@ namespace NextCash
         // Have this thread sleep for specified milliseconds
         static void sleep(unsigned int pMilliseconds);
 
-        Thread(const char *pName, void (*pFunction)(), void *pParameter = NULL);
+        Thread(const char *pName, void (*pFunction)(void *pParameter), void *pParameter = NULL);
         ~Thread();
 
         const char *name() { return mName; }
@@ -61,16 +61,12 @@ namespace NextCash
             ID id;
             std::thread::id internalID;
             String name;
-            void *parameter;
-            bool parameterUsed;
             bool started;
 
-            Data(ID &pID, const char *pName, void *pParameter)
+            Data(ID &pID, const char *pName)
             {
                 id = pID;
                 name = pName;
-                parameter = pParameter;
-                parameterUsed = pParameter == NULL;
                 started = false;
             }
 
@@ -79,8 +75,6 @@ namespace NextCash
                 id = pCopy.id;
                 internalID = pCopy.internalID;
                 name = pCopy.name;
-                parameter = pCopy.parameter;
-                parameterUsed = pCopy.parameterUsed;
                 started = pCopy.started;
             }
 
@@ -89,8 +83,6 @@ namespace NextCash
                 id = pRight.id;
                 internalID = pRight.internalID;
                 name = pRight.name;
-                parameter = pRight.parameter;
-                parameterUsed = pRight.parameterUsed;
                 started = pRight.started;
                 return *this;
             }

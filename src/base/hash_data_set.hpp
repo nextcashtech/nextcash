@@ -457,7 +457,7 @@ namespace NextCash
 
         };
 
-        static void saveThreadRun(); // Thread to process save tasks
+        static void saveThreadRun(void *pParameter); // Thread to process save tasks
 
         //TODO void defragment(); // Re-sort and rewrite data file using index file.
     };
@@ -603,9 +603,9 @@ namespace NextCash
     }
 
     template <class tHashDataType, uint8_t tHashSize, uint16_t tSampleSize, uint16_t tSetCount>
-    void HashDataSet<tHashDataType, tHashSize, tSampleSize, tSetCount>::saveThreadRun()
+    void HashDataSet<tHashDataType, tHashSize, tSampleSize, tSetCount>::saveThreadRun(void *pParameter)
     {
-        SaveThreadData *data = (SaveThreadData *)Thread::getParameter();
+        SaveThreadData *data = (SaveThreadData *)pParameter;
         if(data == NULL)
         {
             Log::add(Log::WARNING, data->name, "Thread parameter is null. Stopping");
