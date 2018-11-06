@@ -17,8 +17,8 @@
 #include <unistd.h>
 
 #define NEXTCASH_MUTEX_LOG_NAME "Mutex"
-// 1/20th of a second
-#define MUTEX_WAIT 50000
+// 1/200th of a second
+#define MUTEX_WAIT 5000
 
 
 namespace NextCash
@@ -29,7 +29,7 @@ namespace NextCash
         while(!mMutex.try_lock())
         {
             usleep(MUTEX_WAIT);
-            if(++sleeps > 20)
+            if(++sleeps > 200)
             {
                 // It has been over a second. So notify that this wait is taking too long
                 Log::addFormatted(Log::WARNING, NEXTCASH_MUTEX_LOG_NAME,
@@ -54,7 +54,7 @@ namespace NextCash
         while(!mMutex.try_lock())
         {
             usleep(MUTEX_WAIT);
-            if(++sleeps > 20)
+            if(++sleeps > 200)
             {
                 // It has been over a second. So notify that this wait is taking too long
                 Log::addFormatted(Log::WARNING, NEXTCASH_MUTEX_LOG_NAME,
@@ -124,7 +124,7 @@ namespace NextCash
                 break;
             }
 
-            if(++sleeps > 100)
+            if(++sleeps > 1000)
             {
                 // It has been over 5 seconds. So notify that this wait is taking too long
                 if(mWriterLocked)
@@ -160,7 +160,7 @@ namespace NextCash
                 return;
             }
 
-            if(++sleeps > 100)
+            if(++sleeps > 1000)
             {
                 // It has been over 5 seconds. So notify that this wait is taking too long
                 if(pRequestName != NULL)

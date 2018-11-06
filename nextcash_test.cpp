@@ -51,9 +51,11 @@ namespace NextCash
 
         NextCash::Log::add(NextCash::Log::INFO, "Test", "------------- Starting General Tests -------------");
 
-        Profiler &testProfiler = getProfiler(PROFILER_SET, 0, "TestProfiler", true);
+        Profiler &testProfiler = getProfiler(PROFILER_SET, 0, "TestProfiler");
+        Timer timer(true);
         NextCash::Thread::sleep(100);
-        testProfiler.stop();
+        timer.stop();
+        testProfiler.addHit(timer.microseconds());
         NextCash::Log::addFormatted(NextCash::Log::INFO, "Test", "Profiler test : %d ms", testProfiler.milliseconds());
         NextCash::printProfilerDataToLog(NextCash::Log::INFO);
 

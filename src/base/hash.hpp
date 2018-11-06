@@ -502,7 +502,7 @@ namespace NextCash
     {
 #ifdef PROFILER_ON
         ProfilerReference profiler(getProfiler(PROFILER_SET, PROFILER_HASH_CONT_FIND_ID,
-          PROFILER_HASH_CONT_FIND_NAME, true));
+          PROFILER_HASH_CONT_FIND_NAME), true);
 #endif
         if(mList.size() == 0)
             return mList.end(); // Insert at the end (as only item)
@@ -574,7 +574,7 @@ namespace NextCash
     {
 #ifdef PROFILER_ON
         ProfilerReference profiler(getProfiler(PROFILER_SET, PROFILER_HASH_CONT_INSERT_ID,
-          PROFILER_HASH_CONT_INSERT_NAME, true));
+          PROFILER_HASH_CONT_INSERT_NAME), true);
 #endif
         SubIterator insertBefore = findInsertBefore(pHash, false);
 
@@ -603,7 +603,7 @@ namespace NextCash
     {
 #ifdef PROFILER_ON
         ProfilerReference profiler(getProfiler(PROFILER_SET, PROFILER_HASH_CONT_INSERT_NM_ID,
-          PROFILER_HASH_CONT_INSERT_NM_NAME, true));
+          PROFILER_HASH_CONT_INSERT_NM_NAME), true);
 #endif
         SubIterator item = findInsertBefore(pHash, true);
 

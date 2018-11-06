@@ -212,7 +212,7 @@ namespace NextCash
             {
 #ifdef PROFILER_ON
                 ProfilerReference profiler(getProfiler(PROFILER_SET, PROFILER_HASH_SET_PULL_ID,
-                  PROFILER_HASH_SET_PULL_NAME, true));
+                  PROFILER_HASH_SET_PULL_NAME), true);
 #endif
                 if(!pDataFile->setReadOffset(pFileOffset))
                 {
@@ -488,7 +488,7 @@ namespace NextCash
     {
 #ifdef PROFILER_ON
         ProfilerReference profiler(getProfiler(PROFILER_SET, PROFILER_HASH_SET_INSERT_ID,
-          PROFILER_HASH_SET_INSERT_NAME, true));
+          PROFILER_HASH_SET_INSERT_NAME), true);
 #endif
         mLock.writeLock("Insert");
         bool result = mSubSets[subSetOffset(pLookupValue)].insert(pLookupValue, pValue,
@@ -1429,7 +1429,7 @@ namespace NextCash
     {
 #ifdef PROFILER_ON
         ProfilerReference profiler(getProfiler(PROFILER_SET, PROFILER_HASH_SET_SUB_SAVE_ID,
-          PROFILER_HASH_SET_SUB_SAVE_NAME, true));
+          PROFILER_HASH_SET_SUB_SAVE_NAME), true);
 #endif
         mLock.lock();
 

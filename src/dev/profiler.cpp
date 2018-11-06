@@ -12,7 +12,7 @@ namespace NextCash
 {
     static std::vector<std::vector<Profiler>> sProfilerSets;
 
-    Profiler &getProfiler(unsigned int pSetID, unsigned int pID, const char *pName, bool pStart)
+    Profiler &getProfiler(unsigned int pSetID, unsigned int pID, const char *pName)
     {
         if(sProfilerSets.size() <= pSetID)
             sProfilerSets.resize(pSetID + 1);
@@ -25,9 +25,15 @@ namespace NextCash
         Profiler &result = set.at(pID);
         if(!result.name())
             result.setName(pName);
-        if(pStart)
-            result.start();
         return result;
+    }
+
+    void resetProfilers()
+    {
+        for(std::vector<std::vector<Profiler>>::iterator set = sProfilerSets.begin();
+          set != sProfilerSets.end(); ++set)
+            for(std::vector<Profiler>::iterator item = set->begin(); item != set->end(); ++item)
+                item->clear();
     }
 
     void printProfilerDataToLog(Log::Level pLevel)

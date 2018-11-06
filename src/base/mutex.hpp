@@ -38,6 +38,9 @@ namespace NextCash
         String mName;
         Thread::ID mLockedThread;
 
+        Mutex(const Mutex &pCopy);
+        Mutex &operator = (const Mutex &pRight);
+
     };
 
     class MutexWithConstantName
@@ -56,6 +59,9 @@ namespace NextCash
 
         std::mutex mMutex;
         const char *mName;
+
+        MutexWithConstantName(const MutexWithConstantName &pCopy);
+        MutexWithConstantName &operator = (const MutexWithConstantName &pRight);
 
     };
 

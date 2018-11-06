@@ -13,6 +13,7 @@
 
 #include "string.hpp"
 #include "log.hpp"
+#include "mutex.hpp"
 
 
 namespace NextCash
@@ -107,42 +108,107 @@ namespace NextCash
     static const char *PROFILER_HASH_CONT_INSERT_NM_NAME __attribute__ ((unused)) = "HashContainer::insertNotMatching";
 #endif
 
-    class Profiler : public Timer
+    class Profiler
     {
     public:
 
-        Profiler() : Timer() {}
-        Profiler(const Profiler &pCopy) : Timer(pCopy) { mName = pCopy.mName; }
+        Profiler() : mHits(0L), mMicroseconds(0L), mMutex("Profiler") {}
+        Profiler(const Profiler &pCopy) : mMutex("Profiler")
+        {
+            mName = pCopy.mName;
+            mHits = pCopy.mHits;
+            mMicroseconds = pCopy.mMicroseconds;
+        }
 
         Profiler &operator = (const Profiler &pRight)
         {
             mName = pRight.mName;
-            Timer::assign(pRight);
+            mHits = pRight.mHits;
+            mMicroseconds = pRight.mMicroseconds;
             return *this;
         }
 
         const String &name() const { return mName; }
         void setName(const char *pName) { mName = pName; }
 
+        void addHit(Microseconds pMicroseconds)
+        {
+            mMutex.lock();
+            ++mHits;
+            mMicroseconds += pMicroseconds;
+            mMutex.unlock();
+        }
+
+        void clear()
+        {
+            mMutex.lock();
+            mHits = 0L;
+            mMicroseconds = 0L;
+            mMutex.unlock();
+        }
+
+        uint64_t hits() const { return mHits; }
+        Milliseconds milliseconds() const { return mMicroseconds / 1000L; }
+        Microseconds microseconds() const { return mMicroseconds; }
+
     private:
 
         String mName;
+        uint64_t mHits;
+        Microseconds mMicroseconds;
+        MutexWithConstantName mMutex;
 
     };
 
     // Profiler that stops when it goes out of scope.
+    // Thread safe profiler access. This adds hits to the profiler in a thread safe way.
+    //   Using the profiler directly would not allow more than one "hit" ongoing at a time.
     class ProfilerReference
     {
     public:
-        ProfilerReference(Profiler &pProfiler) : mProfiler(pProfiler) { }
+        ProfilerReference(Profiler &pProfiler, bool pStart) : mProfiler(pProfiler)
+        {
+            mStarted = pStart;
+            if(pStart)
+                mStartTime = std::chrono::steady_clock::now();
+        }
 
-        ~ProfilerReference() { mProfiler.stop(); }
+        ~ProfilerReference()
+        {
+            if(mStarted)
+            {
+                mProfiler.addHit(std::chrono::duration_cast<std::chrono::microseconds>(
+                 std::chrono::steady_clock::now() - mStartTime).count());
+            }
+        }
 
+        void start()
+        {
+            mStartTime = std::chrono::steady_clock::now();
+            mStarted = true;
+        }
+
+        void stop()
+        {
+            if(!mStarted)
+                return;
+            mProfiler.addHit(std::chrono::duration_cast<std::chrono::microseconds>(
+             std::chrono::steady_clock::now() - mStartTime).count());
+            mStarted = false;
+        }
+
+    private:
         Profiler &mProfiler;
+        bool mStarted;
+        std::chrono::steady_clock::time_point mStartTime;
+
+        ProfilerReference(const ProfilerReference &pCopy);
+        ProfilerReference &operator = (const ProfilerReference &pRight);
     };
 
-    Profiler &getProfiler(unsigned int pSetID, unsigned int pID, const char *pName,
-      bool pStart = false);
+    Profiler &getProfiler(unsigned int pSetID, unsigned int pID, const char *pName);
+
+    void resetProfilers();
 
     void printProfilerDataToLog(Log::Level pLevel);
 }
