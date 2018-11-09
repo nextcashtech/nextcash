@@ -118,6 +118,7 @@ namespace NextCash
         const String &name() const { return mName; }
         void setName(const char *pName) { mName = pName; }
 
+        // Add one hit and specified time.
         void addHit(Microseconds pMicroseconds)
         {
             mMutex.lock();
@@ -126,10 +127,27 @@ namespace NextCash
             mMutex.unlock();
         }
 
+        // Add hits without incrementing time.
         void addHits(uint64_t pHits)
         {
             mMutex.lock();
             mHits += pHits;
+            mMutex.unlock();
+        }
+
+        // Add hit without incrementing time.
+        void addHit()
+        {
+            mMutex.lock();
+            ++mHits;
+            mMutex.unlock();
+        }
+
+        // Add time without incrementing hits.
+        void addTime(uint64_t pMicroseconds)
+        {
+            mMutex.lock();
+            mMicroseconds += pMicroseconds;
             mMutex.unlock();
         }
 
@@ -170,8 +188,6 @@ namespace NextCash
     };
 
     // Profiler that stops when it goes out of scope.
-    // Thread safe profiler access. This adds hits to the profiler in a thread safe way.
-    //   Using the profiler directly would not allow more than one "hit" ongoing at a time.
     class ProfilerReference
     {
     public:
