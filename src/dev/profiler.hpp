@@ -112,21 +112,8 @@ namespace NextCash
     {
     public:
 
-        Profiler() : mHits(0L), mMicroseconds(0L), mMutex("Profiler") {}
-        Profiler(const Profiler &pCopy) : mMutex("Profiler")
-        {
-            mName = pCopy.mName;
-            mHits = pCopy.mHits;
-            mMicroseconds = pCopy.mMicroseconds;
-        }
-
-        Profiler &operator = (const Profiler &pRight)
-        {
-            mName = pRight.mName;
-            mHits = pRight.mHits;
-            mMicroseconds = pRight.mMicroseconds;
-            return *this;
-        }
+        Profiler(const char *pName) : mName (pName), mHits(0L), mMicroseconds(0L),
+          mMutex("Profiler") {}
 
         const String &name() const { return mName; }
         void setName(const char *pName) { mName = pName; }
@@ -136,6 +123,13 @@ namespace NextCash
             mMutex.lock();
             ++mHits;
             mMicroseconds += pMicroseconds;
+            mMutex.unlock();
+        }
+
+        void addHits(uint64_t pHits)
+        {
+            mMutex.lock();
+            mHits += pHits;
             mMutex.unlock();
         }
 
@@ -157,6 +151,21 @@ namespace NextCash
         uint64_t mHits;
         Microseconds mMicroseconds;
         MutexWithConstantName mMutex;
+
+        Profiler(const Profiler &pCopy) : mMutex("Profiler")
+        {
+            mName = pCopy.mName;
+            mHits = pCopy.mHits;
+            mMicroseconds = pCopy.mMicroseconds;
+        }
+
+        Profiler &operator = (const Profiler &pRight)
+        {
+            mName = pRight.mName;
+            mHits = pRight.mHits;
+            mMicroseconds = pRight.mMicroseconds;
+            return *this;
+        }
 
     };
 
