@@ -606,12 +606,12 @@ namespace NextCash
         }
     }
 
-    void HashList::insertSorted(const Hash &pHash)
+    bool HashList::insertSorted(const Hash &pHash)
     {
         if(size() == 0 || back().compare(pHash) < 0)
         {
             push_back(pHash);
-            return;
+            return true;
         }
 
         int compare;
@@ -623,31 +623,46 @@ namespace NextCash
         {
             // Break the set in two halves
             current = bottom + ((top - bottom) / 2);
-            compare = pHash.compare(*current);
 
             if(current == bottom)
             {
-                if(bottom->compare(pHash) > 0)
+                compare = bottom->compare(pHash);
+                if(compare > 0)
                     current = bottom; // Insert before bottom
-                else if(current != top && top->compare(pHash) > 0)
-                    current = top; // Insert before top
+                else if(compare == 0)
+                    return false; // Match found
                 else
-                    current = top + 1; // Insert after top
+                {
+                    if(current != top)
+                    {
+                        compare = top->compare(pHash);
+                        if(compare > 0)
+                            current = top; // Insert before top
+                        else if(compare == 0)
+                            return false; // Match found
+                        else
+                            current = top + 1; // Insert after top
+                    }
+                    else
+                        current = top + 1; // Insert after top
+                }
                 break;
             }
 
             // Determine which half the desired item is in
+            compare = pHash.compare(*current);
             if(compare > 0)
                 bottom = current;
             else if(compare < 0)
                 top = current;
             else
-                break;
+                return false; // Match found
         }
 
         iterator after = begin();
         after += (current - data());
         insert(after, pHash);
+        return true;
     }
 
     bool HashList::containsSorted(const Hash &pHash)
@@ -676,6 +691,48 @@ namespace NextCash
                 top = current;
             else
                 return true;
+        }
+    }
+
+    bool HashList::removeSorted(const Hash &pHash)
+    {
+        if(size() == 0 || back().compare(pHash) < 0)
+            return false;
+
+        int compare;
+        Hash *bottom = data();
+        Hash *top = data() + size() - 1;
+        Hash *current;
+
+        while(true)
+        {
+            // Break the set in two halves
+            current = bottom + ((top - bottom) / 2);
+
+            if(current == bottom)
+            {
+                if(*bottom == pHash)
+                {
+                    // Remove bottom
+                    erase(begin() + (bottom - data()));
+                    return true;
+                }
+                else
+                    return false;
+            }
+
+            // Determine which half the desired item is in
+            compare = pHash.compare(*current);
+            if(compare > 0)
+                bottom = current;
+            else if(compare < 0)
+                top = current;
+            else
+            {
+                // Remove current
+                erase(begin() + (current - data()));
+                return true;
+            }
         }
     }
 

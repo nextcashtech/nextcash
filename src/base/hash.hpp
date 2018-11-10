@@ -313,10 +313,13 @@ namespace NextCash
         }
 
         // Insert an item into a sorted list and retain sorting
-        void insertSorted(const Hash &pHash);
+        bool insertSorted(const Hash &pHash);
 
         // Return true if the item exists in a sorted list
         bool containsSorted(const Hash &pHash);
+
+        // Return true if the item was removed from the sorted list
+        bool removeSorted(const Hash &pHash);
 
         typedef std::vector<Hash>::iterator iterator;
         typedef std::vector<Hash>::const_iterator const_iterator;
