@@ -39,9 +39,9 @@ namespace NextCash
         bool setReadOffset(stream_size pOffset) { mReadOffset = pOffset; return true; } // Only safe when auto flush is false
         bool setWriteOffset(stream_size pOffset) { mWriteOffset = pOffset; return true; } // Only safe when auto flush is false
 
-        const uint8_t *startPointer() { return mData; }
-        const uint8_t *readPointer() { return mData + mReadOffset; }
-        const uint8_t *endPointer() { return mData + mEndOffset; }
+        uint8_t *begin() { return mData; }
+        uint8_t *current() { return mData + mReadOffset; }
+        uint8_t *end() { return mData + mEndOffset; }
 
         bool autoFlush() { return mAutoFlush; } // Will flush to allocate room when writing
         void setAutoFlush(bool pValue) { mAutoFlush = pValue; }

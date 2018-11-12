@@ -40,6 +40,9 @@ namespace NextCash
         if(!NextCash::Hash::test())
             failed++;
 
+        if(!NextCash::HashContainerList::test())
+            failed++;
+
         if(!NextCash::testHashDataSet())
             failed++;
 

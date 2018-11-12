@@ -763,7 +763,7 @@ namespace NextCash
         data.setReadOffset(0);
         encryptedData.clear();
 
-        aes128ECB.setup(key.startPointer(), key.length(), initVector.startPointer(), initVector.length());
+        aes128ECB.setup(key.begin(), key.length(), initVector.begin(), initVector.length());
         aes128ECB.writeStream(&data, data.remaining());
         aes128ECB.finalize();
 
@@ -782,7 +782,7 @@ namespace NextCash
             result = false;
         }
 
-        unaes128ECB.setup(key.startPointer(), key.length(), initVector.startPointer(), initVector.length());
+        unaes128ECB.setup(key.begin(), key.length(), initVector.begin(), initVector.length());
         encryptedData.setReadOffset(0);
         data.setReadOffset(0);
         correctOutput.clear();
@@ -808,7 +808,7 @@ namespace NextCash
         data.setReadOffset(0);
         encryptedData.clear();
 
-        aes192ECB.setup(key.startPointer(), key.length(), initVector.startPointer(), initVector.length());
+        aes192ECB.setup(key.begin(), key.length(), initVector.begin(), initVector.length());
         aes192ECB.writeStream(&data, data.remaining());
         aes192ECB.finalize();
 
@@ -827,7 +827,7 @@ namespace NextCash
             result = false;
         }
 
-        unaes192ECB.setup(key.startPointer(), key.length(), initVector.startPointer(), initVector.length());
+        unaes192ECB.setup(key.begin(), key.length(), initVector.begin(), initVector.length());
         encryptedData.setReadOffset(0);
         data.setReadOffset(0);
         correctOutput.clear();
@@ -853,7 +853,7 @@ namespace NextCash
         data.setReadOffset(0);
         encryptedData.clear();
 
-        aes256ECB.setup(key.startPointer(), key.length(), initVector.startPointer(), initVector.length());
+        aes256ECB.setup(key.begin(), key.length(), initVector.begin(), initVector.length());
         aes256ECB.writeStream(&data, data.remaining());
         aes256ECB.finalize();
 
@@ -872,7 +872,7 @@ namespace NextCash
             result = false;
         }
 
-        unaes256ECB.setup(key.startPointer(), key.length(), initVector.startPointer(), initVector.length());
+        unaes256ECB.setup(key.begin(), key.length(), initVector.begin(), initVector.length());
         encryptedData.setReadOffset(0);
         data.setReadOffset(0);
         correctOutput.clear();
@@ -904,7 +904,7 @@ namespace NextCash
         data.setReadOffset(0);
         encryptedData.clear();
 
-        aes128ECB.setup(key.startPointer(), key.length(), initVector.startPointer(), initVector.length());
+        aes128ECB.setup(key.begin(), key.length(), initVector.begin(), initVector.length());
         aes128ECB.writeStream(&data, data.remaining());
         aes128ECB.finalize();
 
@@ -923,7 +923,7 @@ namespace NextCash
             result = false;
         }
 
-        unaes128ECB.setup(key.startPointer(), key.length(), initVector.startPointer(), initVector.length());
+        unaes128ECB.setup(key.begin(), key.length(), initVector.begin(), initVector.length());
         encryptedData.setReadOffset(0);
         data.setReadOffset(0);
         correctOutput.clear();
@@ -949,7 +949,7 @@ namespace NextCash
         data.setReadOffset(0);
         encryptedData.clear();
 
-        aes192ECB.setup(key.startPointer(), key.length(), initVector.startPointer(), initVector.length());
+        aes192ECB.setup(key.begin(), key.length(), initVector.begin(), initVector.length());
         aes192ECB.writeStream(&data, data.remaining());
         aes192ECB.finalize();
 
@@ -968,7 +968,7 @@ namespace NextCash
             result = false;
         }
 
-        unaes192ECB.setup(key.startPointer(), key.length(), initVector.startPointer(), initVector.length());
+        unaes192ECB.setup(key.begin(), key.length(), initVector.begin(), initVector.length());
         encryptedData.setReadOffset(0);
         data.setReadOffset(0);
         correctOutput.clear();
@@ -994,7 +994,7 @@ namespace NextCash
         data.setReadOffset(0);
         encryptedData.clear();
 
-        aes256ECB.setup(key.startPointer(), key.length(), initVector.startPointer(), initVector.length());
+        aes256ECB.setup(key.begin(), key.length(), initVector.begin(), initVector.length());
         aes256ECB.writeStream(&data, data.remaining());
         aes256ECB.finalize();
 
@@ -1013,7 +1013,7 @@ namespace NextCash
             result = false;
         }
 
-        unaes256ECB.setup(key.startPointer(), key.length(), initVector.startPointer(), initVector.length());
+        unaes256ECB.setup(key.begin(), key.length(), initVector.begin(), initVector.length());
         encryptedData.setReadOffset(0);
         data.setReadOffset(0);
         correctOutput.clear();
@@ -1046,7 +1046,7 @@ namespace NextCash
         data.setReadOffset(0);
         encryptedData.clear();
 
-        aes128ECB.setup(key.startPointer(), key.length(), initVector.startPointer(), initVector.length());
+        aes128ECB.setup(key.begin(), key.length(), initVector.begin(), initVector.length());
         aes128ECB.writeStream(&data, data.remaining());
         aes128ECB.finalize();
 
@@ -1065,7 +1065,7 @@ namespace NextCash
             result = false;
         }
 
-        unaes128ECB.setup(key.startPointer(), key.length(), initVector.startPointer(), initVector.length());
+        unaes128ECB.setup(key.begin(), key.length(), initVector.begin(), initVector.length());
         encryptedData.setReadOffset(0);
         data.setReadOffset(0);
         correctOutput.clear();
@@ -1091,7 +1091,7 @@ namespace NextCash
         data.setReadOffset(0);
         encryptedData.clear();
 
-        aes192ECB.setup(key.startPointer(), key.length(), initVector.startPointer(), initVector.length());
+        aes192ECB.setup(key.begin(), key.length(), initVector.begin(), initVector.length());
         aes192ECB.writeStream(&data, data.remaining());
         aes192ECB.finalize();
 
@@ -1110,7 +1110,7 @@ namespace NextCash
             result = false;
         }
 
-        unaes192ECB.setup(key.startPointer(), key.length(), initVector.startPointer(), initVector.length());
+        unaes192ECB.setup(key.begin(), key.length(), initVector.begin(), initVector.length());
         encryptedData.setReadOffset(0);
         data.setReadOffset(0);
         correctOutput.clear();
@@ -1136,7 +1136,7 @@ namespace NextCash
         data.setReadOffset(0);
         encryptedData.clear();
 
-        aes256ECB.setup(key.startPointer(), key.length(), initVector.startPointer(), initVector.length());
+        aes256ECB.setup(key.begin(), key.length(), initVector.begin(), initVector.length());
         aes256ECB.writeStream(&data, data.remaining());
         aes256ECB.finalize();
 
@@ -1155,7 +1155,7 @@ namespace NextCash
             result = false;
         }
 
-        unaes256ECB.setup(key.startPointer(), key.length(), initVector.startPointer(), initVector.length());
+        unaes256ECB.setup(key.begin(), key.length(), initVector.begin(), initVector.length());
         encryptedData.setReadOffset(0);
         data.setReadOffset(0);
         correctOutput.clear();
@@ -1187,7 +1187,7 @@ namespace NextCash
         data.setReadOffset(0);
         encryptedData.clear();
 
-        aes128CBC.setup(key.startPointer(), key.length(), initVector.startPointer(), initVector.length());
+        aes128CBC.setup(key.begin(), key.length(), initVector.begin(), initVector.length());
         aes128CBC.writeStream(&data, data.remaining());
         aes128CBC.finalize();
 
@@ -1206,7 +1206,7 @@ namespace NextCash
             result = false;
         }
 
-        unaes128CBC.setup(key.startPointer(), key.length(), initVector.startPointer(), initVector.length());
+        unaes128CBC.setup(key.begin(), key.length(), initVector.begin(), initVector.length());
         encryptedData.setReadOffset(0);
         data.setReadOffset(0);
         correctOutput.clear();
@@ -1231,7 +1231,7 @@ namespace NextCash
         data.setReadOffset(0);
         encryptedData.clear();
 
-        aes192CBC.setup(key.startPointer(), key.length(), initVector.startPointer(), initVector.length());
+        aes192CBC.setup(key.begin(), key.length(), initVector.begin(), initVector.length());
         aes192CBC.writeStream(&data, data.remaining());
         aes192CBC.finalize();
 
@@ -1250,7 +1250,7 @@ namespace NextCash
             result = false;
         }
 
-        unaes192CBC.setup(key.startPointer(), key.length(), initVector.startPointer(), initVector.length());
+        unaes192CBC.setup(key.begin(), key.length(), initVector.begin(), initVector.length());
         encryptedData.setReadOffset(0);
         data.setReadOffset(0);
         correctOutput.clear();
@@ -1275,7 +1275,7 @@ namespace NextCash
         data.setReadOffset(0);
         encryptedData.clear();
 
-        aes256CBC.setup(key.startPointer(), key.length(), initVector.startPointer(), initVector.length());
+        aes256CBC.setup(key.begin(), key.length(), initVector.begin(), initVector.length());
         aes256CBC.writeStream(&data, data.remaining());
         aes256CBC.finalize();
 
@@ -1294,7 +1294,7 @@ namespace NextCash
             result = false;
         }
 
-        unaes256CBC.setup(key.startPointer(), key.length(), initVector.startPointer(), initVector.length());
+        unaes256CBC.setup(key.begin(), key.length(), initVector.begin(), initVector.length());
         encryptedData.setReadOffset(0);
         data.setReadOffset(0);
         correctOutput.clear();
