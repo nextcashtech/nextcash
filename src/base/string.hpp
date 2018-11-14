@@ -140,7 +140,7 @@ namespace NextCash
         bool operator != (const char *pRight) const { return !(*this == pRight); }
         bool operator != (const String &pRight) const { return !(*this == pRight.text()); }
 
-        int compare(const char *pRight)
+        int compare(const char *pRight) const
         {
             // This is empty
             if(mData == NULL)

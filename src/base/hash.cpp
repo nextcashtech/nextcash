@@ -11,8 +11,6 @@
 #include "log.hpp"
 #include "digest.hpp"
 
-#define NEXTCASH_HASH_LOG_NAME "Hash"
-
 
 namespace NextCash
 {
@@ -608,13 +606,30 @@ namespace NextCash
 
     bool HashList::insertSorted(const Hash &pHash)
     {
-        if(size() == 0 || back().compare(pHash) < 0)
+        if(size() == 0)
         {
             push_back(pHash);
             return true;
         }
 
-        int compare;
+        int compare = back().compare(pHash);
+        if(compare < 0)
+        {
+            push_back(pHash);
+            return true;
+        }
+        else if(compare == 0)
+            return false;
+
+        compare = front().compare(pHash);
+        if(compare > 0)
+        {
+            insert(begin(), pHash);
+            return true;
+        }
+        else if(compare == 0)
+            return false;
+
         Hash *bottom = data();
         Hash *top = data() + size() - 1;
         Hash *current;
@@ -625,29 +640,7 @@ namespace NextCash
             current = bottom + ((top - bottom) / 2);
 
             if(current == bottom)
-            {
-                compare = bottom->compare(pHash);
-                if(compare > 0)
-                    current = bottom; // Insert before bottom
-                else if(compare == 0)
-                    return false; // Match found
-                else
-                {
-                    if(current != top)
-                    {
-                        compare = top->compare(pHash);
-                        if(compare > 0)
-                            current = top; // Insert before top
-                        else if(compare == 0)
-                            return false; // Match found
-                        else
-                            current = top + 1; // Insert after top
-                    }
-                    else
-                        current = top + 1; // Insert after top
-                }
                 break;
-            }
 
             // Determine which half the desired item is in
             compare = pHash.compare(*current);
@@ -667,10 +660,21 @@ namespace NextCash
 
     bool HashList::containsSorted(const Hash &pHash)
     {
-        if(size() == 0 || back().compare(pHash) < 0)
+        if(size() == 0)
             return false;
 
-        int compare;
+        int compare = back().compare(pHash);
+        if(compare < 0)
+            return false;
+        else if(compare == 0)
+            return true;
+
+        compare = front().compare(pHash);
+        if(compare > 0)
+            return false;
+        else if(compare == 0)
+            return true;
+
         Hash *bottom = data();
         Hash *top = data() + size() - 1;
         Hash *current;
@@ -682,7 +686,7 @@ namespace NextCash
             compare = pHash.compare(*current);
 
             if(current == bottom)
-                return *bottom == pHash;
+                return false;
 
             // Determine which half the desired item is in
             if(compare > 0)
@@ -696,10 +700,27 @@ namespace NextCash
 
     bool HashList::removeSorted(const Hash &pHash)
     {
-        if(size() == 0 || back().compare(pHash) < 0)
+        if(size() == 0)
             return false;
 
-        int compare;
+        int compare = back().compare(pHash);
+        if(compare < 0)
+            return false;
+        else if(compare == 0)
+        {
+            erase(--end());
+            return true;
+        }
+
+        compare = front().compare(pHash);
+        if(compare > 0)
+            return false;
+        else if(compare == 0)
+        {
+            erase(begin());
+            return true;
+        }
+
         Hash *bottom = data();
         Hash *top = data() + size() - 1;
         Hash *current;
@@ -708,18 +729,8 @@ namespace NextCash
         {
             // Break the set in two halves
             current = bottom + ((top - bottom) / 2);
-
             if(current == bottom)
-            {
-                if(*bottom == pHash)
-                {
-                    // Remove bottom
-                    erase(begin() + (bottom - data()));
-                    return true;
-                }
-                else
-                    return false;
-            }
+                return false;
 
             // Determine which half the desired item is in
             compare = pHash.compare(*current);
@@ -734,11 +745,6 @@ namespace NextCash
                 return true;
             }
         }
-    }
-
-    bool stringEqual(String *&pLeft, String *&pRight)
-    {
-        return *pLeft == *pRight;
     }
 
     bool Hash::test()
@@ -1269,215 +1275,6 @@ namespace NextCash
               workHash.hex().text());
             success = false;
         }
-
-        /***********************************************************************************************
-         * Hash container list
-         ***********************************************************************************************/
-        HashContainerList<String *> hashStringList;
-        HashContainerList<String *>::Iterator retrieve;
-
-        Hash l1(32);
-        l1.randomize();
-        Hash l2(32);
-        l2.randomize();
-
-        String *string1 = new String("test1");
-        String *string2 = new String("test2");
-
-        hashStringList.insertIfNotMatching(l1, string1, stringEqual);
-
-        retrieve = hashStringList.get(l1);
-        if(retrieve == hashStringList.end())
-        {
-            Log::addFormatted(Log::ERROR, NEXTCASH_HASH_LOG_NAME,
-              "Failed hash string list 0 : not found", workHash.hex().text());
-            success = false;
-        }
-        else if(*retrieve != string1)
-        {
-            Log::addFormatted(Log::ERROR, NEXTCASH_HASH_LOG_NAME, "Failed hash string list 0 : %s",
-              (*retrieve)->text());
-            success = false;
-        }
-        else
-            Log::add(Log::INFO, NEXTCASH_HASH_LOG_NAME, "Passed hash string list 0");
-
-        hashStringList.insertIfNotMatching(l2, string2, stringEqual);
-
-        retrieve = hashStringList.get(l1);
-        if(retrieve == hashStringList.end())
-        {
-            Log::addFormatted(Log::ERROR, NEXTCASH_HASH_LOG_NAME,
-              "Failed hash string list 1 : not found", workHash.hex().text());
-            success = false;
-        }
-        else if(*retrieve != string1)
-        {
-            Log::addFormatted(Log::ERROR, NEXTCASH_HASH_LOG_NAME, "Failed hash string list 1 : %s",
-              (*retrieve)->text());
-            success = false;
-        }
-        else
-            Log::add(Log::INFO, NEXTCASH_HASH_LOG_NAME, "Passed hash string list 1");
-
-        retrieve = hashStringList.get(l2);
-        if(retrieve == hashStringList.end())
-        {
-            Log::addFormatted(Log::ERROR, NEXTCASH_HASH_LOG_NAME,
-              "Failed hash string list 2 : not found", workHash.hex().text());
-            success = false;
-        }
-        else if(*retrieve != string2)
-        {
-            Log::addFormatted(Log::ERROR, NEXTCASH_HASH_LOG_NAME, "Failed hash string list 2 : %s",
-              (*retrieve)->text());
-            success = false;
-        }
-        else
-            Log::add(Log::INFO, NEXTCASH_HASH_LOG_NAME, "Passed hash string list 2");
-
-        Hash lr(32);
-        String *newString = NULL;
-        for(unsigned int i=0;i<100;++i)
-        {
-            lr.randomize();
-            newString = new String();
-            newString->writeFormatted("String %04d", Math::randomInt() % 1000);
-            //hashStringList.insert(lr, newString);
-            hashStringList.insertIfNotMatching(lr, newString, stringEqual);
-
-            // for(HashContainerList<String *>::Iterator item=hashStringList.begin();item!=hashStringList.end();++item)
-            // {
-                // Log::addFormatted(Log::DEBUG, NEXTCASH_HASH_LOG_NAME, "Hash string list : %s <- %s",
-                  // (*item)->text(), item.hash().hex().text());
-            // }
-        }
-
-        retrieve = hashStringList.get(l1);
-        if(retrieve == hashStringList.end())
-        {
-            Log::addFormatted(Log::ERROR, NEXTCASH_HASH_LOG_NAME,
-              "Failed hash string list r1 : not found", workHash.hex().text());
-            success = false;
-        }
-        else if(*retrieve != string1)
-        {
-            Log::addFormatted(Log::ERROR, NEXTCASH_HASH_LOG_NAME,
-              "Failed hash string list r1 : %s", (*retrieve)->text());
-            success = false;
-        }
-        else
-            Log::add(Log::INFO, NEXTCASH_HASH_LOG_NAME, "Passed hash string list r1");
-
-        retrieve = hashStringList.get(l2);
-        if(retrieve == hashStringList.end())
-        {
-            Log::addFormatted(Log::ERROR, NEXTCASH_HASH_LOG_NAME,
-              "Failed hash string list r2 : not found", workHash.hex().text());
-            success = false;
-        }
-        else if(*retrieve != string2)
-        {
-            Log::addFormatted(Log::ERROR, NEXTCASH_HASH_LOG_NAME,
-              "Failed hash string list r2 : %s", (*retrieve)->text());
-            success = false;
-        }
-        else
-            Log::add(Log::INFO, NEXTCASH_HASH_LOG_NAME, "Passed hash string list r2");
-
-        String *firstString = new String("first");
-        String *lastString = new String("last");
-
-        l1.zeroize();
-        hashStringList.insertIfNotMatching(l1, firstString, stringEqual);
-
-        l1.setMax();
-        hashStringList.insertIfNotMatching(l1, lastString, stringEqual);
-
-        String *firstTest = NULL;
-        String *lastTest = NULL;
-        for(HashContainerList<String *>::Iterator item = hashStringList.begin();
-          item != hashStringList.end(); ++item)
-        {
-            if(firstTest == NULL)
-                firstTest = *item;
-            lastTest = *item;
-            // if(*item == NULL)
-                // Log::addFormatted(Log::DEBUG, NEXTCASH_HASH_LOG_NAME, "Hash string list : NULL <- %s",
-                  // item.hash().hex().text());
-            // else
-                // Log::addFormatted(Log::DEBUG, NEXTCASH_HASH_LOG_NAME, "Hash string list : %s <- %s",
-                  // (*item)->text(), item.hash().hex().text());
-        }
-
-        if(firstTest == NULL)
-        {
-            Log::addFormatted(Log::ERROR, NEXTCASH_HASH_LOG_NAME,
-              "Failed hash string list iterate first : not found", workHash.hex().text());
-            success = false;
-        }
-        else if(firstTest != firstString)
-        {
-            Log::addFormatted(Log::ERROR, NEXTCASH_HASH_LOG_NAME,
-              "Failed hash string list iterate first : %s", firstTest->text());
-            success = false;
-        }
-        else
-            Log::add(Log::INFO, NEXTCASH_HASH_LOG_NAME, "Passed hash string list iterate first");
-
-        if(lastTest == NULL)
-        {
-            Log::addFormatted(Log::ERROR, NEXTCASH_HASH_LOG_NAME,
-              "Failed hash string list iterate last : not found", workHash.hex().text());
-            success = false;
-        }
-        else if(lastTest != lastString)
-        {
-            Log::addFormatted(Log::ERROR, NEXTCASH_HASH_LOG_NAME,
-              "Failed hash string list iterate last : %s", lastTest->text());
-            success = false;
-        }
-        else
-            Log::add(Log::INFO, NEXTCASH_HASH_LOG_NAME, "Passed hash string list iterate last");
-
-        l1.zeroize();
-        retrieve = hashStringList.get(l1);
-        if(retrieve == hashStringList.end())
-        {
-            Log::addFormatted(Log::ERROR, NEXTCASH_HASH_LOG_NAME,
-              "Failed hash string list get first : not found", workHash.hex().text());
-            success = false;
-        }
-        else if(*retrieve != firstString)
-        {
-            Log::addFormatted(Log::ERROR, NEXTCASH_HASH_LOG_NAME,
-              "Failed hash string list get first : %s", (*retrieve)->text());
-            success = false;
-        }
-        else
-            Log::add(Log::INFO, NEXTCASH_HASH_LOG_NAME, "Passed hash string list get first");
-
-        l1.setMax();
-        retrieve = hashStringList.get(l1);
-        if(retrieve == hashStringList.end())
-        {
-            Log::addFormatted(Log::ERROR, NEXTCASH_HASH_LOG_NAME,
-              "Failed hash string list get last : not found", workHash.hex().text());
-            success = false;
-        }
-        else if(*retrieve != lastString)
-        {
-            Log::addFormatted(Log::ERROR, NEXTCASH_HASH_LOG_NAME,
-              "Failed hash string list get last : %s", (*retrieve)->text());
-            success = false;
-        }
-        else
-            Log::add(Log::INFO, NEXTCASH_HASH_LOG_NAME, "Passed hash string list get last");
-
-        for(HashContainerList<String *>::Iterator item = hashStringList.begin();
-          item != hashStringList.end(); ++item)
-            if(*item != NULL)
-                delete *item;
 
         return success;
     }

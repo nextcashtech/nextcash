@@ -12,7 +12,9 @@ include_directories( src/base
 add_library( nextcash STATIC SHARED
              src/base/distributed_vector.cpp
              src/base/hash.cpp
-             src/base/hash_data_set.cpp
+             src/base/hash_set.cpp
+             src/base/hash_container_list.cpp
+             src/base/hash_data_file_set.cpp
              src/base/log.cpp
              src/base/mutex.cpp
              src/base/string.cpp

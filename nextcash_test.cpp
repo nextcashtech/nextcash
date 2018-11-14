@@ -7,7 +7,9 @@
  **************************************************************************/
 #include "string.hpp"
 #include "hash.hpp"
-#include "hash_data_set.hpp"
+#include "hash_set.hpp"
+#include "hash_container_list.hpp"
+#include "hash_data_file_set.hpp"
 #include "distributed_vector.hpp"
 #include "log.hpp"
 #include "thread.hpp"
@@ -40,10 +42,13 @@ namespace NextCash
         if(!NextCash::Hash::test())
             failed++;
 
-        if(!NextCash::HashContainerList::test())
+        if(!NextCash::HashSet::test())
             failed++;
 
-        if(!NextCash::testHashDataSet())
+        if(!NextCash::testHashContainerList())
+            failed++;
+
+        if(!NextCash::testHashDataFileSet())
             failed++;
 
         if(!NextCash::Digest::test())

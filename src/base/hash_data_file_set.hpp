@@ -5,14 +5,15 @@
  * Distributed under the MIT software license, see the accompanying       *
  * file license.txt or http://www.opensource.org/licenses/mit-license.php *
  **************************************************************************/
-#ifndef NEXTCASH_HASH_DATA_SET_HPP
-#define NEXTCASH_HASH_DATA_SET_HPP
+#ifndef NEXTCASH_HASH_DATA_FILE_SET_HPP
+#define NEXTCASH_HASH_DATA_FILE_SET_HPP
 
 #include "mutex.hpp"
 #include "thread.hpp"
 #include "math.hpp"
 #include "string.hpp"
 #include "hash.hpp"
+#include "hash_container_list.hpp"
 #include "distributed_vector.hpp"
 #include "log.hpp"
 #include "stream.hpp"
@@ -22,20 +23,20 @@
 #include "profiler.hpp"
 #endif
 
-#define NEXTCASH_HASH_DATA_SET_LOG_NAME "HashDataSet"
+#define NEXTCASH_HASH_DATA_FILE_SET_LOG_NAME "HashDataFileSet"
 
 
 namespace NextCash
 {
-    // A data class that can be used within a HashDataSet.
+    // A data class that can be used within a HashDataFileSet.
     // NOTE: The objects read/write size can't increase after being initially added to the hash
     //   data set or it will overwrite the next item in the file.
-    class HashData
+    class HashDataFileSetObject
     {
     public:
 
-        HashData() { mFlags = 0; mDataOffset = INVALID_STREAM_SIZE; }
-        virtual ~HashData() {}
+        HashDataFileSetObject() { mFlags = 0; mDataOffset = INVALID_STREAM_SIZE; }
+        virtual ~HashDataFileSetObject() {}
 
         // Flags
         bool markedRemove() const { return mFlags & REMOVE_FLAG; }
@@ -73,10 +74,10 @@ namespace NextCash
         // Negative means this object is older than pRight.
         // Zero means both objects are the same age.
         // Positive means this object is newer than pRight.
-        virtual int compareAge(HashData *pRight) = 0;
+        virtual int compareAge(HashDataFileSetObject *pRight) = 0;
 
         // Returns true if the value of this object matches the value pRight references
-        virtual bool valuesMatch(const HashData *pRight) const = 0;
+        virtual bool valuesMatch(const HashDataFileSetObject *pRight) const = 0;
 
         bool readFromDataFile(unsigned int pHashSize, InputStream *pStream);
         bool writeToDataFile(const Hash &pHash, OutputStream *pStream);
@@ -94,12 +95,12 @@ namespace NextCash
         //   virtual read/write functions.
         stream_size mDataOffset;
 
-        HashData(const HashData &pCopy);
-        const HashData &operator = (const HashData &pRight);
+        HashDataFileSetObject(const HashDataFileSetObject &pCopy);
+        const HashDataFileSetObject &operator = (const HashDataFileSetObject &pRight);
     };
 
-    // Returns true if the values pointed to by both HashData pointers match
-    inline bool hashDataValuesMatch(HashData *&pLeft, HashData *&pRight)
+    // Returns true if the values pointed to by both HashDataFileSetObject pointers match
+    inline bool hashDataValuesMatch(HashDataFileSetObject *&pLeft, HashDataFileSetObject *&pRight)
     {
         return pLeft->valuesMatch(pRight);
     }
@@ -124,7 +125,7 @@ namespace NextCash
      *     the cache.
      */
     template <class tHashDataType, uint8_t tHashSize, uint16_t tSampleSize, uint16_t tSetCount>
-    class HashDataSet
+    class HashDataFileSet
     {
     public:
         class Iterator;
@@ -156,7 +157,7 @@ namespace NextCash
                     pDataFile->setReadOffset(dataOffset);
                     if(!hash.read(pDataFile, tHashSize))
                     {
-                        Log::addFormatted(Log::ERROR, NEXTCASH_HASH_DATA_SET_LOG_NAME,
+                        Log::addFormatted(Log::ERROR, NEXTCASH_HASH_DATA_FILE_SET_LOG_NAME,
                           "Failed to read sample index hash at offset %llu", offset);
                         return false;
                     }
@@ -165,7 +166,7 @@ namespace NextCash
             }
         };
 
-        typedef typename HashContainerList<HashData *>::Iterator SubSetIterator;
+        typedef typename HashContainerList<HashDataFileSetObject *>::Iterator SubSetIterator;
 
         class SubSet
         {
@@ -185,20 +186,20 @@ namespace NextCash
               { return mCacheRawDataSize + (mCache.size() * staticCacheItemSize); }
 
             // Inserts a new item corresponding to the lookup.
-            bool insert(const Hash &pLookupValue, HashData *pValue, bool pRejectMatching);
+            bool insert(const Hash &pLookupValue, HashDataFileSetObject *pValue, bool pRejectMatching);
 
-            bool removeIfMatching(const Hash &pLookupValue, HashData *pValue);
+            bool removeIfMatching(const Hash &pLookupValue, HashDataFileSetObject *pValue);
 
             // Returns an iterator referencing the first matching item.
             SubSetIterator get(const Hash &pLookupValue, bool pForcePull = false);
-            HashData *getData(const Hash &pLookupValue, bool pForcePull = false);
+            HashDataFileSetObject *getData(const Hash &pLookupValue, bool pForcePull = false);
 
             SubSetIterator end() { return mCache.end(); }
 
             // Pull all items with matching hashes from the file and put them in the cache.
             //   Returns true if any items were added to the cache.
             // If pPullMatchingFunction then only items that return true will be pulled.
-            bool pull(const Hash &pLookupValue, HashData *pMatching = NULL);
+            bool pull(const Hash &pLookupValue, HashDataFileSetObject *pMatching = NULL);
 
             bool load(const char *pName, const char *pFilePath, unsigned int pID);
             bool save(const char *pName, uint64_t pMaxCacheDataSize);
@@ -211,12 +212,12 @@ namespace NextCash
             bool pullHash(InputStream *pDataFile, stream_size pFileOffset, Hash &pHash)
             {
 #ifdef PROFILER_ON
-                ProfilerReference profiler(getProfiler(PROFILER_SET, PROFILER_HASH_SET_PULL_ID,
-                  PROFILER_HASH_SET_PULL_NAME), true);
+                ProfilerReference profiler(getProfiler(PROFILER_SET, PROFILER_HASH_FILE_SET_PULL_ID,
+                  PROFILER_HASH_FILE_SET_PULL_NAME), true);
 #endif
                 if(!pDataFile->setReadOffset(pFileOffset))
                 {
-                    Log::addFormatted(Log::ERROR, NEXTCASH_HASH_DATA_SET_LOG_NAME,
+                    Log::addFormatted(Log::ERROR, NEXTCASH_HASH_DATA_FILE_SET_LOG_NAME,
                       "Failed to pull hash at index offset %d/%d", pFileOffset,
                       pDataFile->length());
                     return false;
@@ -224,7 +225,7 @@ namespace NextCash
 
                 if(!pHash.read(pDataFile, tHashSize))
                 {
-                    Log::addFormatted(Log::ERROR, NEXTCASH_HASH_DATA_SET_LOG_NAME,
+                    Log::addFormatted(Log::ERROR, NEXTCASH_HASH_DATA_FILE_SET_LOG_NAME,
                       "Failed to pull hash at index offset %d/%d", pFileOffset,
                       pDataFile->length());
                     return false;
@@ -253,7 +254,7 @@ namespace NextCash
             const char *mFilePath;
             stream_size mFileSize, mNewSize, mCacheRawDataSize;
             unsigned int mID;
-            HashContainerList<HashData *> mCache;
+            HashContainerList<HashDataFileSetObject *> mCache;
             SampleEntry *mSamples;
 
         };
@@ -269,9 +270,9 @@ namespace NextCash
 
     public:
 
-        HashDataSet(const char *pName) : mLock(String(pName) + "Lock")
+        HashDataFileSet(const char *pName) : mLock(String(pName) + "Lock")
           { mName = pName; mTargetCacheDataSize = 0; mIsValid = false; }
-        ~HashDataSet() {}
+        ~HashDataFileSet() {}
 
         bool isValid() const { return mIsValid; }
 
@@ -291,8 +292,8 @@ namespace NextCash
                 mIterator = pIterator;
             }
 
-            HashData *operator *() { return *mIterator; }
-            HashData *operator ->() { return *mIterator; }
+            HashDataFileSetObject *operator *() { return *mIterator; }
+            HashDataFileSetObject *operator ->() { return *mIterator; }
 
             const Hash &hash() const { return mIterator.hash(); }
 
@@ -386,16 +387,16 @@ namespace NextCash
 
         // Inserts a new item corresponding to the lookup.
         // Returns false if the pValue matches an existing value under the same hash according to
-        //   the HashData::valuesMatch function.
-        bool insert(const Hash &pLookupValue, HashData *pValue, bool pRejectMatching = false);
+        //   the HashDataFileSetObject::valuesMatch function.
+        bool insert(const Hash &pLookupValue, HashDataFileSetObject *pValue, bool pRejectMatching = false);
 
-        bool removeIfMatching(const Hash &pLookupValue, HashData *pValue);
+        bool removeIfMatching(const Hash &pLookupValue, HashDataFileSetObject *pValue);
 
         // Returns an iterator referencing the first matching item.
         // Set pForcePull to true if you want to ensure you get all matching values even if they
         //   are no longer cached.
         Iterator get(const Hash &pLookupValue, bool pForcePull = false);
-        HashData *getData(const Hash &pLookupValue, bool pForcePull = false);
+        HashDataFileSetObject *getData(const Hash &pLookupValue, bool pForcePull = false);
 
         Iterator begin();
         Iterator end();
@@ -463,32 +464,32 @@ namespace NextCash
     };
 
     // template <class tHashDataType, uint8_t tHashSize, uint16_t tSampleSize, uint16_t tSetCount>
-    // static unsigned int HashDataSet<tSampleSize, 256>::subSetOffset(const Hash &pLookupValue)
+    // static unsigned int HashDataFileSet<tSampleSize, 256>::subSetOffset(const Hash &pLookupValue)
       // { return pLookupValue.lookup8(); }
 
     // template <class tHashDataType, uint8_t tHashSize, uint16_t tSampleSize, uint16_t tSetCount>
-    // static unsigned int HashDataSet<tSampleSize, 2048>::subSetOffset(const Hash &pLookupValue)
+    // static unsigned int HashDataFileSet<tSampleSize, 2048>::subSetOffset(const Hash &pLookupValue)
       // { return pLookupValue.lookup16() >> 5; }
 
     // template <class tHashDataType, uint8_t tHashSize, uint16_t tSampleSize, uint16_t tSetCount>
-    // HashDataSet<tHashDataType, tHashSize, tSampleSize, tSetCount>::HashDataSet() : mLock("HashDataSet")
+    // HashDataFileSet<tHashDataType, tHashSize, tSampleSize, tSetCount>::HashDataFileSet() : mLock("HashDataFileSet")
     // {
 
     // }
 
     // template <class tHashDataType, uint8_t tHashSize, uint16_t tSampleSize, uint16_t tSetCount>
-    // HashDataSet<tHashDataType, tHashSize, tSampleSize, tSetCount>::~HashDataSet()
+    // HashDataFileSet<tHashDataType, tHashSize, tSampleSize, tSetCount>::~HashDataFileSet()
     // {
 
     // }
 
     template <class tHashDataType, uint8_t tHashSize, uint16_t tSampleSize, uint16_t tSetCount>
-    bool HashDataSet<tHashDataType, tHashSize, tSampleSize, tSetCount>::insert(const Hash &pLookupValue,
-      HashData *pValue, bool pRejectMatching)
+    bool HashDataFileSet<tHashDataType, tHashSize, tSampleSize, tSetCount>::insert(const Hash &pLookupValue,
+      HashDataFileSetObject *pValue, bool pRejectMatching)
     {
 #ifdef PROFILER_ON
-        ProfilerReference profiler(getProfiler(PROFILER_SET, PROFILER_HASH_SET_INSERT_ID,
-          PROFILER_HASH_SET_INSERT_NAME), true);
+        ProfilerReference profiler(getProfiler(PROFILER_SET, PROFILER_HASH_FILE_SET_INSERT_ID,
+          PROFILER_HASH_FILE_SET_INSERT_NAME), true);
 #endif
         mLock.writeLock("Insert");
         bool result = mSubSets[subSetOffset(pLookupValue)].insert(pLookupValue, pValue,
@@ -498,8 +499,8 @@ namespace NextCash
     }
 
     template <class tHashDataType, uint8_t tHashSize, uint16_t tSampleSize, uint16_t tSetCount>
-    bool HashDataSet<tHashDataType, tHashSize, tSampleSize, tSetCount>::removeIfMatching(const Hash &pLookupValue,
-      HashData *pValue)
+    bool HashDataFileSet<tHashDataType, tHashSize, tSampleSize, tSetCount>::removeIfMatching(const Hash &pLookupValue,
+      HashDataFileSetObject *pValue)
     {
         mLock.writeLock("Remove");
         bool result = mSubSets[subSetOffset(pLookupValue)].removeIfMatching(pLookupValue, pValue);
@@ -508,8 +509,8 @@ namespace NextCash
     }
 
     template <class tHashDataType, uint8_t tHashSize, uint16_t tSampleSize, uint16_t tSetCount>
-    typename HashDataSet<tHashDataType, tHashSize, tSampleSize, tSetCount>::Iterator
-      HashDataSet<tHashDataType, tHashSize, tSampleSize, tSetCount>::get(const Hash &pLookupValue,
+    typename HashDataFileSet<tHashDataType, tHashSize, tSampleSize, tSetCount>::Iterator
+      HashDataFileSet<tHashDataType, tHashSize, tSampleSize, tSetCount>::get(const Hash &pLookupValue,
       bool pForcePull)
     {
         mLock.readLock();
@@ -520,18 +521,18 @@ namespace NextCash
     }
 
     template <class tHashDataType, uint8_t tHashSize, uint16_t tSampleSize, uint16_t tSetCount>
-    HashData *HashDataSet<tHashDataType, tHashSize, tSampleSize, tSetCount>::getData(const Hash &pLookupValue,
+    HashDataFileSetObject *HashDataFileSet<tHashDataType, tHashSize, tSampleSize, tSetCount>::getData(const Hash &pLookupValue,
       bool pForcePull)
     {
         mLock.readLock();
         SubSet *subSet = mSubSets + subSetOffset(pLookupValue);
-        HashData *result = subSet->getData(pLookupValue, pForcePull);
+        HashDataFileSetObject *result = subSet->getData(pLookupValue, pForcePull);
         mLock.readUnlock();
         return result;
     }
 
     template <class tHashDataType, uint8_t tHashSize, uint16_t tSampleSize, uint16_t tSetCount>
-    bool HashDataSet<tHashDataType, tHashSize, tSampleSize, tSetCount>::load(const char *pFilePath)
+    bool HashDataFileSet<tHashDataType, tHashSize, tSampleSize, tSetCount>::load(const char *pFilePath)
     {
         mLock.writeLock("Load");
         mIsValid = true;
@@ -563,7 +564,7 @@ namespace NextCash
     }
 
     template <class tHashDataType, uint8_t tHashSize, uint16_t tSampleSize, uint16_t tSetCount>
-    bool HashDataSet<tHashDataType, tHashSize, tSampleSize, tSetCount>::save()
+    bool HashDataFileSet<tHashDataType, tHashSize, tSampleSize, tSetCount>::save()
     {
         mLock.writeLock("Save");
 
@@ -603,7 +604,7 @@ namespace NextCash
     }
 
     template <class tHashDataType, uint8_t tHashSize, uint16_t tSampleSize, uint16_t tSetCount>
-    void HashDataSet<tHashDataType, tHashSize, tSampleSize, tSetCount>::saveThreadRun(void *pParameter)
+    void HashDataFileSet<tHashDataType, tHashSize, tSampleSize, tSetCount>::saveThreadRun(void *pParameter)
     {
         SaveThreadData *data = (SaveThreadData *)pParameter;
         if(data == NULL)
@@ -633,7 +634,7 @@ namespace NextCash
     }
 
     template <class tHashDataType, uint8_t tHashSize, uint16_t tSampleSize, uint16_t tSetCount>
-    bool HashDataSet<tHashDataType, tHashSize, tSampleSize, tSetCount>::saveMultiThreaded(unsigned int pThreadCount)
+    bool HashDataFileSet<tHashDataType, tHashSize, tSampleSize, tSetCount>::saveMultiThreaded(unsigned int pThreadCount)
     {
         mLock.writeLock("Save");
 
@@ -707,7 +708,7 @@ namespace NextCash
     }
 
     template <class tHashDataType, uint8_t tHashSize, uint16_t tSampleSize, uint16_t tSetCount>
-    HashDataSet<tHashDataType, tHashSize, tSampleSize, tSetCount>::SubSet::SubSet() :
+    HashDataFileSet<tHashDataType, tHashSize, tSampleSize, tSetCount>::SubSet::SubSet() :
       mLock("HashDataSubSet")
     {
         mSamples = NULL;
@@ -717,17 +718,17 @@ namespace NextCash
     }
 
     template <class tHashDataType, uint8_t tHashSize, uint16_t tSampleSize, uint16_t tSetCount>
-    HashDataSet<tHashDataType, tHashSize, tSampleSize, tSetCount>::SubSet::~SubSet()
+    HashDataFileSet<tHashDataType, tHashSize, tSampleSize, tSetCount>::SubSet::~SubSet()
     {
-        for(HashContainerList<HashData *>::Iterator item=mCache.begin();item!=mCache.end();++item)
+        for(HashContainerList<HashDataFileSetObject *>::Iterator item=mCache.begin();item!=mCache.end();++item)
             delete *item;
         if(mSamples != NULL)
             delete[] mSamples;
     }
 
     template <class tHashDataType, uint8_t tHashSize, uint16_t tSampleSize, uint16_t tSetCount>
-    bool HashDataSet<tHashDataType, tHashSize, tSampleSize, tSetCount>::SubSet::insert(
-      const Hash &pLookupValue, HashData *pValue, bool pRejectMatching)
+    bool HashDataFileSet<tHashDataType, tHashSize, tSampleSize, tSetCount>::SubSet::insert(
+      const Hash &pLookupValue, HashDataFileSetObject *pValue, bool pRejectMatching)
     {
         bool result = false;
         mLock.lock();
@@ -756,8 +757,8 @@ namespace NextCash
     }
 
     template <class tHashDataType, uint8_t tHashSize, uint16_t tSampleSize, uint16_t tSetCount>
-    bool HashDataSet<tHashDataType, tHashSize, tSampleSize, tSetCount>::SubSet::removeIfMatching(
-      const Hash &pLookupValue, HashData *pValue)
+    bool HashDataFileSet<tHashDataType, tHashSize, tSampleSize, tSetCount>::SubSet::removeIfMatching(
+      const Hash &pLookupValue, HashDataFileSetObject *pValue)
     {
         mLock.lock();
 
@@ -793,8 +794,8 @@ namespace NextCash
     }
 
     template <class tHashDataType, uint8_t tHashSize, uint16_t tSampleSize, uint16_t tSetCount>
-    typename HashDataSet<tHashDataType, tHashSize, tSampleSize, tSetCount>::SubSetIterator
-      HashDataSet<tHashDataType, tHashSize, tSampleSize, tSetCount>::SubSet::get(
+    typename HashDataFileSet<tHashDataType, tHashSize, tSampleSize, tSetCount>::SubSetIterator
+      HashDataFileSet<tHashDataType, tHashSize, tSampleSize, tSetCount>::SubSet::get(
       const Hash &pLookupValue, bool pForcePull)
     {
         mLock.lock();
@@ -811,12 +812,12 @@ namespace NextCash
     }
 
     template <class tHashDataType, uint8_t tHashSize, uint16_t tSampleSize, uint16_t tSetCount>
-    HashData *HashDataSet<tHashDataType, tHashSize, tSampleSize, tSetCount>::SubSet::getData(
+    HashDataFileSetObject *HashDataFileSet<tHashDataType, tHashSize, tSampleSize, tSetCount>::SubSet::getData(
       const Hash &pLookupValue, bool pForcePull)
     {
         mLock.lock();
 
-        HashData *result = NULL;
+        HashDataFileSetObject *result = NULL;
 
         if(pForcePull)
             pull(pLookupValue);
@@ -841,8 +842,8 @@ namespace NextCash
     }
 
     template <class tHashDataType, uint8_t tHashSize, uint16_t tSampleSize, uint16_t tSetCount>
-    bool HashDataSet<tHashDataType, tHashSize, tSampleSize, tSetCount>::SubSet::pull(
-      const Hash &pLookupValue, HashData *pMatching)
+    bool HashDataFileSet<tHashDataType, tHashSize, tSampleSize, tSetCount>::SubSet::pull(
+      const Hash &pLookupValue, HashDataFileSetObject *pMatching)
     {
         if(mFileSize == 0)
             return false;
@@ -859,14 +860,14 @@ namespace NextCash
 
         if(!indexFile.isValid())
         {
-            Log::add(Log::ERROR, NEXTCASH_HASH_DATA_SET_LOG_NAME,
+            Log::add(Log::ERROR, NEXTCASH_HASH_DATA_FILE_SET_LOG_NAME,
               "Failed to open index file in pull");
             return false;
         }
 
         if(!dataFile.isValid())
         {
-            Log::add(Log::ERROR, NEXTCASH_HASH_DATA_SET_LOG_NAME,
+            Log::add(Log::ERROR, NEXTCASH_HASH_DATA_FILE_SET_LOG_NAME,
               "Failed to open index file in pull");
             return false;
         }
@@ -968,7 +969,7 @@ namespace NextCash
 
         // Read in all matching
         bool result = false;
-        HashData *next;
+        HashDataFileSetObject *next;
         while(current <= last)
         {
             indexFile.setReadOffset(current);
@@ -1003,7 +1004,7 @@ namespace NextCash
     }
 
     template <class tHashDataType, uint8_t tHashSize, uint16_t tSampleSize, uint16_t tSetCount>
-    void HashDataSet<tHashDataType, tHashSize, tSampleSize, tSetCount>::SubSet::loadSamples(InputStream *pIndexFile)
+    void HashDataFileSet<tHashDataType, tHashSize, tSampleSize, tSetCount>::SubSet::loadSamples(InputStream *pIndexFile)
     {
         if(mSamples != NULL)
             delete[] mSamples;
@@ -1032,7 +1033,7 @@ namespace NextCash
     }
 
     template <class tHashDataType, uint8_t tHashSize, uint16_t tSampleSize, uint16_t tSetCount>
-    bool HashDataSet<tHashDataType, tHashSize, tSampleSize, tSetCount>::SubSet::findSample(const Hash &pHash,
+    bool HashDataFileSet<tHashDataType, tHashSize, tSampleSize, tSetCount>::SubSet::findSample(const Hash &pHash,
       InputStream *pIndexFile, InputStream *pDataFile, stream_size &pBegin, stream_size &pEnd)
     {
         // Check first entry
@@ -1054,7 +1055,7 @@ namespace NextCash
             pEnd   = sample->offset;
             return true;
         }
-        // Log::addFormatted(Log::VERBOSE, NEXTCASH_HASH_DATA_SET_LOG_NAME,
+        // Log::addFormatted(Log::VERBOSE, NEXTCASH_HASH_DATA_FILE_SET_LOG_NAME,
           // "First : %s", mSamples[0].hash.hex().text());
 
         // Check last entry
@@ -1076,7 +1077,7 @@ namespace NextCash
             pEnd   = sample->offset;
             return true;
         }
-        // Log::addFormatted(Log::VERBOSE, NEXTCASH_HASH_DATA_SET_LOG_NAME,
+        // Log::addFormatted(Log::VERBOSE, NEXTCASH_HASH_DATA_FILE_SET_LOG_NAME,
           // "Last : %s", mSamples[tSampleSize - 1].hash.hex().text());
 
         // Binary search the samples
@@ -1088,7 +1089,7 @@ namespace NextCash
         while(!done)
         {
             sampleCurrent = (sampleBegin + sampleEnd) / 2;
-            // Log::addFormatted(Log::VERBOSE, NEXTCASH_HASH_DATA_SET_LOG_NAME,
+            // Log::addFormatted(Log::VERBOSE, NEXTCASH_HASH_DATA_FILE_SET_LOG_NAME,
               // "Sample : %s", mSamples[sampleCurrent].hash.hex().text());
 
             if(sampleCurrent == sampleBegin || sampleCurrent == sampleEnd)
@@ -1119,9 +1120,9 @@ namespace NextCash
     }
 
     template <class tHashDataType, uint8_t tHashSize, uint16_t tSampleSize, uint16_t tSetCount>
-    bool HashDataSet<tHashDataType, tHashSize, tSampleSize, tSetCount>::SubSet::loadCache()
+    bool HashDataFileSet<tHashDataType, tHashSize, tSampleSize, tSetCount>::SubSet::loadCache()
     {
-        for(HashContainerList<HashData *>::Iterator item = mCache.begin();
+        for(HashContainerList<HashDataFileSetObject *>::Iterator item = mCache.begin();
           item != mCache.end(); ++item)
             delete *item;
         mCache.clear();
@@ -1131,7 +1132,7 @@ namespace NextCash
         String filePathName;
         filePathName.writeFormatted("%s%s%04x.cache", mFilePath, PATH_SEPARATOR, mID);
         FileInputStream *cacheFile = new FileInputStream(filePathName);
-        HashData *next;
+        HashDataFileSetObject *next;
         Hash hash(tHashSize);
 
         if(!cacheFile->isValid())
@@ -1175,7 +1176,7 @@ namespace NextCash
     }
 
     template <class tHashDataType, uint8_t tHashSize, uint16_t tSampleSize, uint16_t tSetCount>
-    bool HashDataSet<tHashDataType, tHashSize, tSampleSize, tSetCount>::SubSet::saveCache()
+    bool HashDataFileSet<tHashDataType, tHashSize, tSampleSize, tSetCount>::SubSet::saveCache()
     {
         // Open cache file
         String filePathName;
@@ -1184,14 +1185,14 @@ namespace NextCash
 
         if(!cacheFile->isValid())
         {
-            Log::addFormatted(Log::WARNING, NEXTCASH_HASH_DATA_SET_LOG_NAME,
+            Log::addFormatted(Log::WARNING, NEXTCASH_HASH_DATA_FILE_SET_LOG_NAME,
               "Failed to open subset cache file %04x for writing : %s", mID, filePathName.text());
             delete cacheFile;
             return false;
         }
 
         stream_size dataOffset;
-        for(HashContainerList<HashData *>::Iterator item = mCache.begin(); item != mCache.end();
+        for(HashContainerList<HashDataFileSetObject *>::Iterator item = mCache.begin(); item != mCache.end();
           ++item)
         {
             dataOffset = (*item)->dataOffset();
@@ -1205,7 +1206,7 @@ namespace NextCash
     }
 
     // Insert sorted, oldest first
-    inline void insertOldest(HashData *pItem, std::vector<HashData *> &pList,
+    inline void insertOldest(HashDataFileSetObject *pItem, std::vector<HashDataFileSetObject *> &pList,
       unsigned int pMaxCount)
     {
         if(pList.size() == 0)
@@ -1224,7 +1225,7 @@ namespace NextCash
 
         // Insert sorted
         bool inserted = false;
-        for(std::vector<HashData *>::iterator item = pList.begin(); item != pList.end(); ++item)
+        for(std::vector<HashDataFileSetObject *>::iterator item = pList.begin(); item != pList.end(); ++item)
             if((*item)->compareAge(pItem) > 0)
             {
                 inserted = true;
@@ -1240,12 +1241,12 @@ namespace NextCash
     }
 
     template <class tHashDataType, uint8_t tHashSize, uint16_t tSampleSize, uint16_t tSetCount>
-    bool HashDataSet<tHashDataType, tHashSize, tSampleSize, tSetCount>::SubSet::load(const char *pName,
+    bool HashDataFileSet<tHashDataType, tHashSize, tSampleSize, tSetCount>::SubSet::load(const char *pName,
       const char *pFilePath, unsigned int pID)
     {
         mLock.lock();
 
-        for(HashContainerList<HashData *>::Iterator item = mCache.begin();
+        for(HashContainerList<HashDataFileSetObject *>::Iterator item = mCache.begin();
           item != mCache.end(); ++item)
             delete *item;
         mCache.clear();
@@ -1295,11 +1296,11 @@ namespace NextCash
 
     //TODO This operation is expensive. Try to find a better method
     template <class tHashDataType, uint8_t tHashSize, uint16_t tSampleSize, uint16_t tSetCount>
-    void HashDataSet<tHashDataType, tHashSize, tSampleSize, tSetCount>::SubSet::markOld(stream_size pDataSize)
+    void HashDataFileSet<tHashDataType, tHashSize, tSampleSize, tSetCount>::SubSet::markOld(stream_size pDataSize)
     {
         if(pDataSize == 0)
         {
-            for(HashContainerList<HashData *>::Iterator item = mCache.begin();
+            for(HashContainerList<HashDataFileSetObject *>::Iterator item = mCache.begin();
               item != mCache.end(); ++item)
                 (*item)->setOld();
             return;
@@ -1308,38 +1309,38 @@ namespace NextCash
         uint64_t currentSize = cacheDataSize();
         if(currentSize <= pDataSize)
         {
-            // Log::addFormatted(Log::VERBOSE, NEXTCASH_HASH_DATA_SET_LOG_NAME,
+            // Log::addFormatted(Log::VERBOSE, NEXTCASH_HASH_DATA_FILE_SET_LOG_NAME,
               // "Set %d is not big enough to mark old", mID);
             return;
         }
 
         double markPercent = ((double)(currentSize - pDataSize) / (double)currentSize) * 1.25;
         unsigned int markCount = (unsigned int)((double)mCache.size() * markPercent);
-        std::vector<HashData *> oldestList;
+        std::vector<HashDataFileSetObject *> oldestList;
         if(markCount == 0)
         {
-            Log::addFormatted(Log::VERBOSE, NEXTCASH_HASH_DATA_SET_LOG_NAME,
+            Log::addFormatted(Log::VERBOSE, NEXTCASH_HASH_DATA_FILE_SET_LOG_NAME,
               "Set %d has no items to mark old", mID);
             return;
         }
 
         // Build list of oldest items
-        for(HashContainerList<HashData *>::Iterator item = mCache.begin(); item != mCache.end();
+        for(HashContainerList<HashDataFileSetObject *>::Iterator item = mCache.begin(); item != mCache.end();
           ++item)
             insertOldest(*item, oldestList, markCount);
 
         // Remove all items below age of newest item in old list
         if(oldestList.size() == 0)
         {
-            Log::addFormatted(Log::VERBOSE, NEXTCASH_HASH_DATA_SET_LOG_NAME,
+            Log::addFormatted(Log::VERBOSE, NEXTCASH_HASH_DATA_FILE_SET_LOG_NAME,
               "Set %d has mark old list is empty", mID);
             return;
         }
 
         unsigned int markedCount = 0;
-        HashData *cutoff = oldestList.back();
+        HashDataFileSetObject *cutoff = oldestList.back();
         stream_size markedSize = 0;
-        for(HashContainerList<HashData *>::Iterator item = mCache.begin();
+        for(HashContainerList<HashDataFileSetObject *>::Iterator item = mCache.begin();
           item != mCache.end(); ++item)
             if((*item)->isOld())
             {
@@ -1357,7 +1358,7 @@ namespace NextCash
         {
             // Mark every other item as old.
             bool markThisOld = false;
-            for(HashContainerList<HashData *>::Iterator item = mCache.begin();
+            for(HashContainerList<HashDataFileSetObject *>::Iterator item = mCache.begin();
               item != mCache.end(); ++item)
             {
                 if(markThisOld && !(*item)->isOld())
@@ -1378,7 +1379,7 @@ namespace NextCash
         {
             // Mark every other item as old.
             bool markThisOld = false;
-            for(HashContainerList<HashData *>::Iterator item = mCache.begin();
+            for(HashContainerList<HashDataFileSetObject *>::Iterator item = mCache.begin();
               item != mCache.end(); ++item)
             {
                 if(markThisOld && !(*item)->isOld())
@@ -1396,19 +1397,19 @@ namespace NextCash
         }
 
         if(currentSize - markedSize > pDataSize)
-            Log::addFormatted(Log::WARNING, NEXTCASH_HASH_DATA_SET_LOG_NAME,
+            Log::addFormatted(Log::WARNING, NEXTCASH_HASH_DATA_FILE_SET_LOG_NAME,
               "Set %d failed to mark enough old. Marked %d/%d items (%d/%d)", mID, markedCount,
               mCache.size(), markedSize, currentSize);
     }
 
     template <class tHashDataType, uint8_t tHashSize, uint16_t tSampleSize, uint16_t tSetCount>
-    bool HashDataSet<tHashDataType, tHashSize, tSampleSize, tSetCount>::SubSet::trimCache(uint64_t pMaxCacheDataSize)
+    bool HashDataFileSet<tHashDataType, tHashSize, tSampleSize, tSetCount>::SubSet::trimCache(uint64_t pMaxCacheDataSize)
     {
         // Mark items as old to keep cache data size under max
         markOld(pMaxCacheDataSize);
 
         // Remove old and removed items from the cache
-        for(HashContainerList<HashData *>::Iterator item = mCache.begin(); item != mCache.end();)
+        for(HashContainerList<HashDataFileSetObject *>::Iterator item = mCache.begin(); item != mCache.end();)
         {
             if((*item)->isOld())
             {
@@ -1424,12 +1425,12 @@ namespace NextCash
     }
 
     template <class tHashDataType, uint8_t tHashSize, uint16_t tSampleSize, uint16_t tSetCount>
-    bool HashDataSet<tHashDataType, tHashSize, tSampleSize, tSetCount>::SubSet::save(
+    bool HashDataFileSet<tHashDataType, tHashSize, tSampleSize, tSetCount>::SubSet::save(
       const char *pName, uint64_t pMaxCacheDataSize)
     {
 #ifdef PROFILER_ON
-        ProfilerReference profiler(getProfiler(PROFILER_SET, PROFILER_HASH_SET_SUB_SAVE_ID,
-          PROFILER_HASH_SET_SUB_SAVE_NAME), true);
+        ProfilerReference profiler(getProfiler(PROFILER_SET, PROFILER_HASH_FILE_SET_SUB_SAVE_ID,
+          PROFILER_HASH_FILE_SET_SUB_SAVE_NAME), true);
 #endif
         mLock.lock();
 
@@ -1446,7 +1447,7 @@ namespace NextCash
         // Reopen data file as an output stream
         filePathName.writeFormatted("%s%s%04x.data", mFilePath, PATH_SEPARATOR, mID);
         FileOutputStream *dataOutFile = new FileOutputStream(filePathName);
-        HashContainerList<HashData *>::Iterator item;
+        HashContainerList<HashDataFileSetObject *>::Iterator item;
         uint64_t newCount = 0;
         bool indexNeedsUpdated = false;
 
@@ -1749,7 +1750,7 @@ namespace NextCash
     }
 
     template <class tHashDataType, uint8_t tHashSize, uint16_t tSampleSize, uint16_t tSetCount>
-    bool HashDataSet<tHashDataType, tHashSize, tSampleSize, tSetCount>::SubSet::defragment()
+    bool HashDataFileSet<tHashDataType, tHashSize, tSampleSize, tSetCount>::SubSet::defragment()
     {
         // Open current index file.
         // Create new temp index file.
@@ -1763,7 +1764,7 @@ namespace NextCash
         return false;
     }
 
-    bool testHashDataSet();
+    bool testHashDataFileSet();
 }
 
 #endif

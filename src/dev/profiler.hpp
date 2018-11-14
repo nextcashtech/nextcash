@@ -93,18 +93,21 @@ namespace NextCash
 #ifdef PROFILER_ON
     static const unsigned int PROFILER_SET = 0;
 
-    static const unsigned int PROFILER_HASH_SET_SUB_SAVE_ID = 0;
-    static const char *PROFILER_HASH_SET_SUB_SAVE_NAME __attribute__ ((unused)) = "HashDataSet::SubSet::save";
-    static const unsigned int PROFILER_HASH_SET_INSERT_ID = 1;
-    static const char *PROFILER_HASH_SET_INSERT_NAME __attribute__ ((unused)) = "HashDataSet::insert";
-    static const unsigned int PROFILER_HASH_SET_PULL_ID = 2;
-    static const char *PROFILER_HASH_SET_PULL_NAME __attribute__ ((unused)) = "HashDataSet::SubSet::pull";
+    static const unsigned int PROFILER_HASH_FILE_SET_SUB_SAVE_ID = 0;
+    static const char *PROFILER_HASH_FILE_SET_SUB_SAVE_NAME __attribute__ ((unused)) = "HashDataFileSet::SubSet::save";
+    static const unsigned int PROFILER_HASH_FILE_SET_INSERT_ID = 1;
+    static const char *PROFILER_HASH_FILE_SET_INSERT_NAME __attribute__ ((unused)) = "HashDataFileSet::insert";
+    static const unsigned int PROFILER_HASH_FILE_SET_PULL_ID = 2;
+    static const char *PROFILER_HASH_FILE_SET_PULL_NAME __attribute__ ((unused)) = "HashDataFileSet::SubSet::pull";
 
-    static const unsigned int PROFILER_HASH_CONT_FIND_ID = 3;
+    static const unsigned int PROFILER_HASH_SET_FIND_ID = 3;
+    static const char *PROFILER_HASH_SET_FIND_NAME __attribute__ ((unused)) = "HashSet::find";
+
+    static const unsigned int PROFILER_HASH_CONT_FIND_ID = 4;
     static const char *PROFILER_HASH_CONT_FIND_NAME __attribute__ ((unused)) = "HashContainer::findInsertBefore";
-    static const unsigned int PROFILER_HASH_CONT_INSERT_ID = 4;
+    static const unsigned int PROFILER_HASH_CONT_INSERT_ID = 5;
     static const char *PROFILER_HASH_CONT_INSERT_NAME __attribute__ ((unused)) = "HashContainer::insert";
-    static const unsigned int PROFILER_HASH_CONT_INSERT_NM_ID = 5;
+    static const unsigned int PROFILER_HASH_CONT_INSERT_NM_ID = 6;
     static const char *PROFILER_HASH_CONT_INSERT_NM_NAME __attribute__ ((unused)) = "HashContainer::insertNotMatching";
 #endif
 
