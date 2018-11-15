@@ -44,7 +44,7 @@ namespace NextCash
         static void ripEMD160(InputStream *pInput, stream_size pInputLength, OutputStream *pOutput);  // 160 bit(20 bytes) result
         static void sha256(InputStream *pInput, stream_size pInputLength, OutputStream *pOutput);  // 256 bit(32 bytes) result
         static void sha512(InputStream *pInput, stream_size pInputLength, OutputStream *pOutput);  // 512 bit(64 bytes) result
-        static uint64_t sipHash24(uint8_t *pData, stream_size pLength, uint64_t pKey0, uint64_t pKey1);
+        static uint64_t sipHash24(const uint8_t *pData, stream_size pLength, uint64_t pKey0, uint64_t pKey1);
 
         // Virtual overloaded functions
         stream_size writeOffset() const { return mByteCount; }

@@ -164,34 +164,6 @@ namespace NextCash
         return 0;
     }
 
-    bool Hash::getShortID(Hash &pHash, const Hash &pHeaderHash)
-    {
-        if(mData == NULL || mSize != 32 || pHeaderHash.size() != 32)
-        {
-            pHash.clear();
-            return false;
-        }
-
-        // Use first two little endian 64 bit integers from header hash as keys
-        uint64_t key0 = 0;
-        uint64_t key1 = 0;
-        uint8_t i;
-        const uint8_t *byte = pHeaderHash.mData;
-        for(i = 0; i < 8; ++i)
-            key0 |= (uint64_t)*byte++ << (i * 8);
-        for(i = 0; i < 8; ++i)
-            key1 |= (uint64_t)*byte++ << (i * 8);
-
-        uint64_t sipHash24Value = Digest::sipHash24(mData, 32, key0, key1);
-
-        // Put 6 least significant bytes of sipHash24Value into result
-        pHash.setSize(6);
-        for(i = 0; i < 6; ++i)
-            pHash.mData[i] = (sipHash24Value >> (i * 8)) & 0xff;
-
-        return true;
-    }
-
     unsigned int Hash::leadingZeroBits() const
     {
         if(mData == NULL)

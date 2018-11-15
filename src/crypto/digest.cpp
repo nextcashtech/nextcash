@@ -1151,11 +1151,11 @@ namespace NextCash
         }
 
         // Process 8 bytes
-        void process(uint64_t *pResult, uint8_t *pBlock)
+        void process(uint64_t *pResult, const uint8_t *pBlock)
         {
             // Grab 8 bytes from pBlock and convert to uint64_t
             uint64_t block = 0;
-            uint8_t *byte = pBlock;
+            const uint8_t *byte = pBlock;
             for(unsigned int i=0;i<8;++i)
                 block |= (uint64_t)*byte++ << (i * 8);
 
@@ -1165,7 +1165,8 @@ namespace NextCash
         }
 
         // Process less than 8 bytes and length
-        uint64_t finish(uint64_t *pResult, uint8_t *pBlock, unsigned int pBlockLength, uint64_t pTotalLength)
+        uint64_t finish(uint64_t *pResult, const uint8_t *pBlock, unsigned int pBlockLength,
+          uint64_t pTotalLength)
         {
             // Create last block
             uint8_t lastBlock[8];
@@ -1187,7 +1188,7 @@ namespace NextCash
         }
     }
 
-    uint64_t Digest::sipHash24(uint8_t *pData, stream_size pLength, uint64_t pKey0, uint64_t pKey1)
+    uint64_t Digest::sipHash24(const uint8_t *pData, stream_size pLength, uint64_t pKey0, uint64_t pKey1)
     {
         uint64_t result[4];
 
@@ -2811,8 +2812,10 @@ namespace NextCash
 
             if(sipResult != check)
             {
-                Log::addFormatted(Log::ERROR, NEXTCASH_DIGEST_LOG_NAME, "Failed SipHash24 %d 0x%08x%08x == 0x%08x%08x",
-                  i, sipResult >> 32, sipResult & 0xffffffff, check >> 32, check & 0xffffffff);
+                Log::addFormatted(Log::ERROR, NEXTCASH_DIGEST_LOG_NAME,
+                  "Failed SipHash24 %d 0x%08x%08x == 0x%08x%08x", i,
+                  sipResult >> 32, sipResult & 0xffffffff,
+                  check >> 32, check & 0xffffffff);
                 result = false;
                 sipSuccess = false;
             }

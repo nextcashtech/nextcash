@@ -175,9 +175,6 @@ namespace NextCash
                 return (uint16_t)(mData[0] << 8) | (uint16_t)mData[1];
         }
 
-        // Calculate the SipHash-2-4 "Short ID" and put it in pHash
-        bool getShortID(Hash &pHash, const Hash &pHeaderHash);
-
         void setDifficulty(uint32_t pTargetBits);
         void getDifficulty(uint32_t &pTargetBits, uint32_t pMax = 0x1d00ffff) const;
         void getWork(Hash &pWork) const;
