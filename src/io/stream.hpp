@@ -52,6 +52,7 @@ namespace NextCash
         uint8_t readByte();
         uint16_t readUnsignedShort();
         uint32_t readUnsignedInt();
+        uint64_t readUnsignedInt6(); // Read 6 byte unsigned integer
         uint64_t readUnsignedLong();
         int16_t readShort();
         int32_t readInt();
@@ -127,6 +128,7 @@ namespace NextCash
         stream_size writeByte(uint8_t pValue);
         stream_size writeUnsignedShort(uint16_t pValue);
         stream_size writeUnsignedInt(uint32_t pValue);
+        stream_size writeUnsignedInt6(uint64_t pValue); // write 6 byte unsigned integer
         stream_size writeUnsignedLong(uint64_t pValue);
         stream_size writeShort(int16_t pValue);
         stream_size writeInt(int32_t pValue);

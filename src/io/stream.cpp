@@ -44,6 +44,21 @@ namespace NextCash
         return result;
     }
 
+    uint64_t InputStream::readUnsignedInt6()
+    {
+        uint64_t result = 0L;
+        if(Endian::sSystemType != mInputEndian)
+        {
+            if(Endian::sSystemType == Endian::BIG)
+                readEndian(((uint8_t *)&result) + 2, 6);
+            else
+                readEndian(&result, 6);
+        }
+        else
+            read(&result, 6);
+        return result;
+    }
+
     uint64_t InputStream::readUnsignedLong()
     {
         uint64_t result;
@@ -184,6 +199,25 @@ namespace NextCash
     {
         writeEndian(&pValue, 4);
         return 4;
+    }
+
+    stream_size OutputStream::writeUnsignedInt6(uint64_t pValue)
+    {
+        if(Endian::sSystemType == Endian::BIG)
+        {
+            if(Endian::sSystemType != mOutputEndian)
+                writeEndian(((uint8_t *)&pValue) + 2, 6);
+            else
+                write(((uint8_t *)&pValue) + 2, 6);
+        }
+        else
+        {
+            if(Endian::sSystemType != mOutputEndian)
+                writeEndian(&pValue, 6);
+            else
+                write(&pValue, 6);
+        }
+        return 6;
     }
 
     stream_size OutputStream::writeUnsignedLong(uint64_t pValue)
