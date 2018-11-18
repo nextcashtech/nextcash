@@ -44,27 +44,37 @@ namespace NextCash
         // Back up to first matching hash
         SubIterator backup(const SubIterator &pIterator)
         {
-            SubIterator result = pIterator;
-            if(result == mList.end())
-                return result;
+            if(pIterator == mList.end())
+            {
+                // Log::add(Log::ERROR, "HashContainerList", "Backup from end");
+                return pIterator;
+            }
 
-            Hash &hash = (*result)->hash;
-            SubIterator start = mList.begin();
+            Hash hash = (*pIterator)->hash;
+            // Log::addFormatted(Log::VERBOSE, "HashContainerList", "Backup hash : %s",
+              // hash.hex().text());
+            SubIterator result = pIterator;
             while((*result)->hash == hash)
             {
-                if(result == start)
+                if(result == mList.begin())
+                {
+                    // Log::add(Log::VERBOSE, "HashContainerList", "Backup at begining");
                     return result;
+                }
                 --result;
             }
 
-            return ++result;
+            ++result;
+            // Log::addFormatted(Log::VERBOSE, "HashContainerList", "Backup returning : %s",
+              // (*result)->hash.hex().text());
+            return result;
         }
 
         // Returns iterator to insert new item before.
         // Returns end if the new item should be appended to the end.
         // Set pFirst to true to ensure the returned iterator is the first item matching the
         //   specified hash.
-        SubIterator findInsertBefore(const Hash &pHash, bool pFirst);
+        SubIterator findInsertBefore(const Hash &pHash, bool &pMatchFound);
 
     public:
 
@@ -193,72 +203,104 @@ namespace NextCash
 
     template <class tType>
     typename HashContainerList<tType>::SubIterator HashContainerList<tType>::findInsertBefore(
-      const Hash &pHash, bool pFirst)
+      const Hash &pHash, bool &pMatchFound)
     {
 #ifdef PROFILER_ON
         ProfilerReference profiler(getProfiler(PROFILER_SET, PROFILER_HASH_CONT_FIND_ID,
           PROFILER_HASH_CONT_FIND_NAME), true);
 #endif
+        // Log::addFormatted(Log::VERBOSE, "HashContainerList", "Insert hash : %s",
+          // pHash.hex().text());
         if(mList.size() == 0)
-            return mList.end(); // Insert at the end (as only item)
-
-        int compare = mList.back()->hash.compare(pHash);
-        if(compare <= 0)
-            return mList.end(); // Insert at the end
-
-        Data **first = mList.data();
-        Data **afterLast = mList.data() + mList.size();
-        Data **bottom = first;
-        Data **top = afterLast - 1;
-        Data **current = afterLast;
-
-        if(mList.size() > 1)
         {
-            compare = mList.front()->hash.compare(pHash);
-            if(compare >= 0)
-                return mList.begin(); // Insert at the beginning
+            // Log::add(Log::VERBOSE, "HashContainerList", "Insert as only item");
+            return mList.end(); // Insert at the end (as only item)
         }
-        else // Only one item in list and it is after the specified hash, soinsert before it.
+
+        Data **begin = mList.data();
+        Data **end = mList.data() + mList.size();
+        Data **bottom = begin;
+        Data **top = end - 1;
+        Data **current;
+
+        // Log::addFormatted(Log::VERBOSE, "HashContainerList", "First hash : %s",
+          // mList.front()->hash.hex().text());
+        int compare = mList.front()->hash.compare(pHash);
+        if(compare > 0)
+        {
+            // Log::add(Log::VERBOSE, "HashContainerList", "Insert at beginning");
             return mList.begin();
+        }
+        else if(compare == 0)
+        {
+            // Log::add(Log::VERBOSE, "HashContainerList", "Insert after matching beginning");
+            pMatchFound = true;
+            current = begin;
+            while(current != end && (*current)->hash == pHash)
+                ++current;
+            return mList.begin() + (current - mList.data());
+        }
+        else if(mList.size() == 1)
+        {
+            // Log::add(Log::VERBOSE, "HashContainerList", "Insert after only item");
+            return mList.end();
+        }
+
+        // Log::addFormatted(Log::VERBOSE, "HashContainerList", "Last hash : %s",
+          // mList.back()->hash.hex().text());
+        compare = mList.back()->hash.compare(pHash);
+        if(compare < 0)
+        {
+            // Log::add(Log::VERBOSE, "HashContainerList", "Insert at end");
+            return mList.end(); // Insert at the end
+        }
+        else if(compare == 0)
+        {
+            // Log::add(Log::VERBOSE, "HashContainerList", "Insert at end matching");
+            pMatchFound = true;
+            return mList.end();
+        }
 
         while(true)
         {
             // Break the set in two halves
             current = bottom + ((top - bottom) / 2);
-
-            // Bottom and top are next to each other and have both been checked
             if(current == bottom)
             {
-                // Top is the item to insert before, since bottom is below the specified hash
-                current = top;
+                // Log::add(Log::VERBOSE, "HashContainerList", "Current is bottom");
+                ++current;
                 break;
             }
 
-            compare = pHash.compare((*current)->hash);
-
             // Determine which half the desired item is in
+            compare = pHash.compare((*current)->hash);
             if(compare > 0)
+            {
+                // Log::addFormatted(Log::VERBOSE, "HashContainerList", "Bottom to current : %s",
+                  // (*current)->hash.hex().text());
                 bottom = current;
+            }
             else if(compare < 0)
+            {
+                // Log::addFormatted(Log::VERBOSE, "HashContainerList", "Top to current : %s",
+                  // (*current)->hash.hex().text());
                 top = current;
+            }
             else
+            {
+                // Log::addFormatted(Log::VERBOSE, "HashContainerList", "Match found : %s",
+                  // (*current)->hash.hex().text());
+                pMatchFound = true;
                 break; // Matching item found
+            }
         }
 
-        if(pFirst && current < afterLast)
+        // Go to item after last matching
+        while(current != end && (*current)->hash == pHash)
         {
-            // Back up to first matching item
-            bool matchFound = false;
-            while(first <= current && (*current)->hash == pHash)
-            {
-                matchFound = true;
-                --current;
-            }
-
-            if(first > current)
-                current = first;
-            else if(matchFound)
-                ++current;
+            ++current;
+            // Log::addFormatted(Log::VERBOSE, "HashContainerList", "Finding item after matching : %s",
+              // (*current)->hash.hex().text());
         }
 
         return mList.begin() + (current - mList.data());
@@ -271,8 +313,8 @@ namespace NextCash
         ProfilerReference profiler(getProfiler(PROFILER_SET, PROFILER_HASH_CONT_INSERT_ID,
           PROFILER_HASH_CONT_INSERT_NAME), true);
 #endif
-        SubIterator insertBefore = findInsertBefore(pHash, false);
-
+        bool matchFound = false;
+        SubIterator insertBefore = findInsertBefore(pHash, matchFound);
         if(insertBefore == mList.end())
             mList.push_back(new Data(pHash, pData)); // Insert at the end
         else
@@ -300,16 +342,20 @@ namespace NextCash
         ProfilerReference profiler(getProfiler(PROFILER_SET, PROFILER_HASH_CONT_INSERT_NM_ID,
           PROFILER_HASH_CONT_INSERT_NM_NAME), true);
 #endif
-        SubIterator item = findInsertBefore(pHash, true);
-
-        // Iterate through any matching hashes to check for a matching value
-        bool wasIncremented = false;
-        while(item != mList.end() && (*item)->hash == pHash)
+        bool matchFound = false;
+        SubIterator item = findInsertBefore(pHash, matchFound);
+        if(matchFound)
         {
-            if(pValuesMatch((*item)->data, pData))
-                return false;
-            ++item;
-            wasIncremented = true;
+            // Iterate through any matching hashes to check for a matching value
+            SubIterator match = item - 1;
+            while((*match)->hash == pHash)
+            {
+                if(pValuesMatch((*match)->data, pData))
+                    return false;
+                if(match == mList.begin())
+                    break;
+                --match;
+            }
         }
 
         // No items with matching hash and value, so insert
@@ -317,33 +363,35 @@ namespace NextCash
         if(item == mList.end())
             mList.push_back(new Data(pHash, pData)); // Insert at the end
         else
-        {
-            if(wasIncremented)
-                --item;
             mList.insert(item, new Data(pHash, pData));
-        }
         return true;
     }
 
     template <class tType>
     typename HashContainerList<tType>::Iterator HashContainerList<tType>::get(const Hash &pHash)
     {
+        // Log::addFormatted(Log::VERBOSE, "HashContainerList", "Get hash: %s",
+          // pHash.hex().text());
         if(mList.size() == 0)
             return mList.end();
 
-        int compare;
-
-        compare = mList.back()->hash.compare(pHash);
-        if(compare == 0)
-            return backup(--mList.end());
+        // Log::addFormatted(Log::VERBOSE, "HashContainerList", "Last hash: %s",
+          // mList.back()->hash.hex().text());
+        int compare = mList.back()->hash.compare(pHash);
+        if(compare == 0) // Last item matches hash.
+            return backup(mList.begin() + (mList.size() - 1));
         else if(compare < 0)
-            return mList.end();
+            return mList.end(); // Hash is after end.
+        else if(mList.size() == 1)
+            return mList.end(); // Only item in list doesn't match.
 
+        // Log::addFormatted(Log::VERBOSE, "HashContainerList", "First hash: %s",
+          // mList.front()->hash.hex().text());
         compare = mList.front()->hash.compare(pHash);
         if(compare == 0)
-            return mList.begin();
+            return mList.begin(); // First item matches hash.
         else if(compare > 0)
-            return mList.end();
+            return mList.end(); // Hash is before beginning.
 
         Data **bottom = mList.data();
         Data **top = mList.data() + mList.size() - 1;
@@ -351,15 +399,15 @@ namespace NextCash
 
         while(true)
         {
-            // Break the set in two halves
+            // Break the set in two halves.
             current = bottom + ((top - bottom) / 2);
-
             if(current == bottom)
                 return mList.end();
 
+            // Determine which half the desired item is in.
+            // Log::addFormatted(Log::VERBOSE, "HashContainerList", "Current hash: %s",
+              // (*current)->hash.hex().text());
             compare = pHash.compare((*current)->hash);
-
-            // Determine which half the desired item is in
             if(compare > 0)
                 bottom = current;
             else if(compare < 0)
@@ -367,8 +415,6 @@ namespace NextCash
             else
                 return backup(mList.begin() + (current - mList.data()));
         }
-
-        return mList.end();
     }
 
     bool testHashContainerList();

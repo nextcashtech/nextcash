@@ -114,7 +114,7 @@ namespace NextCash
     {
         int sleeps = 0;
 
-        // Wait for the writers to unlock
+        // Wait for the writer to unlock
         while(true)
         {
             mMutex.lock();
@@ -141,7 +141,7 @@ namespace NextCash
                 sleeps = 0;
             }
 
-            // Wait for readers to unlock
+            // Wait for writer to unlock
             mMutex.unlock();
             usleep(MUTEX_WAIT);
         }

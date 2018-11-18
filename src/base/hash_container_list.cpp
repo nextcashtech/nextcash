@@ -45,56 +45,56 @@ namespace NextCash
         retrieve = hashStringList.get(l1);
         if(retrieve == hashStringList.end())
         {
-            Log::add(Log::ERROR, NEXTCASH_HASH_LOG_NAME,
+            Log::add(Log::ERROR, NEXTCASH_HASH_CONTAINER_LIST_LOG_NAME,
               "Failed hash string list 0 : not found");
             success = false;
         }
         else if(*retrieve != string1)
         {
-            Log::addFormatted(Log::ERROR, NEXTCASH_HASH_LOG_NAME, "Failed hash string list 0 : %s",
+            Log::addFormatted(Log::ERROR, NEXTCASH_HASH_CONTAINER_LIST_LOG_NAME, "Failed hash string list 0 : %s",
               (*retrieve)->text());
             success = false;
         }
         else
-            Log::add(Log::INFO, NEXTCASH_HASH_LOG_NAME, "Passed hash string list 0");
+            Log::add(Log::INFO, NEXTCASH_HASH_CONTAINER_LIST_LOG_NAME, "Passed hash string list 0");
 
         hashStringList.insertIfNotMatching(l2, string2, stringEqual);
 
         retrieve = hashStringList.get(l1);
         if(retrieve == hashStringList.end())
         {
-            Log::add(Log::ERROR, NEXTCASH_HASH_LOG_NAME,
+            Log::add(Log::ERROR, NEXTCASH_HASH_CONTAINER_LIST_LOG_NAME,
               "Failed hash string list 1 : not found");
             success = false;
         }
         else if(*retrieve != string1)
         {
-            Log::addFormatted(Log::ERROR, NEXTCASH_HASH_LOG_NAME, "Failed hash string list 1 : %s",
+            Log::addFormatted(Log::ERROR, NEXTCASH_HASH_CONTAINER_LIST_LOG_NAME, "Failed hash string list 1 : %s",
               (*retrieve)->text());
             success = false;
         }
         else
-            Log::add(Log::INFO, NEXTCASH_HASH_LOG_NAME, "Passed hash string list 1");
+            Log::add(Log::INFO, NEXTCASH_HASH_CONTAINER_LIST_LOG_NAME, "Passed hash string list 1");
 
         retrieve = hashStringList.get(l2);
         if(retrieve == hashStringList.end())
         {
-            Log::add(Log::ERROR, NEXTCASH_HASH_LOG_NAME,
+            Log::add(Log::ERROR, NEXTCASH_HASH_CONTAINER_LIST_LOG_NAME,
               "Failed hash string list 2 : not found");
             success = false;
         }
         else if(*retrieve != string2)
         {
-            Log::addFormatted(Log::ERROR, NEXTCASH_HASH_LOG_NAME, "Failed hash string list 2 : %s",
+            Log::addFormatted(Log::ERROR, NEXTCASH_HASH_CONTAINER_LIST_LOG_NAME, "Failed hash string list 2 : %s",
               (*retrieve)->text());
             success = false;
         }
         else
-            Log::add(Log::INFO, NEXTCASH_HASH_LOG_NAME, "Passed hash string list 2");
+            Log::add(Log::INFO, NEXTCASH_HASH_CONTAINER_LIST_LOG_NAME, "Passed hash string list 2");
 
         Hash lr(32);
         String *newString = NULL;
-        for(unsigned int i=0;i<100;++i)
+        for(unsigned int i = 0; i < 100; ++i)
         {
             lr.randomize();
             newString = new String();
@@ -102,44 +102,47 @@ namespace NextCash
             //hashStringList.insert(lr, newString);
             hashStringList.insertIfNotMatching(lr, newString, stringEqual);
 
-            // for(HashContainerList<String *>::Iterator item=hashStringList.begin();item!=hashStringList.end();++item)
-            // {
-                // Log::addFormatted(Log::DEBUG, NEXTCASH_HASH_LOG_NAME, "Hash string list : %s <- %s",
-                  // (*item)->text(), item.hash().hex().text());
-            // }
+            // Log::addFormatted(Log::DEBUG, NEXTCASH_HASH_CONTAINER_LIST_LOG_NAME,
+              // "Inserted : %s <- %s", newString->text(), lr.hex().text());
+            // unsigned int offset = 1;
+            // for(HashContainerList<String *>::Iterator item = hashStringList.begin();
+              // item != hashStringList.end(); ++item, ++offset)
+                // Log::addFormatted(Log::DEBUG, NEXTCASH_HASH_CONTAINER_LIST_LOG_NAME,
+                  // "Hash string list %d : %s <- %s", offset, (*item)->text(),
+                  // item.hash().hex().text());
         }
 
         retrieve = hashStringList.get(l1);
         if(retrieve == hashStringList.end())
         {
-            Log::add(Log::ERROR, NEXTCASH_HASH_LOG_NAME,
+            Log::add(Log::ERROR, NEXTCASH_HASH_CONTAINER_LIST_LOG_NAME,
               "Failed hash string list r1 : not found");
             success = false;
         }
         else if(*retrieve != string1)
         {
-            Log::addFormatted(Log::ERROR, NEXTCASH_HASH_LOG_NAME,
+            Log::addFormatted(Log::ERROR, NEXTCASH_HASH_CONTAINER_LIST_LOG_NAME,
               "Failed hash string list r1 : %s", (*retrieve)->text());
             success = false;
         }
         else
-            Log::add(Log::INFO, NEXTCASH_HASH_LOG_NAME, "Passed hash string list r1");
+            Log::add(Log::INFO, NEXTCASH_HASH_CONTAINER_LIST_LOG_NAME, "Passed hash string list r1");
 
         retrieve = hashStringList.get(l2);
         if(retrieve == hashStringList.end())
         {
-            Log::add(Log::ERROR, NEXTCASH_HASH_LOG_NAME,
+            Log::add(Log::ERROR, NEXTCASH_HASH_CONTAINER_LIST_LOG_NAME,
               "Failed hash string list r2 : not found");
             success = false;
         }
         else if(*retrieve != string2)
         {
-            Log::addFormatted(Log::ERROR, NEXTCASH_HASH_LOG_NAME,
+            Log::addFormatted(Log::ERROR, NEXTCASH_HASH_CONTAINER_LIST_LOG_NAME,
               "Failed hash string list r2 : %s", (*retrieve)->text());
             success = false;
         }
         else
-            Log::add(Log::INFO, NEXTCASH_HASH_LOG_NAME, "Passed hash string list r2");
+            Log::add(Log::INFO, NEXTCASH_HASH_CONTAINER_LIST_LOG_NAME, "Passed hash string list r2");
 
         String *firstString = new String("first");
         String *lastString = new String("last");
@@ -159,76 +162,76 @@ namespace NextCash
                 firstTest = *item;
             lastTest = *item;
             // if(*item == NULL)
-                // Log::addFormatted(Log::DEBUG, NEXTCASH_HASH_LOG_NAME, "Hash string list : NULL <- %s",
+                // Log::addFormatted(Log::DEBUG, NEXTCASH_HASH_CONTAINER_LIST_LOG_NAME, "Hash string list : NULL <- %s",
                   // item.hash().hex().text());
             // else
-                // Log::addFormatted(Log::DEBUG, NEXTCASH_HASH_LOG_NAME, "Hash string list : %s <- %s",
+                // Log::addFormatted(Log::DEBUG, NEXTCASH_HASH_CONTAINER_LIST_LOG_NAME, "Hash string list : %s <- %s",
                   // (*item)->text(), item.hash().hex().text());
         }
 
         if(firstTest == NULL)
         {
-            Log::add(Log::ERROR, NEXTCASH_HASH_LOG_NAME,
+            Log::add(Log::ERROR, NEXTCASH_HASH_CONTAINER_LIST_LOG_NAME,
               "Failed hash string list iterate first : not found");
             success = false;
         }
         else if(firstTest != firstString)
         {
-            Log::addFormatted(Log::ERROR, NEXTCASH_HASH_LOG_NAME,
+            Log::addFormatted(Log::ERROR, NEXTCASH_HASH_CONTAINER_LIST_LOG_NAME,
               "Failed hash string list iterate first : %s", firstTest->text());
             success = false;
         }
         else
-            Log::add(Log::INFO, NEXTCASH_HASH_LOG_NAME, "Passed hash string list iterate first");
+            Log::add(Log::INFO, NEXTCASH_HASH_CONTAINER_LIST_LOG_NAME, "Passed hash string list iterate first");
 
         if(lastTest == NULL)
         {
-            Log::add(Log::ERROR, NEXTCASH_HASH_LOG_NAME,
+            Log::add(Log::ERROR, NEXTCASH_HASH_CONTAINER_LIST_LOG_NAME,
               "Failed hash string list iterate last : not found");
             success = false;
         }
         else if(lastTest != lastString)
         {
-            Log::addFormatted(Log::ERROR, NEXTCASH_HASH_LOG_NAME,
+            Log::addFormatted(Log::ERROR, NEXTCASH_HASH_CONTAINER_LIST_LOG_NAME,
               "Failed hash string list iterate last : %s", lastTest->text());
             success = false;
         }
         else
-            Log::add(Log::INFO, NEXTCASH_HASH_LOG_NAME, "Passed hash string list iterate last");
+            Log::add(Log::INFO, NEXTCASH_HASH_CONTAINER_LIST_LOG_NAME, "Passed hash string list iterate last");
 
         l1.zeroize();
         retrieve = hashStringList.get(l1);
         if(retrieve == hashStringList.end())
         {
-            Log::add(Log::ERROR, NEXTCASH_HASH_LOG_NAME,
+            Log::add(Log::ERROR, NEXTCASH_HASH_CONTAINER_LIST_LOG_NAME,
               "Failed hash string list get first : not found");
             success = false;
         }
         else if(*retrieve != firstString)
         {
-            Log::addFormatted(Log::ERROR, NEXTCASH_HASH_LOG_NAME,
+            Log::addFormatted(Log::ERROR, NEXTCASH_HASH_CONTAINER_LIST_LOG_NAME,
               "Failed hash string list get first : %s", (*retrieve)->text());
             success = false;
         }
         else
-            Log::add(Log::INFO, NEXTCASH_HASH_LOG_NAME, "Passed hash string list get first");
+            Log::add(Log::INFO, NEXTCASH_HASH_CONTAINER_LIST_LOG_NAME, "Passed hash string list get first");
 
         l1.setMax();
         retrieve = hashStringList.get(l1);
         if(retrieve == hashStringList.end())
         {
-            Log::add(Log::ERROR, NEXTCASH_HASH_LOG_NAME,
+            Log::add(Log::ERROR, NEXTCASH_HASH_CONTAINER_LIST_LOG_NAME,
               "Failed hash string list get last : not found");
             success = false;
         }
         else if(*retrieve != lastString)
         {
-            Log::addFormatted(Log::ERROR, NEXTCASH_HASH_LOG_NAME,
+            Log::addFormatted(Log::ERROR, NEXTCASH_HASH_CONTAINER_LIST_LOG_NAME,
               "Failed hash string list get last : %s", (*retrieve)->text());
             success = false;
         }
         else
-            Log::add(Log::INFO, NEXTCASH_HASH_LOG_NAME, "Passed hash string list get last");
+            Log::add(Log::INFO, NEXTCASH_HASH_CONTAINER_LIST_LOG_NAME, "Passed hash string list get last");
 
         for(HashContainerList<String *>::Iterator item = hashStringList.begin();
           item != hashStringList.end(); ++item)
