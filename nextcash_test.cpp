@@ -11,6 +11,7 @@
 #include "hash_container_list.hpp"
 #include "hash_data_file_set.hpp"
 #include "distributed_vector.hpp"
+#include "sorted_set.hpp"
 #include "log.hpp"
 #include "thread.hpp"
 #include "buffer.hpp"
@@ -34,6 +35,9 @@ namespace NextCash
             failed++;
 
         if(!NextCash::Buffer::test())
+            failed++;
+
+        if(!NextCash::SortedSet::test())
             failed++;
 
         if(!NextCash::testDistributedVector())

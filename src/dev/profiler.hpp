@@ -103,11 +103,14 @@ namespace NextCash
     static const unsigned int PROFILER_HASH_SET_FIND_ID = 3;
     static const char *PROFILER_HASH_SET_FIND_NAME __attribute__ ((unused)) = "HashSet::find";
 
-    static const unsigned int PROFILER_HASH_CONT_FIND_ID = 4;
+    static const unsigned int PROFILER_SORTED_SET_FIND_ID = 4;
+    static const char *PROFILER_SORTED_SET_FIND_NAME __attribute__ ((unused)) = "SortedSet::find";
+
+    static const unsigned int PROFILER_HASH_CONT_FIND_ID = 5;
     static const char *PROFILER_HASH_CONT_FIND_NAME __attribute__ ((unused)) = "HashContainer::findInsertBefore";
-    static const unsigned int PROFILER_HASH_CONT_INSERT_ID = 5;
+    static const unsigned int PROFILER_HASH_CONT_INSERT_ID = 6;
     static const char *PROFILER_HASH_CONT_INSERT_NAME __attribute__ ((unused)) = "HashContainer::insert";
-    static const unsigned int PROFILER_HASH_CONT_INSERT_NM_ID = 6;
+    static const unsigned int PROFILER_HASH_CONT_INSERT_NM_ID = 7;
     static const char *PROFILER_HASH_CONT_INSERT_NM_NAME __attribute__ ((unused)) = "HashContainer::insertNotMatching";
 #endif
 

@@ -19,189 +19,139 @@
 
 namespace NextCash
 {
-    HashSet::HashSet()
+    HashSet::Iterator &HashSet::Iterator::operator =(const Iterator &pRight)
     {
-
+        mSet = pRight.mSet;
+        mIter = pRight.mIter;
+        return *this;
     }
 
-    HashSet::~HashSet()
+    void HashSet::Iterator::increment()
     {
-        for(Iterator item = mItems.begin(); item != mItems.end(); ++item)
-            delete *item;
+        ++mIter;
+        if(mIter == mSet->end())
+            gotoNextBegin();
     }
 
-    void HashSet::getHashList(HashList &pList) const
+    void HashSet::Iterator::decrement()
     {
-        pList.clear();
-        pList.reserve(mItems.size());
-        for(ConstIterator item = mItems.begin(); item != mItems.end(); ++item)
-            pList.emplace_back((*item)->getHash());
-    }
-
-    bool HashSet::contains(const Hash &pHash)
-    {
-        uint8_t flags = 0x00;
-        binaryFind(pHash, flags);
-        return flags & WAS_FOUND;
-    }
-
-    bool HashSet::insert(HashObject *pObject)
-    {
-        uint8_t flags = RETURN_ITEM_AFTER;
-        Iterator item = binaryFind(pObject->getHash(), flags);
-
-        if(flags & WAS_FOUND)
-            return false; // Already in list
-
-        if(flags & BELONGS_AT_END)
-            mItems.push_back(pObject); // Add to end of list
+        if(mIter == mSet->begin() || (mIter == mSet->end() && mSet->size() == 0))
+            gotoPreviousLast();
         else
-            mItems.insert(item, pObject); // Insert in list
-
-        return true;
+            --mIter;
     }
 
-    bool HashSet::remove(const Hash &pHash)
+    // Prefix increment
+    HashSet::Iterator &HashSet::Iterator::operator ++()
     {
-        HashObject *object = getAndRemove(pHash);
-        if(object != NULL)
-        {
-            delete object;
-            return true;
-        }
-        return false;
+        increment();
+        return *this;
     }
 
-    bool HashSet::removeAt(unsigned int pOffset)
+    // Postfix increment
+    HashSet::Iterator HashSet::Iterator::operator ++(int)
     {
-        if(mItems.size() <= pOffset)
-            return false;
-
-        Iterator item = mItems.begin() + pOffset;
-        delete *item;
-        mItems.erase(item);
-        return true;
-    }
-
-    HashObject *HashSet::get(const NextCash::Hash &pHash)
-    {
-        uint8_t flags = 0x00;
-        Iterator item = binaryFind(pHash, flags);
-        if(item != mItems.end())
-            return *item;
-        else
-            return NULL;
-    }
-
-    HashObject *HashSet::getAndRemove(const NextCash::Hash &pHash)
-    {
-        uint8_t flags = 0x00;
-        Iterator item = binaryFind(pHash, flags);
-        if(item != mItems.end())
-        {
-            HashObject *result = *item;
-            mItems.erase(item);
-            return result;
-        }
-        else
-            return NULL;
-    }
-
-    HashObject *HashSet::getAndRemoveAt(unsigned int pOffset)
-    {
-        if(mItems.size() <= pOffset)
-            return NULL;
-
-        Iterator item = mItems.begin() + pOffset;
-        HashObject *result = *item;
-        mItems.erase(item);
+        Iterator result = *this;
+        increment();
         return result;
     }
 
-    void HashSet::clear()
+    // Prefix decrement
+    HashSet::Iterator &HashSet::Iterator::operator --()
     {
-        for(Iterator item = mItems.begin(); item != mItems.end(); ++item)
-            delete *item;
-        mItems.clear();
+        decrement();
+        return *this;
     }
 
-    void HashSet::clearNoDelete()
+    // Postfix decrement
+    HashSet::Iterator HashSet::Iterator::operator --(int)
     {
-        mItems.clear();
+        Iterator result = *this;
+        decrement();
+        return result;
     }
 
-    HashSet::Iterator HashSet::binaryFind(const Hash &pHash, uint8_t &pFlags)
+    HashSet::Iterator HashSet::Iterator::erase()
     {
-#ifdef PROFILER_ON
-        ProfilerReference profiler(getProfiler(PROFILER_SET, PROFILER_HASH_SET_FIND_ID,
-          PROFILER_HASH_SET_FIND_NAME), true);
-#endif
-
-        if(mItems.size() == 0)
+        SortedSet::Iterator resultIter = mSet->eraseNoDelete(mIter);
+        if(resultIter == mSet->end())
         {
-            // Item would be only item in list.
-            pFlags |= BELONGS_AT_END;
-            return mItems.end();
+            Iterator result(mSet, mBeginSet, mEndSet, resultIter);
+            result.gotoNextBegin();
+            return result;
+        }
+        else
+            return Iterator(mSet, mBeginSet, mEndSet, resultIter);
+    }
+
+    void HashSet::Iterator::gotoNextBegin()
+    {
+        if(mSet == mEndSet)
+        {
+            mIter = mSet->end();
+            return;
         }
 
-        int compare = pHash.compare(mItems.back()->getHash());
-        if(compare > 0)
-        {
-            // Item would be after end of list.
-            pFlags |= BELONGS_AT_END;
-            return mItems.end();
-        }
-        else if(compare == 0)
-        {
-            pFlags |= WAS_FOUND;
-            return --mItems.end();
-        }
-
-        compare = pHash.compare(mItems.front()->getHash());
-        if(compare < 0)
-        {
-            // Item would be before beginning of list.
-            if(pFlags & RETURN_ITEM_AFTER)
-                return mItems.begin(); // Return first item to insert before.
-            else
-                return mItems.end();
-        }
-        else if(compare == 0)
-        {
-            pFlags |= WAS_FOUND;
-            return mItems.begin();
-        }
-
-        Iterator bottom = mItems.begin();
-        Iterator top    = --mItems.end();
-        Iterator current;
-
+        ++mSet;
         while(true)
         {
-            // Break the set in two halves
-            current = bottom + ((top - bottom) / 2);
-            compare = pHash.compare((*current)->getHash());
-
-            if(compare == 0) // Item found
+            if(mSet->size() > 0)
             {
-                pFlags |= WAS_FOUND;
-                return current;
+                mIter = mSet->begin();
+                return;
             }
-
-            if(current == bottom) // Item not found
+            else if(mSet == mEndSet)
             {
-                if(pFlags & RETURN_ITEM_AFTER)
-                    return top;
-                else
-                    return mItems.end();
+                mIter = mSet->end();
+                return;
             }
-
-            // Determine which half the desired item is in
-            if(compare > 0)
-                bottom = current;
-            else //if(compare < 0)
-                top = current;
+            ++mSet;
         }
+    }
+
+    void HashSet::Iterator::gotoPreviousLast()
+    {
+        if(mSet == mBeginSet)
+        {
+            --mIter; // This is bad
+            return;
+        }
+
+        --mSet;
+        while(mSet->size() == 0 && mSet != mBeginSet)
+            --mSet;
+        mIter = --mSet->end();
+    }
+
+    HashSet::Iterator HashSet::begin()
+    {
+        Iterator result(mSets, mSets, mEndSet, mSets->begin());
+        if(result.setIsEmpty())
+            result.gotoNextBegin();
+        return result;
+    }
+
+    HashSet::Iterator HashSet::end()
+    {
+        return Iterator(mEndSet, mSets, mEndSet, mEndSet->end());
+    }
+
+    // Return iterator to first matching item.
+    HashSet::Iterator HashSet::find(const NextCash::Hash &pHash)
+    {
+        SortedSet *findSet = set(pHash);
+        return Iterator(findSet, mSets, mEndSet, findSet->find(HashLookupObject(pHash)));
+    }
+
+    HashSet::Iterator HashSet::eraseDelete(Iterator &pIterator)
+    {
+        delete *pIterator;
+        return pIterator.erase();
+    }
+
+    HashSet::Iterator HashSet::eraseNoDelete(Iterator &pIterator)
+    {
+        return pIterator.erase();
     }
 
     bool HashSet::test()
@@ -322,9 +272,9 @@ namespace NextCash
             Log::add(Log::INFO, NEXTCASH_HASH_SET_LOG_NAME, "Passed hash string list 2");
 
         String newString;
-        for(unsigned int i = 0; i < 100; ++i)
+        for(unsigned int i = 0; i < 500; ++i)
         {
-            newString.writeFormatted("String %04d", Math::randomInt() % 1000);
+            newString.writeFormatted("String %04d", i);
             set.insert(new StringHash(newString));
 
             // for(HashContainerList<String *>::Iterator item=set.begin();item!=set.end();++item)
@@ -366,76 +316,79 @@ namespace NextCash
         else
             Log::add(Log::INFO, NEXTCASH_HASH_SET_LOG_NAME, "Passed hash string list r2");
 
-        HashList list;
-        set.getHashList(list);
-
         // Find hash before first.
         StringHash *first = new StringHash();
+        StringHash *actualFirst = (StringHash *)*set.begin();
         while(true)
         {
             newString.writeFormatted("String %d", Math::randomInt());
             first->setString(newString);
-            if(first->getHash() < list.front())
+            if(first->getHash() < actualFirst->getHash())
             {
                 set.insert(first);
                 break;
             }
         }
+        actualFirst = (StringHash *)*set.begin();
 
         // Find hash after last.
         StringHash *last = new StringHash();
+        StringHash *actualLast = (StringHash *)*--set.end();
         while(true)
         {
             newString.writeFormatted("String %d", Math::randomInt());
             last->setString(newString);
-            if(last->getHash() > list.back())
+            if(last->getHash() > actualLast->getHash())
             {
                 set.insert(last);
                 break;
             }
         }
+        actualLast = (StringHash *)*--set.end();
 
-        set.getHashList(list);
-
-        if(first->getHash() != list.front())
+        if(first->getHash() != actualFirst->getHash())
         {
             Log::addFormatted(Log::ERROR, NEXTCASH_HASH_SET_LOG_NAME,
               "Failed hash string list first : %s = %s", first->getHash().hex().text(),
-              list.front().hex().text());
+              actualFirst->getHash().hex().text());
             success = false;
         }
         else
             Log::add(Log::INFO, NEXTCASH_HASH_SET_LOG_NAME, "Passed hash string list first");
 
-        if(first->getString() != ((StringHash *)set.get(list.front()))->getString())
+        if(first->getString() != actualFirst->getString())
         {
             Log::addFormatted(Log::ERROR, NEXTCASH_HASH_SET_LOG_NAME,
               "Failed hash string list first value : %s = %s", first->getString().text(),
-              ((StringHash *)set.get(list.front()))->getString().text());
+              actualFirst->getString().text());
             success = false;
         }
         else
             Log::add(Log::INFO, NEXTCASH_HASH_SET_LOG_NAME, "Passed hash string list first value");
 
-        if(last->getHash() != list.back())
+        if(last->getHash() != actualLast->getHash())
         {
             Log::addFormatted(Log::ERROR, NEXTCASH_HASH_SET_LOG_NAME,
-              "Failed hash string list last : %s = %s", last->getString().text(),
-              ((StringHash *)set.get(list.back()))->getString().text());
+              "Failed hash string list last : %s = %s", last->getHash().hex().text(),
+              actualLast->getHash().hex().text());
             success = false;
         }
         else
             Log::add(Log::INFO, NEXTCASH_HASH_SET_LOG_NAME, "Passed hash string list last");
 
-        if(last->getString() != ((StringHash *)set.get(list.back()))->getString())
+        if(last->getString() != actualLast->getString())
         {
             Log::addFormatted(Log::ERROR, NEXTCASH_HASH_SET_LOG_NAME,
               "Failed hash string list last value : %s = %s", last->getString().text(),
-              ((StringHash *)set.get(list.back()))->getString().text());
+              actualLast->getString().text());
             success = false;
         }
         else
             Log::add(Log::INFO, NEXTCASH_HASH_SET_LOG_NAME, "Passed hash string list last value");
+
+        for(HashSet::Iterator iter = set.begin(); iter != set.end(); ++iter)
+            Log::addFormatted(Log::INFO, NEXTCASH_HASH_SET_LOG_NAME, "%s : %s",
+             (*iter)->getHash().hex().text(), ((StringHash *)*iter)->getString().text());
 
         return success;
     }

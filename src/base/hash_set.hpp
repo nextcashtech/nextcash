@@ -9,73 +9,202 @@
 #define NEXTCASH_HASH_SET_HPP
 
 #include "hash.hpp"
+#include "sorted_set.hpp"
 
 #include <vector>
 
 
 namespace NextCash
 {
-    // Can only contain one item for each hash.
+    class HashObject : public SortedObject
+    {
+    public:
+
+        virtual ~HashObject() {}
+
+        virtual const Hash &getHash() const = 0;
+
+        virtual bool operator == (const HashObject *pRight) const
+        {
+            return getHash() == pRight->getHash();
+        }
+
+        virtual int compare(const SortedObject *pRight) const
+        {
+            return getHash().compare(((HashObject *)pRight)->getHash());
+        }
+
+    };
+
+    // TODO Upgrade to have subsets so large sets can insert/remove more efficiently.
     class HashSet
     {
     public:
 
-        HashSet();
-        ~HashSet();
+        HashSet() { mEndSet = mSets + SET_COUNT - 1; }
+        ~HashSet() {}
 
-        unsigned int size() const { return mItems.size(); }
+        unsigned int size() const { return mSize; }
 
-        void getHashList(HashList &pList) const;
+        void reserve(unsigned int pSize)
+        {
+            unsigned int sizePerSet = pSize / SET_COUNT;
+            SortedSet *set = mSets;
+            for(unsigned int i = 0; i < SET_COUNT; ++i, ++set)
+                set->reserve(sizePerSet);
+        }
 
-        bool contains(const Hash &pHash);
+        bool contains(const Hash &pHash)
+        {
+            return set(pHash)->contains(HashLookupObject(pHash));
+        }
 
         // Returns true if the item was inserted.
-        bool insert(HashObject *pObject);
+        bool insert(HashObject *pObject, bool pAllowDuplicates = false)
+        {
+            return set(pObject->getHash())->insert(pObject, pAllowDuplicates);
+        }
 
         // Returns true if the item was removed. Deletes item.
-        bool remove(const Hash &pHash);
-        bool removeAt(unsigned int pOffset);
+        bool remove(const Hash &pHash)
+        {
+            return set(pHash)->remove(HashLookupObject(pHash));
+        }
 
         // Returns the item with the specified hash.
         // Return NULL if not found.
-        HashObject *get(const NextCash::Hash &pHash);
+        HashObject *get(const NextCash::Hash &pHash)
+        {
+            return (HashObject *)set(pHash)->get(HashLookupObject(pHash));
+        }
 
         // Returns item and doesn't delete it.
-        HashObject *getAndRemove(const NextCash::Hash &pHash);
-        HashObject *getAndRemoveAt(unsigned int pOffset);
-
-        void clear();
-        void clearNoDelete(); // Doesn't delete items.
-
-        typedef std::vector<HashObject *>::iterator Iterator;
-        typedef std::vector<HashObject *>::const_iterator ConstIterator;
-
-        Iterator begin() { return mItems.begin(); }
-        Iterator end() { return mItems.end(); }
-
-        Iterator eraseDelete(Iterator &pIterator)
+        HashObject *getAndRemove(const NextCash::Hash &pHash)
         {
-            delete *pIterator;
-            return mItems.erase(pIterator);
+            return (HashObject *)set(pHash)->getAndRemove(HashLookupObject(pHash));
         }
-        Iterator eraseNoDelete(Iterator &pIterator) { return mItems.erase(pIterator); }
+
+        void clear()
+        {
+            SortedSet *set = mSets;
+            for(unsigned int i = 0; i < SET_COUNT; ++i, ++set)
+                set->clear();
+        }
+        void clearNoDelete() // Doesn't delete items.
+        {
+            SortedSet *set = mSets;
+            for(unsigned int i = 0; i < SET_COUNT; ++i, ++set)
+                set->clearNoDelete();
+        }
+
+        class Iterator
+        {
+        public:
+            Iterator() { mSet = NULL; mBeginSet = NULL; mEndSet = NULL; }
+            Iterator(SortedSet *pSet, SortedSet *pBeginSet, SortedSet *pEndSet,
+              const SortedSet::Iterator &pIter)
+            {
+                mSet      = pSet;
+                mBeginSet = pBeginSet;
+                mEndSet   = pEndSet;
+                mIter     = pIter;
+            }
+            Iterator(const Iterator &pCopy)
+            {
+                mSet      = pCopy.mSet;
+                mBeginSet = pCopy.mBeginSet;
+                mEndSet   = pCopy.mEndSet;
+                mIter     = pCopy.mIter;
+            }
+
+            bool operator !() const
+              { return mSet == NULL || (mSet == mEndSet && mIter == mSet->end()); }
+            operator bool() const
+              { return mSet != NULL && (mSet != mEndSet || mIter != mSet->end()); }
+
+            HashObject *operator *() { return (HashObject *)*mIter; }
+            HashObject *operator ->() { return (HashObject *)&(*mIter); }
+
+            bool operator ==(const Iterator &pRight) const
+            {
+                return mSet == pRight.mSet && mIter == pRight.mIter;
+            }
+
+            bool operator !=(const Iterator &pRight) const
+            {
+                return mSet != pRight.mSet && mIter != pRight.mIter;
+            }
+
+            Iterator &operator =(const Iterator &pRight);
+            // Iterator &operator +=(unsigned int pCount);
+            Iterator &operator ++(); // Prefix increment
+            Iterator operator ++(int); // Postfix increment
+            // Iterator &operator -=(unsigned int pCount)
+            Iterator &operator --(); // Prefix decrement
+            Iterator operator --(int); // Postfix decrement
+            // Iterator operator +(unsigned int pCount) const;
+            // Iterator operator -(unsigned int pCount) const;
+
+            // Remove item and return next item.
+            Iterator erase();
+
+            SortedSet *set() { return mSet; }
+            SortedSet::Iterator &iter() { return mIter; }
+
+            bool setIsEmpty() { return mSet->size() == 0; }
+            void gotoNextBegin();
+            void gotoPreviousLast();
+
+        private:
+
+            void increment();
+            void decrement();
+
+            SortedSet *mSet, *mBeginSet, *mEndSet;
+            SortedSet::Iterator mIter;
+
+        };
+
+        Iterator begin();
+        Iterator end();
+
+        // Return iterator to first matching item.
+        Iterator find(const NextCash::Hash &pHash);
+
+        Iterator eraseDelete(Iterator &pIterator);
+        Iterator eraseNoDelete(Iterator &pIterator);
 
         static bool test();
 
     private:
 
-        std::vector<HashObject *> mItems;
+        // Used for lookups in SortedSets containing HashObjects
+        class HashLookupObject : public HashObject
+        {
+        public:
 
-        // If item is not found, give item after where it should be.
-        static const uint8_t RETURN_ITEM_AFTER = 0x01;
-        // Specified hash is after the last item of list.
-        static const uint8_t BELONGS_AT_END = 0x02;
-        // The specified item was found.
-        static const uint8_t WAS_FOUND = 0x04;
+            HashLookupObject(const Hash &pHash) : mHash(pHash) {}
+            ~HashLookupObject() {}
 
-        // Return the iterator for the item matching.
-        // Updates flags based on results.
-        Iterator binaryFind(const Hash &pHash, uint8_t &pFlags);
+            const Hash &getHash() const { return mHash; }
+
+        private:
+
+            const Hash &mHash;
+
+        };
+
+        static const unsigned int SET_COUNT = 0x0100;
+        unsigned int mSize;
+        SortedSet mSets[SET_COUNT];
+        SortedSet *mEndSet;
+
+        SortedSet *set(const Hash &pHash)
+        {
+            if(pHash.isEmpty())
+                return mSets;
+            return mSets + pHash.getByte(pHash.size() - 1);
+        }
 
         HashSet(const HashSet &pCopy);
         HashSet &operator = (const HashSet &pRight);

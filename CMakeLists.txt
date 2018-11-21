@@ -17,6 +17,7 @@ add_library( nextcash STATIC SHARED
              src/base/hash_data_file_set.cpp
              src/base/log.cpp
              src/base/mutex.cpp
+             src/base/sorted_set.cpp
              src/base/string.cpp
              src/base/thread.cpp
              src/crypto/digest.cpp

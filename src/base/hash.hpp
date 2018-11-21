@@ -11,6 +11,7 @@
 #include "stream.hpp"
 #include "log.hpp"
 #include "mutex.hpp"
+#include "sorted_set.hpp"
 
 #ifdef PROFILER_ON
 #include "profiler.hpp"
@@ -320,27 +321,6 @@ namespace NextCash
 
         typedef std::vector<Hash>::iterator iterator;
         typedef std::vector<Hash>::const_iterator const_iterator;
-
-    private:
-    };
-
-    class HashObject
-    {
-    public:
-
-        virtual ~HashObject() {}
-
-        virtual const Hash &getHash() const = 0;
-
-        virtual bool operator == (const HashObject *pRight) const
-        {
-            return getHash() == pRight->getHash();
-        }
-
-        virtual int compare(const HashObject *pRight) const
-        {
-            return getHash().compare(pRight->getHash());
-        }
 
     };
 }
