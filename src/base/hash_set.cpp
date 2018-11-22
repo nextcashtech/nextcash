@@ -19,15 +19,9 @@
 
 namespace NextCash
 {
-    HashSet::Iterator &HashSet::Iterator::operator =(const Iterator &pRight)
-    {
-        mSet = pRight.mSet;
-        mIter = pRight.mIter;
-        return *this;
-    }
-
     void HashSet::Iterator::increment()
     {
+        // Log::add(Log::DEBUG, NEXTCASH_HASH_SET_LOG_NAME, "Increment");
         ++mIter;
         if(mIter == mSet->end())
             gotoNextBegin();
@@ -76,36 +70,47 @@ namespace NextCash
         SortedSet::Iterator resultIter = mSet->eraseNoDelete(mIter);
         if(resultIter == mSet->end())
         {
-            Iterator result(mSet, mBeginSet, mEndSet, resultIter);
+            Iterator result(mSet, mBeginSet, mLastSet, resultIter);
             result.gotoNextBegin();
             return result;
         }
         else
-            return Iterator(mSet, mBeginSet, mEndSet, resultIter);
+            return Iterator(mSet, mBeginSet, mLastSet, resultIter);
     }
 
     void HashSet::Iterator::gotoNextBegin()
     {
-        if(mSet == mEndSet)
+        if(mSet == mLastSet)
         {
+            // Log::add(Log::DEBUG, NEXTCASH_HASH_SET_LOG_NAME, "Already last set");
             mIter = mSet->end();
             return;
         }
 
         ++mSet;
+        // Log::add(Log::DEBUG, NEXTCASH_HASH_SET_LOG_NAME, "Next set");
         while(true)
         {
             if(mSet->size() > 0)
             {
+                // if(mSet == mLastSet)
+                    // Log::add(Log::DEBUG, NEXTCASH_HASH_SET_LOG_NAME, "Non-empty end set");
+                // else
+                    // Log::add(Log::DEBUG, NEXTCASH_HASH_SET_LOG_NAME, "Non-empty set");
                 mIter = mSet->begin();
                 return;
             }
-            else if(mSet == mEndSet)
+            else if(mSet == mLastSet)
             {
+                // Log::add(Log::DEBUG, NEXTCASH_HASH_SET_LOG_NAME, "Last set");
                 mIter = mSet->end();
                 return;
             }
-            ++mSet;
+            else
+            {
+                ++mSet;
+                // Log::add(Log::DEBUG, NEXTCASH_HASH_SET_LOG_NAME, "Next set");
+            }
         }
     }
 
@@ -114,6 +119,7 @@ namespace NextCash
         if(mSet == mBeginSet)
         {
             --mIter; // This is bad
+            Log::add(Log::WARNING, NEXTCASH_HASH_SET_LOG_NAME, "This is bad");
             return;
         }
 
@@ -125,7 +131,7 @@ namespace NextCash
 
     HashSet::Iterator HashSet::begin()
     {
-        Iterator result(mSets, mSets, mEndSet, mSets->begin());
+        Iterator result(mSets, mSets, mLastSet, mSets->begin());
         if(result.setIsEmpty())
             result.gotoNextBegin();
         return result;
@@ -133,24 +139,30 @@ namespace NextCash
 
     HashSet::Iterator HashSet::end()
     {
-        return Iterator(mEndSet, mSets, mEndSet, mEndSet->end());
+        return Iterator(mLastSet, mSets, mLastSet, mLastSet->end());
     }
 
     // Return iterator to first matching item.
     HashSet::Iterator HashSet::find(const NextCash::Hash &pHash)
     {
         SortedSet *findSet = set(pHash);
-        return Iterator(findSet, mSets, mEndSet, findSet->find(HashLookupObject(pHash)));
+        SortedSet::Iterator result = findSet->find(HashLookupObject(pHash));
+        if(result == findSet->end())
+            return end();
+        else
+            return Iterator(findSet, mSets, mLastSet, result);
     }
 
     HashSet::Iterator HashSet::eraseDelete(Iterator &pIterator)
     {
+        --mSize;
         delete *pIterator;
         return pIterator.erase();
     }
 
     HashSet::Iterator HashSet::eraseNoDelete(Iterator &pIterator)
     {
+        --mSize;
         return pIterator.erase();
     }
 
@@ -196,10 +208,16 @@ namespace NextCash
             // HashObject virtual functions
             const Hash &getHash() const { return mHash; }
 
-            bool operator == (const HashObject *pRight) const
+            bool valueEquals(const HashObject *pRight) const
             {
-                return mHash == pRight->getHash() &&
-                  mString == ((StringHash *)pRight)->getString();
+                try
+                {
+                    return mString == dynamic_cast<const StringHash *>(pRight)->getString();
+                }
+                catch(...)
+                {
+                    return false;
+                }
             }
 
             int compare(const HashObject *pRight) const
@@ -317,34 +335,44 @@ namespace NextCash
             Log::add(Log::INFO, NEXTCASH_HASH_SET_LOG_NAME, "Passed hash string list r2");
 
         // Find hash before first.
-        StringHash *first = new StringHash();
+        // StringHash *first = new StringHash();
+        // StringHash *actualFirst = (StringHash *)*set.begin();
+        // while(true)
+        // {
+            // newString.writeFormatted("String %d", Math::randomInt());
+            // first->setString(newString);
+            // if(first->getHash() < actualFirst->getHash())
+            // {
+                // Log::addFormatted(Log::VERBOSE, NEXTCASH_HASH_SET_LOG_NAME,
+                  // "Found item before first : %s", first->getString().text());
+                // set.insert(first);
+                // break;
+            // }
+        // }
+
+        StringHash *first = new StringHash("String -1789157545");
+        set.insert(first);
         StringHash *actualFirst = (StringHash *)*set.begin();
-        while(true)
-        {
-            newString.writeFormatted("String %d", Math::randomInt());
-            first->setString(newString);
-            if(first->getHash() < actualFirst->getHash())
-            {
-                set.insert(first);
-                break;
-            }
-        }
-        actualFirst = (StringHash *)*set.begin();
 
         // Find hash after last.
-        StringHash *last = new StringHash();
+        // StringHash *last = new StringHash();
+        // StringHash *actualLast = (StringHash *)*--set.end();
+        // while(true)
+        // {
+            // newString.writeFormatted("String %d", Math::randomInt());
+            // last->setString(newString);
+            // if(last->getHash() > actualLast->getHash())
+            // {
+                // Log::addFormatted(Log::VERBOSE, NEXTCASH_HASH_SET_LOG_NAME,
+                  // "Found item after last : %s", last->getString().text());
+                // set.insert(last);
+                // break;
+            // }
+        // }
+
+        StringHash *last = new StringHash("String -67558938");
+        set.insert(last);
         StringHash *actualLast = (StringHash *)*--set.end();
-        while(true)
-        {
-            newString.writeFormatted("String %d", Math::randomInt());
-            last->setString(newString);
-            if(last->getHash() > actualLast->getHash())
-            {
-                set.insert(last);
-                break;
-            }
-        }
-        actualLast = (StringHash *)*--set.end();
 
         if(first->getHash() != actualFirst->getHash())
         {
@@ -386,9 +414,19 @@ namespace NextCash
         else
             Log::add(Log::INFO, NEXTCASH_HASH_SET_LOG_NAME, "Passed hash string list last value");
 
-        for(HashSet::Iterator iter = set.begin(); iter != set.end(); ++iter)
+        unsigned int count = 0;
+        for(HashSet::Iterator iter = set.begin(); iter != set.end(); ++iter, ++count)
             Log::addFormatted(Log::INFO, NEXTCASH_HASH_SET_LOG_NAME, "%s : %s",
              (*iter)->getHash().hex().text(), ((StringHash *)*iter)->getString().text());
+
+        if(count != set.size())
+        {
+            Log::addFormatted(Log::ERROR, NEXTCASH_HASH_SET_LOG_NAME,
+              "Failed hash set size : iterate count %d != size %d", count, set.size());
+            success = false;
+        }
+        else
+            Log::add(Log::INFO, NEXTCASH_HASH_SET_LOG_NAME, "Passed hash set size");
 
         return success;
     }

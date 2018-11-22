@@ -24,11 +24,6 @@ namespace NextCash
 
         virtual const Hash &getHash() const = 0;
 
-        virtual bool operator == (const HashObject *pRight) const
-        {
-            return getHash() == pRight->getHash();
-        }
-
         virtual int compare(const SortedObject *pRight) const
         {
             return getHash().compare(((HashObject *)pRight)->getHash());
@@ -36,12 +31,11 @@ namespace NextCash
 
     };
 
-    // TODO Upgrade to have subsets so large sets can insert/remove more efficiently.
     class HashSet
     {
     public:
 
-        HashSet() { mEndSet = mSets + SET_COUNT - 1; }
+        HashSet() { mLastSet = mSets + SET_COUNT - 1; }
         ~HashSet() {}
 
         unsigned int size() const { return mSize; }
@@ -62,13 +56,25 @@ namespace NextCash
         // Returns true if the item was inserted.
         bool insert(HashObject *pObject, bool pAllowDuplicates = false)
         {
-            return set(pObject->getHash())->insert(pObject, pAllowDuplicates);
+            if(set(pObject->getHash())->insert(pObject, pAllowDuplicates))
+            {
+                ++mSize;
+                return true;
+            }
+            else
+                return false;
         }
 
         // Returns true if the item was removed. Deletes item.
         bool remove(const Hash &pHash)
         {
-            return set(pHash)->remove(HashLookupObject(pHash));
+            if(set(pHash)->remove(HashLookupObject(pHash)))
+            {
+                --mSize;
+                return true;
+            }
+            else
+                return false;
         }
 
         // Returns the item with the specified hash.
@@ -81,7 +87,10 @@ namespace NextCash
         // Returns item and doesn't delete it.
         HashObject *getAndRemove(const NextCash::Hash &pHash)
         {
-            return (HashObject *)set(pHash)->getAndRemove(HashLookupObject(pHash));
+            HashObject *result = (HashObject *)set(pHash)->getAndRemove(HashLookupObject(pHash));
+            if(result != NULL)
+                --mSize;
+            return result;
         }
 
         void clear()
@@ -89,41 +98,54 @@ namespace NextCash
             SortedSet *set = mSets;
             for(unsigned int i = 0; i < SET_COUNT; ++i, ++set)
                 set->clear();
+            mSize = 0;
         }
         void clearNoDelete() // Doesn't delete items.
         {
             SortedSet *set = mSets;
             for(unsigned int i = 0; i < SET_COUNT; ++i, ++set)
                 set->clearNoDelete();
+            mSize = 0;
         }
 
         class Iterator
         {
         public:
-            Iterator() { mSet = NULL; mBeginSet = NULL; mEndSet = NULL; }
-            Iterator(SortedSet *pSet, SortedSet *pBeginSet, SortedSet *pEndSet,
+            Iterator() { mSet = NULL; mBeginSet = NULL; mLastSet = NULL; }
+            Iterator(SortedSet *pSet, SortedSet *pBeginSet, SortedSet *pLastSet,
               const SortedSet::Iterator &pIter)
             {
                 mSet      = pSet;
                 mBeginSet = pBeginSet;
-                mEndSet   = pEndSet;
+                mLastSet  = pLastSet;
                 mIter     = pIter;
             }
             Iterator(const Iterator &pCopy)
             {
                 mSet      = pCopy.mSet;
                 mBeginSet = pCopy.mBeginSet;
-                mEndSet   = pCopy.mEndSet;
+                mLastSet  = pCopy.mLastSet;
                 mIter     = pCopy.mIter;
             }
 
+            Iterator &operator = (const Iterator &pRight)
+            {
+                mSet      = pRight.mSet;
+                mBeginSet = pRight.mBeginSet;
+                mLastSet  = pRight.mLastSet;
+                mIter     = pRight.mIter;
+                return *this;
+            }
+
             bool operator !() const
-              { return mSet == NULL || (mSet == mEndSet && mIter == mSet->end()); }
+              { return mSet == NULL || (mSet == mLastSet && mIter == mSet->end()); }
             operator bool() const
-              { return mSet != NULL && (mSet != mEndSet || mIter != mSet->end()); }
+              { return mSet != NULL && (mSet != mLastSet || mIter != mSet->end()); }
 
             HashObject *operator *() { return (HashObject *)*mIter; }
             HashObject *operator ->() { return (HashObject *)&(*mIter); }
+            const HashObject *operator *() const { return (const HashObject *)*mIter; }
+            const HashObject *operator ->() const { return (const HashObject *)&(*mIter); }
 
             bool operator ==(const Iterator &pRight) const
             {
@@ -132,10 +154,9 @@ namespace NextCash
 
             bool operator !=(const Iterator &pRight) const
             {
-                return mSet != pRight.mSet && mIter != pRight.mIter;
+                return mSet != pRight.mSet || mIter != pRight.mIter;
             }
 
-            Iterator &operator =(const Iterator &pRight);
             // Iterator &operator +=(unsigned int pCount);
             Iterator &operator ++(); // Prefix increment
             Iterator operator ++(int); // Postfix increment
@@ -160,7 +181,7 @@ namespace NextCash
             void increment();
             void decrement();
 
-            SortedSet *mSet, *mBeginSet, *mEndSet;
+            SortedSet *mSet, *mBeginSet, *mLastSet;
             SortedSet::Iterator mIter;
 
         };
@@ -197,7 +218,7 @@ namespace NextCash
         static const unsigned int SET_COUNT = 0x0100;
         unsigned int mSize;
         SortedSet mSets[SET_COUNT];
-        SortedSet *mEndSet;
+        SortedSet *mLastSet;
 
         SortedSet *set(const Hash &pHash)
         {
