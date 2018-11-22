@@ -30,18 +30,21 @@ namespace NextCash
     {
         uint8_t flags = 0x00;
         binaryFind(pMatching, flags);
-        return flags & WAS_FOUND;
+        return flags & SORT_WAS_FOUND;
     }
 
-    bool SortedSet::insert(SortedObject *pObject, bool pAllowDuplicates)
+    bool SortedSet::insert(SortedObject *pObject, bool pAllowDuplicateSorts)
     {
         uint8_t flags = RETURN_INSERT_POSITION;
         Iterator item = binaryFind(*pObject, flags);
 
-        if(flags & WAS_FOUND && !pAllowDuplicates)
-            return false; // Already in list
+        if(flags & VALUE_WAS_FOUND)
+            return false; // Matching value already in list.
 
-        mItems.insert(item, pObject); // Insert in list
+        if(flags & SORT_WAS_FOUND && !pAllowDuplicateSorts)
+            return false; // Matching sort already in list.
+
+        mItems.insert(item, pObject); // Insert into list.
         return true;
     }
 
@@ -101,9 +104,20 @@ namespace NextCash
     SortedSet::Iterator SortedSet::moveForward(Iterator pIterator, const SortedObject &pMatching,
       uint8_t &pFlags)
     {
+        // Check for matching transactions backward
+        if(pFlags & RETURN_INSERT_POSITION) // We only care if we are attempting an insert.
+            searchBackward(pIterator, pMatching, pFlags);
+
         ++pIterator;
         while(pIterator != end() && pMatching.compare(*pIterator) == 0)
+        {
+            if(pMatching.valueEquals(*pIterator))
+            {
+                pFlags |= VALUE_WAS_FOUND;
+                break;
+            }
             ++pIterator;
+        }
 
         if(!(pFlags & RETURN_INSERT_POSITION))
             --pIterator;
@@ -111,20 +125,60 @@ namespace NextCash
         return pIterator;
     }
 
-    SortedSet::Iterator SortedSet::moveBackward(Iterator pIterator, const SortedObject &pMatching)
+    SortedSet::Iterator SortedSet::moveBackward(Iterator pIterator, const SortedObject &pMatching,
+      uint8_t &pFlags)
     {
+        // Check for matching transactions forward
+        if(pFlags & RETURN_INSERT_POSITION) // We only care if we are attempting an insert.
+            searchForward(pIterator, pMatching, pFlags);
+
         if(pIterator == begin())
             return pIterator;
 
         --pIterator;
         while(pMatching.compare(*pIterator) == 0)
         {
+            if(pMatching.valueEquals(*pIterator))
+            {
+                pFlags |= VALUE_WAS_FOUND;
+                break;
+            }
             if(pIterator == begin())
                 return pIterator;
             --pIterator;
         }
 
         return ++pIterator;
+    }
+
+    void SortedSet::searchBackward(Iterator pIterator, const SortedObject &pMatching,
+      uint8_t &pFlags)
+    {
+        while(pMatching.compare(*pIterator) == 0)
+        {
+            if(pMatching.valueEquals(*pIterator))
+            {
+                pFlags |= VALUE_WAS_FOUND;
+                break;
+            }
+            if(pIterator == begin())
+                break;
+            --pIterator;
+        }
+    }
+
+    void SortedSet::searchForward(Iterator pIterator, const SortedObject &pMatching,
+      uint8_t &pFlags)
+    {
+        while(pIterator != end() && pMatching.compare(*pIterator) == 0)
+        {
+            if(pMatching.valueEquals(*pIterator))
+            {
+                pFlags |= VALUE_WAS_FOUND;
+                break;
+            }
+            ++pIterator;
+        }
     }
 
     SortedSet::Iterator SortedSet::binaryFind(const SortedObject &pMatching, uint8_t &pFlags)
@@ -143,11 +197,14 @@ namespace NextCash
         else if(compare == 0)
         {
             // Item matches last item.
-            pFlags |= WAS_FOUND;
+            pFlags |= SORT_WAS_FOUND;
             if(pFlags & RETURN_INSERT_POSITION)
+            {
+                searchBackward(--mItems.end(), pMatching, pFlags);
                 return mItems.end();
+            }
             else
-                return moveBackward(--mItems.end(), pMatching);
+                return moveBackward(--mItems.end(), pMatching, pFlags);
         }
 
         compare = pMatching.compare(mItems.front());
@@ -155,14 +212,17 @@ namespace NextCash
         {
             // Item would be before beginning of list.
             if(pFlags & RETURN_INSERT_POSITION)
+            {
+                searchForward(mItems.begin(), pMatching, pFlags);
                 return mItems.begin(); // Return first item to insert before.
+            }
             else
                 return mItems.end();
         }
         else if(compare == 0)
         {
             // Item matches first item.
-            pFlags |= WAS_FOUND;
+            pFlags |= SORT_WAS_FOUND;
             if(pFlags & RETURN_INSERT_POSITION)
                 return moveForward(mItems.begin(), pMatching, pFlags);
             else
@@ -181,11 +241,11 @@ namespace NextCash
 
             if(compare == 0) // Matching item found
             {
-                pFlags |= WAS_FOUND;
+                pFlags |= SORT_WAS_FOUND;
                 if(pFlags & RETURN_INSERT_POSITION)
                     return moveForward(current, pMatching, pFlags);
                 else
-                    return moveBackward(current, pMatching);
+                    return moveBackward(current, pMatching, pFlags);
             }
 
             if(current == bottom) // Matching item not found
