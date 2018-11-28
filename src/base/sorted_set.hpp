@@ -49,10 +49,18 @@ namespace NextCash
         bool contains(const SortedObject &pMatching);
 
         // Returns true if the item was inserted.
+        // If pAllowDuplicateSorts is false then multiple objects with the same "sort" value will
+        //   not be inserted.
+        // Multiple objects that match according to "valueEquals" will never be inserted.
         bool insert(SortedObject *pObject, bool pAllowDuplicateSorts = false);
 
-        // Returns true if the item was removed. Deletes item.
+        // Removes the first item with mathcing "sort" value, and deletes it.
+        // Returns true if the item was removed.
         bool remove(const SortedObject &pMatching);
+
+        // Deletes all items with matching "sort" value, and deletes them.
+        // Returns number of items removed.
+        unsigned int removeAll(const SortedObject &pMatching);
 
         // Returns the item with the specified hash.
         // Return NULL if not found.
@@ -63,6 +71,8 @@ namespace NextCash
 
         void clear();
         void clearNoDelete(); // Doesn't delete items.
+
+        void shrink() { mItems.shrink_to_fit(); }
 
         typedef std::vector<SortedObject *>::iterator Iterator;
 

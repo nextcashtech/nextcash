@@ -59,6 +59,19 @@ namespace NextCash
         return false;
     }
 
+    unsigned int SortedSet::removeAll(const SortedObject &pMatching)
+    {
+        unsigned int result = 0;
+        Iterator matching = find(pMatching);
+        while(matching != end() && pMatching.compare(*matching) == 0)
+        {
+            ++result;
+            delete *matching;
+            matching = mItems.erase(matching);
+        }
+        return result;
+    }
+
     SortedObject *SortedSet::get(const SortedObject &pMatching)
     {
         uint8_t flags = 0x00;

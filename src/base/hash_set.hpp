@@ -24,7 +24,7 @@ namespace NextCash
 
         virtual const Hash &getHash() const = 0;
 
-        virtual int compare(const SortedObject *pRight) const
+        int compare(const SortedObject *pRight) const
         {
             return getHash().compare(((HashObject *)pRight)->getHash());
         }
@@ -35,7 +35,7 @@ namespace NextCash
     {
     public:
 
-        HashSet() { mLastSet = mSets + SET_COUNT - 1; }
+        HashSet() { mSize = 0; mLastSet = mSets + SET_COUNT - 1; }
         ~HashSet() {}
 
         unsigned int size() const { return mSize; }
@@ -54,9 +54,12 @@ namespace NextCash
         }
 
         // Returns true if the item was inserted.
-        bool insert(HashObject *pObject, bool pAllowDuplicates = false)
+        // If pAllowDuplicateSorts is false then multiple objects with the same "sort" value will
+        //   not be inserted.
+        // Multiple objects that match according to "valueEquals" will never be inserted.
+        bool insert(HashObject *pObject, bool pAllowDuplicateSorts = false)
         {
-            if(set(pObject->getHash())->insert(pObject, pAllowDuplicates))
+            if(set(pObject->getHash())->insert(pObject, pAllowDuplicateSorts))
             {
                 ++mSize;
                 return true;
@@ -65,7 +68,8 @@ namespace NextCash
                 return false;
         }
 
-        // Returns true if the item was removed. Deletes item.
+        // Removes and deletes the first item matching the hash.
+        // Returns true if an item was removed.
         bool remove(const Hash &pHash)
         {
             if(set(pHash)->remove(HashLookupObject(pHash)))
@@ -75,6 +79,13 @@ namespace NextCash
             }
             else
                 return false;
+        }
+
+        // Remove and deletes all items with a matching hash.
+        // Returns the number of items removed.
+        unsigned int removeAll(const Hash &pHash)
+        {
+            return set(pHash)->removeAll(HashLookupObject(pHash));
         }
 
         // Returns the item with the specified hash.
@@ -106,6 +117,13 @@ namespace NextCash
             for(unsigned int i = 0; i < SET_COUNT; ++i, ++set)
                 set->clearNoDelete();
             mSize = 0;
+        }
+
+        void shrink()
+        {
+            SortedSet *set = mSets;
+            for(unsigned int i = 0; i < SET_COUNT; ++i, ++set)
+                set->shrink();
         }
 
         class Iterator
@@ -167,7 +185,7 @@ namespace NextCash
             // Iterator operator -(unsigned int pCount) const;
 
             // Remove item and return next item.
-            Iterator erase();
+            Iterator eraseNoDelete();
 
             SortedSet *set() { return mSet; }
             SortedSet::Iterator &iter() { return mIter; }

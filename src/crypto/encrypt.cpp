@@ -49,7 +49,7 @@ namespace NextCash
       unsigned int pBlockSize)
     {
         stream_size j = 0;
-        for(stream_size i=0;i<pBlockSize;++i)
+        for(stream_size i = 0; i < pBlockSize; ++i)
         {
             pBlock[i] ^= pKey[j++];
             if(j >= pKeySize)
@@ -173,7 +173,7 @@ namespace NextCash
             pData[2] = pData[3];
             pData[3] = swap;
 
-            for(unsigned int i=0;i<4;i++)
+            for(unsigned int i = 0; i < 4; ++i)
                 pData[i] = Rijndael::sBox[pData[i]];
 
             pData[0] ^= Rijndael::sCon[pIteration];
@@ -185,8 +185,8 @@ namespace NextCash
         {
             unsigned int r, c;
 
-            for(r=0;r<4;r++)
-                for(c=0;c<mRowLength;c++)
+            for(r = 0; r < 4; ++r)
+                for(c = 0; c < mRowLength; ++c)
                     mState[(r * mRowLength) + c] ^= mExpandedKey[mKeyOffset++];
         }
 
@@ -198,14 +198,15 @@ namespace NextCash
 
             if(mRowLength < 7)
             {
-                for(row=1,shift=1;row<4;row++,shift++)
-                    for(shiftTo=0,shiftFrom=shift;shiftTo<mRowLength;shiftTo++,shiftFrom++)
-                        mState[gridOffset (row, shiftTo, mRowLength)] =
-                          mPreviousState[gridOffset(row, shiftFrom%mRowLength, mRowLength)];
+                for(row = 1, shift = 1; row < 4; ++row, ++shift)
+                    for(shiftTo = 0, shiftFrom = shift; shiftTo < mRowLength;
+                      ++shiftTo, ++shiftFrom)
+                        mState[gridOffset(row, shiftTo, mRowLength)] =
+                          mPreviousState[gridOffset(row, shiftFrom % mRowLength, mRowLength)];
             }
             else if(mRowLength == 7)
             {
-                for(row=1,shift=0;row<4;row++)
+                for(row = 1, shift = 0; row < 4; ++row)
                 {
                     switch(shift)
                     {
@@ -222,15 +223,16 @@ namespace NextCash
                         break;
                     }
 
-                    for(shiftTo=0,shiftFrom=shift;shiftTo<mRowLength;shiftTo++,shiftFrom++)
-                        mState[gridOffset (row, shiftTo, mRowLength)] =
-                          mPreviousState[gridOffset(row, shiftFrom%mRowLength, mRowLength)];
+                    for(shiftTo = 0, shiftFrom = shift; shiftTo < mRowLength;
+                      ++shiftTo, ++shiftFrom)
+                        mState[gridOffset(row, shiftTo, mRowLength)] =
+                          mPreviousState[gridOffset(row, shiftFrom % mRowLength, mRowLength)];
                 }
 
             }
             else if(mRowLength == 8)
             {
-                for(row=1,shift=0;row<4;row++)
+                for(row = 1, shift = 0; row < 4; ++row)
                 {
                     switch(shift)
                     {
@@ -247,9 +249,10 @@ namespace NextCash
                         break;
                     }
 
-                    for(shiftTo=0,shiftFrom=shift;shiftTo<mRowLength;shiftTo++,shiftFrom++)
-                        mState[gridOffset (row, shiftTo, mRowLength)] =
-                          mPreviousState[gridOffset (row, shiftFrom%mRowLength, mRowLength)];
+                    for(shiftTo = 0, shiftFrom = shift; shiftTo < mRowLength;
+                      ++shiftTo, ++shiftFrom)
+                        mState[gridOffset(row, shiftTo, mRowLength)] =
+                          mPreviousState[gridOffset (row, shiftFrom % mRowLength, mRowLength)];
                 }
             }
         }
@@ -260,7 +263,7 @@ namespace NextCash
             uint8_t i;
             uint8_t hi_bit_set;
 
-            for(i=0;i<8;i++)
+            for(i = 0; i < 8; ++i)
             {
                 if(b & 0x01)
                     result ^= a;
@@ -280,9 +283,9 @@ namespace NextCash
 
             std::memcpy(mPreviousState, mState, mBlockByteCount);
 
-            for(col=0;col<mRowLength;col++)
-                for(row=0;row<4;row++)
-                    mState[gridOffset (row, col, mRowLength)] =
+            for(col = 0; col < mRowLength; ++col)
+                for(row = 0; row < 4; ++row)
+                    mState[gridOffset(row, col, mRowLength)] =
                       multiply(0x02, mPreviousState [gridOffset (row, col, mRowLength)]) ^
                       multiply(0x03, mPreviousState[gridOffset((row + 1) % 4, col, mRowLength)]) ^
                       mPreviousState[gridOffset((row + 2) % 4, col, mRowLength)] ^
@@ -309,14 +312,15 @@ namespace NextCash
 
             if(mRowLength < 7)
             {
-                for(row=1,shift=1;row<4;row++,shift++)
-                    for(shiftTo=0,shiftFrom=shift;shiftTo<mRowLength;shiftTo++,shiftFrom++)
-                        mState[gridOffset(row, shiftFrom%mRowLength, mRowLength)] =
+                for(row = 1, shift = 1; row < 4; ++row, ++shift)
+                    for(shiftTo = 0, shiftFrom = shift; shiftTo < mRowLength;
+                      ++shiftTo, ++shiftFrom)
+                        mState[gridOffset(row, shiftFrom % mRowLength, mRowLength)] =
                           mPreviousState[gridOffset(row, shiftTo, mRowLength)];
             }
             else if(mRowLength == 7)
             {
-                for(row=1,shift=0;row<4;row++)
+                for(row = 1, shift = 0; row < 4; ++row)
                 {
                     switch(shift)
                     {
@@ -333,15 +337,16 @@ namespace NextCash
                         return false;
                     }
 
-                    for(shiftTo=0,shiftFrom=shift;shiftTo<mRowLength;shiftTo++,shiftFrom++)
-                        mState[gridOffset(row, shiftFrom%mRowLength, mRowLength)] =
+                    for(shiftTo = 0, shiftFrom = shift; shiftTo < mRowLength;
+                      ++shiftTo, ++shiftFrom)
+                        mState[gridOffset(row, shiftFrom % mRowLength, mRowLength)] =
                           mPreviousState[gridOffset(row, shiftTo, mRowLength)];
                 }
 
             }
-            else if (mRowLength == 8)
+            else if(mRowLength == 8)
             {
-                for(row=1,shift=0;row<4;row++)
+                for(row = 1, shift = 0; row < 4; ++row)
                 {
                     switch(shift)
                     {
@@ -359,8 +364,9 @@ namespace NextCash
                         return false;
                     }
 
-                    for(shiftTo=0,shiftFrom=shift;shiftTo<mRowLength;shiftTo++,shiftFrom++)
-                        mState[gridOffset(row, shiftFrom%mRowLength, mRowLength)] =
+                    for(shiftTo = 0, shiftFrom = shift; shiftTo < mRowLength;
+                      ++shiftTo, ++shiftFrom)
+                        mState[gridOffset(row, shiftFrom % mRowLength, mRowLength)] =
                           mPreviousState[gridOffset(row, shiftTo, mRowLength)];
                 }
             }
@@ -376,8 +382,8 @@ namespace NextCash
 
             std::memcpy(mPreviousState, mState, mBlockByteCount);
 
-            for(col=0;col<mRowLength;col++)
-                for(row=0;row<4;row++)
+            for(col = 0; col < mRowLength; ++col)
+                for(row = 0; row < 4; ++row)
                     mState[gridOffset(row, col, mRowLength)] =
                       multiply(0x0e, mPreviousState[gridOffset(row, col, mRowLength)]) ^
                       multiply(0x0b, mPreviousState[gridOffset((row + 1) % 4, col, mRowLength)]) ^
@@ -421,16 +427,16 @@ namespace NextCash
         unsigned int i = 2, j, k, m;
         unsigned int keyCount = mKeySize;
 
-        for(j=0;j<4;j++)
+        for(j = 0; j < 4; ++j)
             currentCore[j] = mExpandedKey[mKeySize - 4 + j];
 
         while(keyCount < (mRoundCount + 1) * mBlockByteCount)
         {
             keyScheduleCore(currentCore, i++);
 
-            for(j=0;j<4;j++)
+            for(j = 0; j < 4; ++j)
             {
-                for(k=0;k<4;k++)
+                for(k = 0; k < 4; ++k)
                     currentCore[k] ^= mExpandedKey[keyCount + k - mKeySize];
 
                 std::memcpy(mExpandedKey + keyCount, currentCore, 4);
@@ -439,10 +445,10 @@ namespace NextCash
 
             if(mKeySize == 32) // AES 256
             {
-                for(j=0;j<4;j++)
+                for(j = 0; j < 4; ++j)
                     currentCore[j] = Rijndael::sBox[currentCore [j]];
 
-                for(k=0;k<4;k++)
+                for(k = 0; k < 4; ++k)
                     currentCore[k] ^= mExpandedKey[keyCount + k - mKeySize];
 
                 std::memcpy(mExpandedKey + keyCount, currentCore, 4);
@@ -458,13 +464,13 @@ namespace NextCash
 
             while(m)
             {
-                for(k=0;k<4;k++)
+                for(k = 0; k < 4; ++k)
                     currentCore[k] ^= mExpandedKey[keyCount + k - mKeySize];
 
                 std::memcpy(mExpandedKey + keyCount, currentCore, 4);
                 keyCount += 4;
 
-                m--;
+                --m;
             }
         }
     }
@@ -481,10 +487,10 @@ namespace NextCash
         addRoundKey();
 
         // Intermediate Rounds
-        for(unsigned int roundOffset=1;roundOffset<mRoundCount;roundOffset++)
+        for(unsigned int roundOffset = 1; roundOffset < mRoundCount; ++roundOffset)
         {
             // Sub Bytes
-            for(i=0;i<mBlockByteCount;i++)
+            for(i = 0; i < mBlockByteCount; ++i)
                 mState[i] = Rijndael::sBox[mState[i]];
 
             // Shift Rows
@@ -499,7 +505,7 @@ namespace NextCash
 
         // Final Round
         // Sub Bytes
-        for(i=0;i<mBlockByteCount;i++)
+        for(i = 0; i < mBlockByteCount; ++i)
             mState[i] = Rijndael::sBox[mState[i]];
 
         // Shift Rows
@@ -524,14 +530,14 @@ namespace NextCash
         subtractRoundKey();
 
         // Intermediate Rounds
-        for(unsigned int roundOffset=1;roundOffset<mRoundCount;roundOffset++)
+        for(unsigned int roundOffset = 1; roundOffset < mRoundCount; ++roundOffset)
         {
             // Inverse Shift Rows
             if(!inverseShiftRows())
                 return false;
 
             // Inverse Sub Bytes
-            for(i=0;i<mBlockByteCount;i++)
+            for(i = 0; i < mBlockByteCount; ++i)
                 mState[i] = Rijndael::sInverseSBox[mState[i]];
 
             // Subtract Round Key
@@ -548,7 +554,7 @@ namespace NextCash
             return false;
 
         // Inverse Sub Bytes
-        for(i=0;i<mBlockByteCount;i++)
+        for(i = 0; i < mBlockByteCount; ++i)
             mState[i] = Rijndael::sInverseSBox[mState[i]];
 
         // Subtract Round Key

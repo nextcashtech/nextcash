@@ -65,7 +65,7 @@ namespace NextCash
         return result;
     }
 
-    HashSet::Iterator HashSet::Iterator::erase()
+    HashSet::Iterator HashSet::Iterator::eraseNoDelete()
     {
         SortedSet::Iterator resultIter = mSet->eraseNoDelete(mIter);
         if(resultIter == mSet->end())
@@ -157,18 +157,19 @@ namespace NextCash
     {
         --mSize;
         delete *pIterator;
-        return pIterator.erase();
+        return pIterator.eraseNoDelete();
     }
 
     HashSet::Iterator HashSet::eraseNoDelete(Iterator &pIterator)
     {
         --mSize;
-        return pIterator.erase();
+        return pIterator.eraseNoDelete();
     }
 
     bool HashSet::test()
     {
-        Log::add(Log::INFO, NEXTCASH_HASH_SET_LOG_NAME, "------------- Starting Hash Set Tests -------------");
+        Log::add(Log::INFO, NEXTCASH_HASH_SET_LOG_NAME,
+          "------------- Starting Hash Set Tests -------------");
 
         bool success = true;
 
