@@ -26,7 +26,14 @@ namespace NextCash
 
         int compare(const SortedObject *pRight) const
         {
-            return getHash().compare(((HashObject *)pRight)->getHash());
+            try
+            {
+                return getHash().compare(dynamic_cast<const HashObject *>(pRight)->getHash());
+            }
+            catch(...)
+            {
+                return -1;
+            }
         }
 
     };
