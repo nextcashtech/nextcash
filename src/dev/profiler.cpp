@@ -14,6 +14,11 @@ namespace NextCash
 
     void deleteProfiler()
     {
+        for(std::vector<std::vector<Profiler *>>::iterator set = sProfilerSets->begin();
+          set != sProfilerSets->end(); ++set)
+            for(std::vector<Profiler *>::iterator item = set->begin(); item != set->end(); ++item)
+                if(*item != NULL)
+                    delete *item;
         delete sProfilerSets;
         sProfilerSets = NULL;
     }
