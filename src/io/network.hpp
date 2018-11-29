@@ -173,6 +173,26 @@ namespace NextCash
             port = pConnection.port();
         }
 
+        int compare(const IPAddress &pRight) const
+        {
+            const uint8_t *left = ip;
+            const uint8_t *right = pRight.ip;
+            for(unsigned int i = 0; i < INET6_ADDRLEN; ++i, ++left, ++right)
+            {
+                if(*left < *right)
+                    return -1;
+                else if(*left > *right)
+                    return 1;
+            }
+
+            if(port < pRight.port)
+                return -1;
+            else if(port > pRight.port)
+                return 1;
+            else
+                return 0;
+        }
+
         bool isValid() const
         {
             bool zeroes = true;
