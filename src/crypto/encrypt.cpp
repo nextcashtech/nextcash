@@ -629,7 +629,8 @@ namespace NextCash
             switch (mBlockMethod)
             {
             case Encryption::CBC:
-                std::memcpy(mVector.data(), mBlock, mVector.size());
+                std::memcpy(mVector.data(), mBlock,
+                  mVector.size() > mBlockSize ? mBlockSize : mVector.size());
                 break;
             case Encryption::ECB:
             default:
@@ -724,7 +725,8 @@ namespace NextCash
             {
             case Encryption::CBC:
                 xorBlock(mVector.data(), mVector.size(), mBlock, mBlockSize);
-                std::memcpy(mVector.data(), mEncryptedBlock, mVector.size());
+                std::memcpy(mVector.data(), mEncryptedBlock,
+                  mVector.size() > mBlockSize ? mBlockSize : mVector.size());
                 break;
             case Encryption::ECB:
             default:
