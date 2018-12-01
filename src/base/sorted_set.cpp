@@ -26,7 +26,7 @@ namespace NextCash
             delete *item;
     }
 
-    bool SortedSet::contains(const SortedObject &pMatching)
+    bool SortedSet::contains(SortedObject &pMatching)
     {
         uint8_t flags = 0x00;
         binaryFind(pMatching, flags);
@@ -48,7 +48,7 @@ namespace NextCash
         return true;
     }
 
-    bool SortedSet::remove(const SortedObject &pMatching)
+    bool SortedSet::remove(SortedObject &pMatching)
     {
         SortedObject *object = getAndRemove(pMatching);
         if(object != NULL)
@@ -59,7 +59,7 @@ namespace NextCash
         return false;
     }
 
-    unsigned int SortedSet::removeAll(const SortedObject &pMatching)
+    unsigned int SortedSet::removeAll(SortedObject &pMatching)
     {
         unsigned int result = 0;
         Iterator matching = find(pMatching);
@@ -72,7 +72,7 @@ namespace NextCash
         return result;
     }
 
-    SortedObject *SortedSet::get(const SortedObject &pMatching)
+    SortedObject *SortedSet::get(SortedObject &pMatching)
     {
         uint8_t flags = 0x00;
         Iterator item = binaryFind(pMatching, flags);
@@ -82,7 +82,7 @@ namespace NextCash
             return NULL;
     }
 
-    SortedObject *SortedSet::getAndRemove(const SortedObject &pMatching)
+    SortedObject *SortedSet::getAndRemove(SortedObject &pMatching)
     {
         uint8_t flags = 0x00;
         Iterator item = binaryFind(pMatching, flags);
@@ -96,7 +96,7 @@ namespace NextCash
             return NULL;
     }
 
-    SortedSet::Iterator SortedSet::find(const SortedObject &pMatching)
+    SortedSet::Iterator SortedSet::find(SortedObject &pMatching)
     {
         uint8_t flags = 0x00;
         return binaryFind(pMatching, flags);
@@ -114,7 +114,7 @@ namespace NextCash
         mItems.clear();
     }
 
-    SortedSet::Iterator SortedSet::moveForward(Iterator pIterator, const SortedObject &pMatching,
+    SortedSet::Iterator SortedSet::moveForward(Iterator pIterator, SortedObject &pMatching,
       uint8_t &pFlags)
     {
         // Check for matching transactions backward
@@ -138,7 +138,7 @@ namespace NextCash
         return pIterator;
     }
 
-    SortedSet::Iterator SortedSet::moveBackward(Iterator pIterator, const SortedObject &pMatching,
+    SortedSet::Iterator SortedSet::moveBackward(Iterator pIterator, SortedObject &pMatching,
       uint8_t &pFlags)
     {
         // Check for matching transactions forward
@@ -164,7 +164,7 @@ namespace NextCash
         return ++pIterator;
     }
 
-    void SortedSet::searchBackward(Iterator pIterator, const SortedObject &pMatching,
+    void SortedSet::searchBackward(Iterator pIterator, SortedObject &pMatching,
       uint8_t &pFlags)
     {
         while(pMatching.compare(*pIterator) == 0)
@@ -180,7 +180,7 @@ namespace NextCash
         }
     }
 
-    void SortedSet::searchForward(Iterator pIterator, const SortedObject &pMatching,
+    void SortedSet::searchForward(Iterator pIterator, SortedObject &pMatching,
       uint8_t &pFlags)
     {
         while(pIterator != end() && pMatching.compare(*pIterator) == 0)
@@ -194,7 +194,7 @@ namespace NextCash
         }
     }
 
-    SortedSet::Iterator SortedSet::binaryFind(const SortedObject &pMatching, uint8_t &pFlags)
+    SortedSet::Iterator SortedSet::binaryFind(SortedObject &pMatching, uint8_t &pFlags)
     {
 #ifdef PROFILER_ON
         ProfilerReference profiler(getProfiler(PROFILER_SET, PROFILER_SORTED_SET_FIND_ID,
@@ -311,7 +311,7 @@ namespace NextCash
                   mString == ((SortedString *)pRight)->getString();
             }
 
-            int compare(const SortedObject *pRight) const
+            int compare(SortedObject *pRight)
             {
                 int result = mString.compare(((SortedString *)pRight)->getString());
                 if(result != 0)

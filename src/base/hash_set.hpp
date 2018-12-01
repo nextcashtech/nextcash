@@ -22,13 +22,13 @@ namespace NextCash
 
         virtual ~HashObject() {}
 
-        virtual const Hash &getHash() const = 0;
+        virtual const Hash &getHash() = 0;
 
-        int compare(const SortedObject *pRight) const
+        int compare(SortedObject *pRight)
         {
             try
             {
-                return getHash().compare(dynamic_cast<const HashObject *>(pRight)->getHash());
+                return getHash().compare(dynamic_cast<HashObject *>(pRight)->getHash());
             }
             catch(...)
             {
@@ -57,7 +57,8 @@ namespace NextCash
 
         bool contains(const Hash &pHash)
         {
-            return set(pHash)->contains(HashLookupObject(pHash));
+            HashLookupObject lookup(pHash);
+            return set(pHash)->contains(lookup);
         }
 
         // Returns true if the item was inserted.
@@ -79,7 +80,8 @@ namespace NextCash
         // Returns true if an item was removed.
         bool remove(const Hash &pHash)
         {
-            if(set(pHash)->remove(HashLookupObject(pHash)))
+            HashLookupObject lookup(pHash);
+            if(set(pHash)->remove(lookup))
             {
                 --mSize;
                 return true;
@@ -92,20 +94,23 @@ namespace NextCash
         // Returns the number of items removed.
         unsigned int removeAll(const Hash &pHash)
         {
-            return set(pHash)->removeAll(HashLookupObject(pHash));
+            HashLookupObject lookup(pHash);
+            return set(pHash)->removeAll(lookup);
         }
 
         // Returns the item with the specified hash.
         // Return NULL if not found.
         HashObject *get(const NextCash::Hash &pHash)
         {
-            return (HashObject *)set(pHash)->get(HashLookupObject(pHash));
+            HashLookupObject lookup(pHash);
+            return (HashObject *)set(pHash)->get(lookup);
         }
 
         // Returns item and doesn't delete it.
         HashObject *getAndRemove(const NextCash::Hash &pHash)
         {
-            HashObject *result = (HashObject *)set(pHash)->getAndRemove(HashLookupObject(pHash));
+            HashLookupObject lookup(pHash);
+            HashObject *result = (HashObject *)set(pHash)->getAndRemove(lookup);
             if(result != NULL)
                 --mSize;
             return result;
@@ -232,7 +237,7 @@ namespace NextCash
             HashLookupObject(const Hash &pHash) : mHash(pHash) {}
             ~HashLookupObject() {}
 
-            const Hash &getHash() const { return mHash; }
+            const Hash &getHash() { return mHash; }
 
         private:
 

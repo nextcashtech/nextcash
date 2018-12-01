@@ -146,7 +146,8 @@ namespace NextCash
     HashSet::Iterator HashSet::find(const NextCash::Hash &pHash)
     {
         SortedSet *findSet = set(pHash);
-        SortedSet::Iterator result = findSet->find(HashLookupObject(pHash));
+        HashLookupObject lookup(pHash);
+        SortedSet::Iterator result = findSet->find(lookup);
         if(result == findSet->end())
             return end();
         else
@@ -207,7 +208,7 @@ namespace NextCash
             const String &getString() const { return mString; }
 
             // HashObject virtual functions
-            const Hash &getHash() const { return mHash; }
+            const Hash &getHash() { return mHash; }
 
             bool valueEquals(const HashObject *pRight) const
             {
@@ -221,7 +222,7 @@ namespace NextCash
                 }
             }
 
-            int compare(const HashObject *pRight) const
+            int compare(HashObject *pRight)
             {
                 int result = mHash.compare(pRight->getHash());
                 if(result != 0)

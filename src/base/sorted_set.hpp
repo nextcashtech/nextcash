@@ -24,7 +24,7 @@ namespace NextCash
         //   < 0 when this object is less than pRight.
         //   = 0 when this object is equal to pRight.
         //   > 0 when this object is more than pRight.
-        virtual int compare(const SortedObject *pRight) const = 0;
+        virtual int compare(SortedObject *pRight) = 0;
 
         // Returns true if this object has the same "value" as pRight.
         // Objects that have the same value will not be inserted.
@@ -46,7 +46,7 @@ namespace NextCash
 
         void reserve(unsigned int pSize) { mItems.reserve(pSize); }
 
-        bool contains(const SortedObject &pMatching);
+        bool contains(SortedObject &pMatching);
 
         // Returns true if the item was inserted.
         // If pAllowDuplicateSorts is false then multiple objects with the same "sort" value will
@@ -56,18 +56,18 @@ namespace NextCash
 
         // Removes the first item with mathcing "sort" value, and deletes it.
         // Returns true if the item was removed.
-        bool remove(const SortedObject &pMatching);
+        bool remove(SortedObject &pMatching);
 
         // Deletes all items with matching "sort" value, and deletes them.
         // Returns number of items removed.
-        unsigned int removeAll(const SortedObject &pMatching);
+        unsigned int removeAll(SortedObject &pMatching);
 
         // Returns the item with the specified hash.
         // Return NULL if not found.
-        SortedObject *get(const SortedObject &pMatching);
+        SortedObject *get(SortedObject &pMatching);
 
         // Returns item and doesn't delete it.
-        SortedObject *getAndRemove(const SortedObject &pMatching);
+        SortedObject *getAndRemove(SortedObject &pMatching);
 
         void clear();
         void clearNoDelete(); // Doesn't delete items.
@@ -78,7 +78,7 @@ namespace NextCash
 
         Iterator begin() { return mItems.begin(); }
         Iterator end() { return mItems.end(); }
-        Iterator find(const SortedObject &pMatching);// Return iterator to first matching item.
+        Iterator find(SortedObject &pMatching);// Return iterator to first matching item.
 
         Iterator eraseDelete(Iterator &pIterator)
         {
@@ -108,20 +108,20 @@ namespace NextCash
         //   or "end" if no item matching.
         //
         // Sets SORT_WAS_FOUND in pFlags if a matching item was found.
-        Iterator binaryFind(const SortedObject &pMatching, uint8_t &pFlags);
+        Iterator binaryFind(SortedObject &pMatching, uint8_t &pFlags);
 
         // if RETURN_INSERT_POSITION:
         //   increment iterator forward to the item after the last matching item.
         // else:
         //   increment iterator forward to the last matching item.
-        Iterator moveForward(Iterator pIterator, const SortedObject &pMatching, uint8_t &pFlags);
+        Iterator moveForward(Iterator pIterator, SortedObject &pMatching, uint8_t &pFlags);
 
         // Decrement iterator backward to the first matching item.
-        Iterator moveBackward(Iterator pIterator, const SortedObject &pMatching, uint8_t &pFlags);
+        Iterator moveBackward(Iterator pIterator, SortedObject &pMatching, uint8_t &pFlags);
 
         // Search for matching value from specified iterator and set VALUE_WAS_FOUND if found.
-        void searchBackward(Iterator pIterator, const SortedObject &pMatching, uint8_t &pFlags);
-        void searchForward(Iterator pIterator, const SortedObject &pMatching, uint8_t &pFlags);
+        void searchBackward(Iterator pIterator, SortedObject &pMatching, uint8_t &pFlags);
+        void searchForward(Iterator pIterator, SortedObject &pMatching, uint8_t &pFlags);
 
         SortedSet(const SortedSet &pCopy);
         SortedSet &operator = (const SortedSet &pRight);
