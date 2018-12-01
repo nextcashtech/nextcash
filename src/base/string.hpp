@@ -241,6 +241,11 @@ namespace NextCash
         return pChar >= 'a' && pChar <= 'z';
     }
 
+    inline bool isASCII(char pChar)
+    {
+        return pChar >= 32 && pChar <= 126;
+    }
+
     inline char upper(char pChar)
     {
         if(isLower(pChar))
