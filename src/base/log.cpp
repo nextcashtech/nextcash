@@ -28,7 +28,7 @@ namespace NextCash
     {
         if(!mInstance)
         {
-            mInstance = new Log(NULL, "%F %T"); // YYYY-MM-DD HH:MM::SS
+            mInstance = new Log(NULL, "%F %T"); // YYYY-MM-DD HH:MM:SS
             std::atexit(Log::destroy);
         }
 

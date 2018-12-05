@@ -83,7 +83,7 @@ namespace NextCash
         stream_size readOffset() const { return mInput->readOffset(); }
         stream_size length() const { return mInput->length(); }
         stream_size remaining() const { return mInput->remaining(); }
-        void read(void *pOutput, stream_size pSize);
+        bool read(void *pOutput, stream_size pSize);
 
     private:
 

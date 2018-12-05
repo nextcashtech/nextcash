@@ -580,6 +580,8 @@ namespace NextCash
     {
         finalize();
         delete[] mBlock;
+        if(mAES != NULL)
+            delete mAES;
     }
 
     void Encryptor::setup(const uint8_t *pKey, int pKeyLength, const uint8_t *pInitializationVector,
@@ -676,6 +678,8 @@ namespace NextCash
     {
         delete[] mBlock;
         delete[] mEncryptedBlock;
+        if(mAES != NULL)
+            delete mAES;
     }
 
     void Decryptor::setup(const uint8_t *pKey, int pKeyLength,
@@ -693,7 +697,7 @@ namespace NextCash
         std::memcpy(mVector.data(), pInitializationVector, pInitializationVectorLength);
     }
 
-    void Decryptor::read(void *pOutput, stream_size pSize)
+    bool Decryptor::read(void *pOutput, stream_size pSize)
     {
         while(mData.remaining() < pSize)
         {
@@ -736,7 +740,7 @@ namespace NextCash
             mData.write(mBlock, mBlockSize);
         }
 
-        mData.read(pOutput, pSize);
+        return mData.read(pOutput, pSize);
     }
 
     bool Encryption::test()

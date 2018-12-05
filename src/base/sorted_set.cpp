@@ -326,7 +326,7 @@ namespace NextCash
 
         SortedString *string1 = new SortedString("test1");
         SortedString *string2 = new SortedString("test2");
-        SortedString *lookup;
+        SortedString *lookup, *newSortedString;
 
         set.insert(string1);
 
@@ -384,7 +384,9 @@ namespace NextCash
         for(unsigned int i = 0; i < 100; ++i)
         {
             newString.writeFormatted("String %04d", Math::randomInt() % 1000);
-            set.insert(new SortedString(newString));
+            newSortedString = new SortedString(newString);
+            if(!set.insert(newSortedString))
+                delete newSortedString;
 
             // for(HashContainerList<String *>::Iterator item=set.begin();item!=set.end();++item)
             // {

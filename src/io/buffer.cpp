@@ -89,16 +89,21 @@ namespace NextCash
         return *this;
     }
 
-    void Buffer::read(void *pOutput, stream_size pSize)
+    bool Buffer::read(void *pOutput, stream_size pSize)
     {
         stream_size toRead = pSize;
+        bool result = true;
         if(toRead > remaining())
+        {
             toRead = remaining();
+            result = false;
+        }
         if(toRead > 0)
         {
             std::memcpy(pOutput, mData + mReadOffset, toRead);
             mReadOffset += toRead;
         }
+        return result;
     }
 
     void Buffer::write(const void *pInput, stream_size pSize)
@@ -310,12 +315,12 @@ namespace NextCash
     }
 
     // Flush any read bytes
-    void Buffer::flush()
+    void Buffer::flush(NextCash::stream_size pMinimumSize)
     {
         if(mSharing)
             unShare();
 
-        if(mReadOffset == 0)
+        if(mReadOffset < pMinimumSize)
             return;
 
         if(mReadOffset >= mEndOffset)
@@ -359,7 +364,7 @@ namespace NextCash
         if(newSize <= mSize)
         {
             if(mAutoFlush)
-                flush();
+                flush(0);
             return;
         }
 
@@ -384,6 +389,7 @@ namespace NextCash
             // Copy old data into new memory
             if(mAutoFlush)
             {
+                // Don't copy data that was already "read".
                 std::memcpy(newData, mData + mReadOffset, mEndOffset - mReadOffset);
                 mWriteOffset -= mReadOffset;
                 mEndOffset -= mReadOffset;

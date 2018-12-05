@@ -25,22 +25,25 @@ namespace NextCash
 
     uint8_t InputStream::readByte()
     {
-        uint8_t result;
-        read(&result, 1);
+        uint8_t result = 0; // ValGrind thinks this isn't initialized inside read.
+        if(!read(&result, 1))
+            result = 0;
         return result;
     }
 
     uint16_t InputStream::readUnsignedShort()
     {
-        uint16_t result;
-        readEndian(&result, 2);
+        uint16_t result = 0; // ValGrind thinks this isn't initialized inside read.
+        if(!readEndian(&result, 2))
+            result = 0;
         return result;
     }
 
     uint32_t InputStream::readUnsignedInt()
     {
-        uint32_t result;
-        readEndian(&result, 4);
+        uint32_t result = 0; // ValGrind thinks this isn't initialized inside read.
+        if(!readEndian(&result, 4))
+            result = 0;
         return result;
     }
 
@@ -61,29 +64,48 @@ namespace NextCash
 
     uint64_t InputStream::readUnsignedLong()
     {
-        uint64_t result;
-        readEndian(&result, 8);
+        uint64_t result = 0UL; // ValGrind thinks this isn't initialized inside read.
+        if(!readEndian(&result, 8))
+            result = 0UL;
         return result;
     }
 
     int16_t InputStream::readShort()
     {
-        int16_t result;
-        readEndian(&result, 2);
+        int16_t result = 0; // ValGrind thinks this isn't initialized inside read.
+        if(!readEndian(&result, 2))
+            result = 0;
         return result;
     }
 
     int32_t InputStream::readInt()
     {
-        int32_t result;
-        readEndian(&result, 4);
+        int32_t result = 0; // ValGrind thinks this isn't initialized inside read.
+        if(!readEndian(&result, 4))
+            result = 0;
+        return result;
+    }
+
+    uint64_t InputStream::readInt6()
+    {
+        int64_t result = 0L;
+        if(Endian::sSystemType != mInputEndian)
+        {
+            if(Endian::sSystemType == Endian::BIG)
+                readEndian(((uint8_t *)&result) + 2, 6);
+            else
+                readEndian(&result, 6);
+        }
+        else
+            read(&result, 6);
         return result;
     }
 
     int64_t InputStream::readLong()
     {
-        int64_t result;
-        readEndian(&result, 8);
+        int64_t result = 0L; // ValGrind thinks this isn't initialized inside read.
+        if(!readEndian(&result, 8))
+            result = 0L;
         return result;
     }
 

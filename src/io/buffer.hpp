@@ -28,7 +28,7 @@ namespace NextCash
         // InputStream virtual functions
         stream_size readOffset() const { return mReadOffset; }
         stream_size length() const { return mEndOffset; }
-        void read(void *pOutput, stream_size pSize);
+        bool read(void *pOutput, stream_size pSize);
 
         // OutputStream virtual functions
         stream_size writeOffset() const { return mWriteOffset; }
@@ -45,7 +45,7 @@ namespace NextCash
 
         bool autoFlush() { return mAutoFlush; } // Will flush to allocate room when writing
         void setAutoFlush(bool pValue) { mAutoFlush = pValue; }
-        void flush(); // Release read data
+        void flush(NextCash::stream_size pMinimumSize = 1024); // Release read data
 
         void zeroize();
         void clear(); // Clear all data

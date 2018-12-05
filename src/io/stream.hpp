@@ -39,7 +39,7 @@ namespace NextCash
     {
     public:
         virtual ~RawInputStream() {}
-        virtual void read(void *pOutput, stream_size pSize) = 0;
+        virtual bool read(void *pOutput, stream_size pSize) = 0;
     };
 
     // Abstract for a class that can have different primitive types read from it
@@ -56,6 +56,7 @@ namespace NextCash
         uint64_t readUnsignedLong();
         int16_t readShort();
         int32_t readInt();
+        uint64_t readInt6(); // Read 6 byte integer
         int64_t readLong();
         stream_size readStream(OutputStream *pOutput, stream_size pMaxSize);
         String readString(stream_size pLength);
@@ -95,7 +96,7 @@ namespace NextCash
         // Endian for this InputStream
         Endian::Type inputEndian() { return mInputEndian; }
         void setInputEndian(Endian::Type pEndian) { mInputEndian = pEndian; }
-        void readEndian(void *pOutput, stream_size pSize)
+        bool readEndian(void *pOutput, stream_size pSize)
         {
             if(Endian::sSystemType != mInputEndian)
             {
@@ -104,12 +105,17 @@ namespace NextCash
                 //for(stream_size i=0;i<pSize;i++)
                 //    read(ptr--, 1);
                 uint8_t data[pSize];
-                read(data, pSize);
-                for(int i=pSize-1,j=0;i>=0;i--,j++)
-                    ((uint8_t *)pOutput)[i] = data[j];
+                if(read(data, pSize))
+                {
+                    for(int i = pSize - 1, j = 0; i >= 0; --i, ++j)
+                        ((uint8_t *)pOutput)[i] = data[j];
+                    return true;
+                }
+                else
+                    return false;
             }
             else
-                read(pOutput, pSize);
+                return read(pOutput, pSize);
         }
 
     private:

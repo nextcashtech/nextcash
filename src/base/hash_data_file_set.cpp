@@ -465,6 +465,8 @@ namespace NextCash
                 data->write(&digest);
                 digest.getResult(&hash);
 
+                delete data;
+
                 // Remove
                 found = hashDataSet.get(hash);
 
@@ -489,6 +491,8 @@ namespace NextCash
                 digest.initialize();
                 data->write(&digest);
                 digest.getResult(&hash);
+
+                delete data;
 
                 // Remove
                 found = hashDataSet.get(hash);

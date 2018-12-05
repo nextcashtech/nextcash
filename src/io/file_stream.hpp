@@ -99,11 +99,19 @@ namespace NextCash
         }
         operator bool() const { return mStream->good() && (mReadOffset == (stream_size)-1 || mReadOffset < mEndOffset); }
         bool operator !() const { return !mStream->good(); }
-        void read(void *pOutput, stream_size pSize)
+        bool read(void *pOutput, stream_size pSize)
         {
             mStream->read((char *)pOutput, pSize);
-            if(mReadOffset != INVALID_STREAM_SIZE && mReadOffset < mEndOffset)
+            if(mReadOffset != INVALID_STREAM_SIZE && mReadOffset + pSize <= mEndOffset)
+            {
                 mReadOffset += pSize;
+                return true;
+            }
+            else
+            {
+                mReadOffset = mEndOffset;
+                return false;
+            }
         }
 
     private:
@@ -166,7 +174,12 @@ namespace NextCash
             mValid = ((std::ofstream *)mStream)->is_open();
             initialize(pAppend);
         }
-        ~FileOutputStream() { mStream->flush(); if(mStreamNeedsDelete) delete mStream; }
+        ~FileOutputStream()
+        {
+            if(mValid)
+                mStream->flush();
+            if(mStreamNeedsDelete) delete mStream;
+        }
 
         void close() { mStream->flush(); ((std::fstream *)mStream)->close();}
 
