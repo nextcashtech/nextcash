@@ -1175,7 +1175,8 @@ namespace NextCash
             // Copy partial block into last block
             std::memcpy(lastBlock, pBlock, pBlockLength);
 
-            // Put least significant byte of total length into most significant byte of last "block"
+            // Put least significant byte of total length into most significant byte of
+            //   last "block"
             lastBlock[7] = pTotalLength & 0xff;
 
             // Process last block
@@ -1188,7 +1189,8 @@ namespace NextCash
         }
     }
 
-    uint64_t Digest::sipHash24(const uint8_t *pData, stream_size pLength, uint64_t pKey0, uint64_t pKey1)
+    uint64_t Digest::sipHash24(const uint8_t *pData, stream_size pLength, uint64_t pKey0,
+      uint64_t pKey1)
     {
         uint64_t result[4];
 
@@ -1208,36 +1210,33 @@ namespace NextCash
     namespace MURMUR3
     {
         // Only 32 bit implemented
-        void initialize(uint32_t *pResult, uint32_t pSeed)
+        void initialize(uint32_t &pResult, uint32_t pSeed)
         {
-            pResult[0] = pSeed;
+            pResult = pSeed;
         }
 
         // Process 4 bytes
-        void process(uint32_t *pResult, uint8_t *pBlock)
+        void process(uint32_t &pResult, uint32_t pBlock)
         {
-            // Grab 4 bytes from pBlock and convert to uint64_t
-            uint32_t block = 0;
-            uint8_t *byte = pBlock;
-            for(unsigned int i=0;i<4;++i)
-                block |= (uint32_t)*byte++ << (i * 8);
+            uint32_t block = pBlock;
 
             block *= 0xcc9e2d51;
             block = (block << 15) | (block >> 17);
             block *= 0x1b873593;
 
-            *pResult ^= block;
-            *pResult = (*pResult << 13) | (*pResult >> 19);
-            *pResult = (*pResult * 5) + 0xe6546b64;
+            pResult ^= block;
+            pResult = (pResult << 13) | (pResult >> 19);
+            pResult = (pResult * 5) + 0xe6546b64;
         }
 
         // Process less than 4 bytes and length
-        void finish(uint32_t *pResult, uint8_t *pBlock, unsigned int pBlockLength, uint64_t pTotalLength)
+        void finish(uint32_t &pResult, const uint8_t *pBlockData, unsigned int pBlockLength,
+          uint64_t pTotalLength)
         {
             if(pBlockLength > 0)
             {
                 uint32_t block = 0;
-                uint8_t *byte = pBlock;
+                const uint8_t *byte = pBlockData;
                 for(unsigned int i=0;i<pBlockLength;++i)
                     block |= (uint32_t)*byte++ << (i * 8);
 
@@ -1245,16 +1244,33 @@ namespace NextCash
                 block = (block << 15) | (block >> 17);
                 block *= 0x1b873593;
 
-                *pResult ^= block;
+                pResult ^= block;
             }
 
-            *pResult ^= pTotalLength;
-            *pResult ^= *pResult >> 16;
-            *pResult *= 0x85ebca6b;
-            *pResult ^= *pResult >> 13;
-            *pResult *= 0xc2b2ae35;
-            *pResult ^= *pResult >> 16;
+            pResult ^= pTotalLength;
+            pResult ^= pResult >> 16;
+            pResult *= 0x85ebca6b;
+            pResult ^= pResult >> 13;
+            pResult *= 0xc2b2ae35;
+            pResult ^= pResult >> 16;
         }
+    }
+
+    uint32_t Digest::murMur3(const uint8_t *pData, stream_size pLength, uint32_t pSeed)
+    {
+        uint32_t result;
+        MURMUR3::initialize(result, pSeed);
+
+        stream_size offset = 0;
+        while(pLength - offset >= 4)
+        {
+            MURMUR3::process(result, Endian::convert(*(uint32_t *)pData, Endian::LITTLE));
+            pData += 4;
+            offset += 4;
+        }
+
+        MURMUR3::finish(result, pData, pLength - offset, pLength);
+        return result;
     }
 
     Digest::Digest(Type pType)
@@ -1407,7 +1423,7 @@ namespace NextCash
             SHA256::initialize(mResultData);
             break;
         case MURMUR3:
-            MURMUR3::initialize(mResultData, pSeed);
+            MURMUR3::initialize(*mResultData, pSeed);
             break;
         case SHA512:
             SHA512::initialize(mResultData);
@@ -1452,7 +1468,7 @@ namespace NextCash
             while(mInput.remaining() >= mBlockSize)
             {
                 mInput.read(mBlockData, mBlockSize);
-                MURMUR3::process(mResultData, (uint8_t *)mBlockData);
+                MURMUR3::process(*mResultData, *mBlockData);
             }
             break;
         case SHA512:
@@ -1482,9 +1498,7 @@ namespace NextCash
             // Get last partial block (must be less than 4 bytes)
             unsigned int lastBlockSize = mInput.remaining();
             mInput.read(mBlockData, lastBlockSize);
-
-            MURMUR3::finish(mResultData, (uint8_t *)mBlockData, lastBlockSize, mByteCount);
-
+            MURMUR3::finish(*mResultData, (uint8_t *)mBlockData, lastBlockSize, mByteCount);
             return *mResultData;
         }
         default:
@@ -1607,7 +1621,7 @@ namespace NextCash
             unsigned int lastBlockSize = mInput.remaining();
             mInput.read(mBlockData, lastBlockSize);
 
-            MURMUR3::finish(mResultData, (uint8_t *)mBlockData, lastBlockSize, mByteCount);
+            MURMUR3::finish(*mResultData, (uint8_t *)mBlockData, lastBlockSize, mByteCount);
 
             // Output result
             pOutput->write(mResultData, 4);
@@ -3116,6 +3130,314 @@ namespace NextCash
             Log::add(Log::ERROR, NEXTCASH_DIGEST_LOG_NAME, "Failed MURMUR3 00 0");
             logResults("Correct Digest", correctDigest);
             logResults("Result Digest ", resultDigest);
+            result = false;
+        }
+
+        correctDigest.clear();
+        resultDigest.clear();
+
+        /*****************************************************************************************
+         * MurMur3 empty 0 direct
+         *****************************************************************************************/
+        input.clear();
+        uint32_t murMur3Result = murMur3(input.begin(), input.length(), 0);
+        uint32_t murMur3Correct = 0x00000000;
+
+        if(murMur3Correct == murMur3Result)
+            Log::add(Log::INFO, NEXTCASH_DIGEST_LOG_NAME, "Passed MURMUR3 direct empty 0");
+        else
+        {
+            Log::add(Log::ERROR, NEXTCASH_DIGEST_LOG_NAME, "Failed MURMUR3 direct empty 0");
+            Log::addFormatted(Log::ERROR, NEXTCASH_DIGEST_LOG_NAME, "Correct : 0x%08x",
+              murMur3Correct);
+            Log::addFormatted(Log::ERROR, NEXTCASH_DIGEST_LOG_NAME, "Result : 0x%08x",
+              murMur3Result);
+            result = false;
+        }
+
+        correctDigest.clear();
+        resultDigest.clear();
+
+        /*****************************************************************************************
+         * MurMur3 empty 1 direct
+         *****************************************************************************************/
+        input.clear();
+
+        murMur3Result = murMur3(input.begin(), input.length(), 1);
+        murMur3Correct = 0x514E28B7;
+
+        if(murMur3Correct == murMur3Result)
+            Log::add(Log::INFO, NEXTCASH_DIGEST_LOG_NAME, "Passed MURMUR3 direct empty 1");
+        else
+        {
+            Log::add(Log::ERROR, NEXTCASH_DIGEST_LOG_NAME, "Failed MURMUR3 direct empty 1");
+            Log::addFormatted(Log::ERROR, NEXTCASH_DIGEST_LOG_NAME, "Correct : 0x%08x",
+              murMur3Correct);
+            Log::addFormatted(Log::ERROR, NEXTCASH_DIGEST_LOG_NAME, "Result : 0x%08x",
+              murMur3Result);
+            result = false;
+        }
+
+        correctDigest.clear();
+        resultDigest.clear();
+
+        /*****************************************************************************************
+         * MurMur3 empty ffffffff direct
+         *****************************************************************************************/
+        input.clear();
+
+        murMur3Result = murMur3(input.begin(), input.length(), 0xffffffff);
+        murMur3Correct = 0x81F16F39;
+
+        if(murMur3Correct == murMur3Result)
+            Log::add(Log::INFO, NEXTCASH_DIGEST_LOG_NAME, "Passed MURMUR3 direct empty ffffffff");
+        else
+        {
+            Log::add(Log::ERROR, NEXTCASH_DIGEST_LOG_NAME, "Failed MURMUR3 direct empty ffffffff");
+            Log::addFormatted(Log::ERROR, NEXTCASH_DIGEST_LOG_NAME, "Correct : 0x%08x",
+              murMur3Correct);
+            Log::addFormatted(Log::ERROR, NEXTCASH_DIGEST_LOG_NAME, "Result : 0x%08x",
+              murMur3Result);
+            result = false;
+        }
+
+        correctDigest.clear();
+        resultDigest.clear();
+
+        /*****************************************************************************************
+         * MurMur3 ffffffff 0 direct
+         *****************************************************************************************/
+        input.clear();
+        input.writeUnsignedInt(0xffffffff);
+
+        murMur3Result = murMur3(input.begin(), input.length(), 0);
+        murMur3Correct = 0x76293B50;
+
+        if(murMur3Correct == murMur3Result)
+            Log::add(Log::INFO, NEXTCASH_DIGEST_LOG_NAME, "Passed MURMUR3 direct ffffffff 0");
+        else
+        {
+            Log::add(Log::ERROR, NEXTCASH_DIGEST_LOG_NAME, "Failed MURMUR3 direct ffffffff 0");
+            Log::addFormatted(Log::ERROR, NEXTCASH_DIGEST_LOG_NAME, "Correct : 0x%08x",
+              murMur3Correct);
+            Log::addFormatted(Log::ERROR, NEXTCASH_DIGEST_LOG_NAME, "Result : 0x%08x",
+              murMur3Result);
+            result = false;
+        }
+
+        correctDigest.clear();
+        resultDigest.clear();
+
+        /*****************************************************************************************
+         * MurMur3 87654321 0 direct
+         *****************************************************************************************/
+        input.clear();
+        input.writeUnsignedInt(0x87654321);
+
+        murMur3Result = murMur3(input.begin(), input.length(), 0);
+        murMur3Correct = 0xF55B516B;
+
+        if(murMur3Correct == murMur3Result)
+            Log::add(Log::INFO, NEXTCASH_DIGEST_LOG_NAME, "Passed MURMUR3 direct 87654321 0");
+        else
+        {
+            Log::add(Log::ERROR, NEXTCASH_DIGEST_LOG_NAME, "Failed MURMUR3 direct 87654321 0");
+            Log::addFormatted(Log::ERROR, NEXTCASH_DIGEST_LOG_NAME, "Correct : 0x%08x",
+              murMur3Correct);
+            Log::addFormatted(Log::ERROR, NEXTCASH_DIGEST_LOG_NAME, "Result : 0x%08x",
+              murMur3Result);
+            result = false;
+        }
+
+        correctDigest.clear();
+        resultDigest.clear();
+
+        /*****************************************************************************************
+         * MurMur3 87654321 5082EDEE direct
+         *****************************************************************************************/
+        input.clear();
+        input.writeUnsignedInt(0x87654321);
+
+        murMur3Result = murMur3(input.begin(), input.length(), 0x5082EDEE);
+        murMur3Correct = 0x2362F9DE;
+
+        if(murMur3Correct == murMur3Result)
+            Log::add(Log::INFO, NEXTCASH_DIGEST_LOG_NAME, "Passed MURMUR3 direct 87654321 5082EDEE");
+        else
+        {
+            Log::add(Log::ERROR, NEXTCASH_DIGEST_LOG_NAME, "Failed MURMUR3 direct 87654321 5082EDEE");
+            Log::addFormatted(Log::ERROR, NEXTCASH_DIGEST_LOG_NAME, "Correct : 0x%08x",
+              murMur3Correct);
+            Log::addFormatted(Log::ERROR, NEXTCASH_DIGEST_LOG_NAME, "Result : 0x%08x",
+              murMur3Result);
+            result = false;
+        }
+
+        correctDigest.clear();
+        resultDigest.clear();
+
+        /*****************************************************************************************
+         * MurMur3 214365 0 direct
+         *****************************************************************************************/
+        input.clear();
+        input.writeHex("214365");
+
+        murMur3Result = murMur3(input.begin(), input.length(), 0);
+        murMur3Correct = 0x7E4A8634;
+
+        if(murMur3Correct == murMur3Result)
+            Log::add(Log::INFO, NEXTCASH_DIGEST_LOG_NAME, "Passed MURMUR3 direct 214365 0");
+        else
+        {
+            Log::add(Log::ERROR, NEXTCASH_DIGEST_LOG_NAME, "Failed MURMUR3 direct 214365 0");
+            Log::addFormatted(Log::ERROR, NEXTCASH_DIGEST_LOG_NAME, "Correct : 0x%08x",
+              murMur3Correct);
+            Log::addFormatted(Log::ERROR, NEXTCASH_DIGEST_LOG_NAME, "Result : 0x%08x",
+              murMur3Result);
+            result = false;
+        }
+
+        correctDigest.clear();
+        resultDigest.clear();
+
+        /*****************************************************************************************
+         * MurMur3 2143 0 direct
+         *****************************************************************************************/
+        input.clear();
+        input.writeHex("2143");
+
+        murMur3Result = murMur3(input.begin(), input.length(), 0);
+        murMur3Correct = 0xA0F7B07A;
+
+        if(murMur3Correct == murMur3Result)
+            Log::add(Log::INFO, NEXTCASH_DIGEST_LOG_NAME, "Passed MURMUR3 direct 2143 0");
+        else
+        {
+            Log::add(Log::ERROR, NEXTCASH_DIGEST_LOG_NAME, "Failed MURMUR3 direct 2143 0");
+            Log::addFormatted(Log::ERROR, NEXTCASH_DIGEST_LOG_NAME, "Correct : 0x%08x",
+              murMur3Correct);
+            Log::addFormatted(Log::ERROR, NEXTCASH_DIGEST_LOG_NAME, "Result : 0x%08x",
+              murMur3Result);
+            result = false;
+        }
+
+        correctDigest.clear();
+        resultDigest.clear();
+
+        /*****************************************************************************************
+         * MurMur3 21 0 direct
+         *****************************************************************************************/
+        input.clear();
+        input.writeHex("21");
+
+        murMur3Result = murMur3(input.begin(), input.length(), 0);
+        murMur3Correct = 0x72661CF4;
+
+        if(murMur3Correct == murMur3Result)
+            Log::add(Log::INFO, NEXTCASH_DIGEST_LOG_NAME, "Passed MURMUR3 direct 21 0");
+        else
+        {
+            Log::add(Log::ERROR, NEXTCASH_DIGEST_LOG_NAME, "Failed MURMUR3 direct 21 0");
+            Log::addFormatted(Log::ERROR, NEXTCASH_DIGEST_LOG_NAME, "Correct : 0x%08x",
+              murMur3Correct);
+            Log::addFormatted(Log::ERROR, NEXTCASH_DIGEST_LOG_NAME, "Result : 0x%08x",
+              murMur3Result);
+            result = false;
+        }
+
+        correctDigest.clear();
+        resultDigest.clear();
+
+        /*****************************************************************************************
+         * MurMur3 00000000 0 direct
+         *****************************************************************************************/
+        input.clear();
+        input.writeHex("00000000");
+
+        murMur3Result = murMur3(input.begin(), input.length(), 0);
+        murMur3Correct = 0x2362F9DE;
+
+        if(murMur3Correct == murMur3Result)
+            Log::add(Log::INFO, NEXTCASH_DIGEST_LOG_NAME, "Passed MURMUR3 direct 00000000 0");
+        else
+        {
+            Log::add(Log::ERROR, NEXTCASH_DIGEST_LOG_NAME, "Failed MURMUR3 direct 00000000 0");
+            Log::addFormatted(Log::ERROR, NEXTCASH_DIGEST_LOG_NAME, "Correct : 0x%08x",
+              murMur3Correct);
+            Log::addFormatted(Log::ERROR, NEXTCASH_DIGEST_LOG_NAME, "Result : 0x%08x",
+              murMur3Result);
+            result = false;
+        }
+
+        correctDigest.clear();
+        resultDigest.clear();
+
+        /*****************************************************************************************
+         * MurMur3 000000 0 direct
+         *****************************************************************************************/
+        input.clear();
+        input.writeHex("000000");
+
+        murMur3Result = murMur3(input.begin(), input.length(), 0);
+        murMur3Correct = 0x85F0B427;
+
+        if(murMur3Correct == murMur3Result)
+            Log::add(Log::INFO, NEXTCASH_DIGEST_LOG_NAME, "Passed MURMUR3 direct 000000 0");
+        else
+        {
+            Log::add(Log::ERROR, NEXTCASH_DIGEST_LOG_NAME, "Failed MURMUR3 direct 000000 0");
+            Log::addFormatted(Log::ERROR, NEXTCASH_DIGEST_LOG_NAME, "Correct : 0x%08x",
+              murMur3Correct);
+            Log::addFormatted(Log::ERROR, NEXTCASH_DIGEST_LOG_NAME, "Result : 0x%08x",
+              murMur3Result);
+            result = false;
+        }
+
+        correctDigest.clear();
+        resultDigest.clear();
+
+        /*****************************************************************************************
+         * MurMur3 0000 0 direct
+         *****************************************************************************************/
+        input.clear();
+        input.writeHex("0000");
+
+        murMur3Result = murMur3(input.begin(), input.length(), 0);
+        murMur3Correct = 0x30F4C306;
+
+        if(murMur3Correct == murMur3Result)
+            Log::add(Log::INFO, NEXTCASH_DIGEST_LOG_NAME, "Passed MURMUR3 direct 0000 0");
+        else
+        {
+            Log::add(Log::ERROR, NEXTCASH_DIGEST_LOG_NAME, "Failed MURMUR3 direct 0000 0");
+            Log::addFormatted(Log::ERROR, NEXTCASH_DIGEST_LOG_NAME, "Correct : 0x%08x",
+              murMur3Correct);
+            Log::addFormatted(Log::ERROR, NEXTCASH_DIGEST_LOG_NAME, "Result : 0x%08x",
+              murMur3Result);
+            result = false;
+        }
+
+        correctDigest.clear();
+        resultDigest.clear();
+
+        /*****************************************************************************************
+         * MurMur3 00 0 direct
+         *****************************************************************************************/
+        input.clear();
+        input.writeHex("00");
+
+        murMur3Result = murMur3(input.begin(), input.length(), 0);
+        murMur3Correct = 0x514E28B7;
+
+        if(murMur3Correct == murMur3Result)
+            Log::add(Log::INFO, NEXTCASH_DIGEST_LOG_NAME, "Passed MURMUR3 direct 00 0");
+        else
+        {
+            Log::add(Log::ERROR, NEXTCASH_DIGEST_LOG_NAME, "Failed MURMUR3 direct 00 0");
+            Log::addFormatted(Log::ERROR, NEXTCASH_DIGEST_LOG_NAME, "Correct : 0x%08x",
+              murMur3Correct);
+            Log::addFormatted(Log::ERROR, NEXTCASH_DIGEST_LOG_NAME, "Result : 0x%08x",
+              murMur3Result);
             result = false;
         }
 
