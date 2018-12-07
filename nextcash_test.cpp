@@ -12,6 +12,8 @@
 #include "hash_data_file_set.hpp"
 #include "distributed_vector.hpp"
 #include "sorted_set.hpp"
+#include "reference_sorted_set.hpp"
+#include "reference_hash_set.hpp"
 #include "log.hpp"
 #include "thread.hpp"
 #include "buffer.hpp"
@@ -32,34 +34,40 @@ namespace NextCash
 #endif
 
         if(!NextCash::String::test())
-            failed++;
+            ++failed;
 
         if(!NextCash::Buffer::test())
-            failed++;
+            ++failed;
 
         if(!NextCash::SortedSet::test())
-            failed++;
+            ++failed;
+
+        if(!NextCash::testReferenceSortedSet())
+            ++failed;
 
         if(!NextCash::testDistributedVector())
-            failed++;
+            ++failed;
 
         if(!NextCash::Hash::test())
-            failed++;
+            ++failed;
 
         if(!NextCash::HashSet::test())
-            failed++;
+            ++failed;
+
+        if(!NextCash::testReferenceHashSet())
+            ++failed;
 
         if(!NextCash::testHashContainerList())
-            failed++;
+            ++failed;
 
         if(!NextCash::testHashDataFileSet())
-            failed++;
+            ++failed;
 
         if(!NextCash::Digest::test())
-            failed++;
+            ++failed;
 
         if(!NextCash::Encryption::test())
-            failed++;
+            ++failed;
 
         NextCash::Log::add(NextCash::Log::INFO, "Test", "------------- Starting General Tests -------------");
 

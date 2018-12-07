@@ -95,7 +95,9 @@ namespace NextCash
         unsigned int removeAll(const Hash &pHash)
         {
             HashLookupObject lookup(pHash);
-            return set(pHash)->removeAll(lookup);
+            unsigned int result = set(pHash)->removeAll(lookup);
+            mSize -= result;
+            return result;
         }
 
         // Returns the item with the specified hash.
@@ -218,6 +220,9 @@ namespace NextCash
 
         Iterator begin();
         Iterator end();
+
+        HashObject *front() { return *begin(); }
+        HashObject *back() { return *--end(); }
 
         // Return iterator to first matching item.
         Iterator find(const NextCash::Hash &pHash);

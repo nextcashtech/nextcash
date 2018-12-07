@@ -418,8 +418,11 @@ namespace NextCash
 
         unsigned int count = 0;
         for(HashSet::Iterator iter = set.begin(); iter != set.end(); ++iter, ++count)
-            Log::addFormatted(Log::INFO, NEXTCASH_HASH_SET_LOG_NAME, "%s : %s",
-             (*iter)->getHash().hex().text(), ((StringHash *)*iter)->getString().text());
+        {
+            if(count == 0 || count == set.size() - 1)
+                Log::addFormatted(Log::INFO, NEXTCASH_HASH_SET_LOG_NAME, "%s : %s",
+                 (*iter)->getHash().hex().text(), ((StringHash *)*iter)->getString().text());
+        }
 
         if(count != set.size())
         {
