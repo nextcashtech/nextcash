@@ -57,7 +57,7 @@ namespace NextCash
         inet_ntop(AF_INET6, ip, ipv6Text, INET6_ADDRSTRLEN);
 
         String result;
-        result.writeFormatted("%s:%d", ipv6Text, port);
+        result.writeFormatted("%s::%d", ipv6Text, port);
         return result;
     }
 

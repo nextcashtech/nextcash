@@ -8,88 +8,16 @@
 #ifndef NEXTCASH_PROFILER_HPP
 #define NEXTCASH_PROFILER_HPP
 
-#include <chrono>
 #include <cstdint>
 
 #include "string.hpp"
 #include "log.hpp"
 #include "mutex.hpp"
+#include "timer.hpp"
 
 
 namespace NextCash
 {
-    typedef uint64_t Milliseconds;
-    typedef uint64_t Microseconds;
-
-    class Timer
-    {
-    public:
-
-        Timer(bool pStart = false) : mHits(0), mMicroseconds(0L)
-        {
-            mStarted = false;
-            if(pStart)
-                start();
-        }
-        Timer(const Timer &pCopy)
-        {
-            mStartTime = pCopy.mStartTime;
-            mStarted = pCopy.mStarted;
-            mHits = pCopy.mHits;
-            mMicroseconds = pCopy.mMicroseconds;
-        }
-        Timer &operator = (const Timer &pRight)
-        {
-            assign(pRight);
-            return *this;
-        }
-
-        void assign(const Timer &pRight)
-        {
-            mStartTime = pRight.mStartTime;
-            mStarted = pRight.mStarted;
-            mHits = pRight.mHits;
-            mMicroseconds = pRight.mMicroseconds;
-        }
-
-        void start()
-        {
-            mStartTime = std::chrono::steady_clock::now();
-            mStarted = true;
-        }
-
-        void stop()
-        {
-            if(!mStarted)
-                return;
-            ++mHits;
-            mMicroseconds += std::chrono::duration_cast<std::chrono::microseconds>(
-              std::chrono::steady_clock::now() - mStartTime).count();
-            mStarted = false;
-        }
-
-        void clear(bool pStart = false)
-        {
-            mStarted = false;
-            mHits = 0;
-            mMicroseconds = 0L;
-            if(pStart)
-                start();
-        }
-
-        uint64_t hits() const { return mHits; }
-        Milliseconds milliseconds() const { return mMicroseconds / 1000L; }
-        Microseconds microseconds() const { return mMicroseconds; }
-
-    private:
-
-        std::chrono::steady_clock::time_point mStartTime;
-        bool mStarted;
-        uint64_t mHits;
-        Microseconds mMicroseconds;
-
-    };
-
 #ifdef PROFILER_ON
     static const unsigned int PROFILER_SET = 0;
     static unsigned int sNextID = 0;

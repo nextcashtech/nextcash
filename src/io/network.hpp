@@ -142,7 +142,7 @@ namespace NextCash
             std::memcpy(ip, pCopy.ip, INET6_ADDRLEN);
             port = pCopy.port;
         }
-        IPAddress(uint8_t *pIP, uint16_t pPort)
+        IPAddress(const uint8_t *pIP, uint16_t pPort)
         {
             std::memcpy(ip, pIP, INET6_ADDRLEN);
             port = pPort;

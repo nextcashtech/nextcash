@@ -71,12 +71,15 @@ namespace NextCash
 
         NextCash::Log::add(NextCash::Log::INFO, "Test", "------------- Starting General Tests -------------");
 
+#ifdef PROFILER_ON
         Profiler &testProfiler = getProfiler(PROFILER_SET, 0, "TestProfiler");
         Timer timer(true);
         NextCash::Thread::sleep(100);
         timer.stop();
         testProfiler.addHit(timer.microseconds());
-        NextCash::Log::addFormatted(NextCash::Log::INFO, "Test", "Profiler test : %d ms", testProfiler.milliseconds());
+        NextCash::Log::addFormatted(NextCash::Log::INFO, "Test", "Profiler test : %d ms",
+          testProfiler.milliseconds());
+#endif
         NextCash::printProfilerDataToLog(NextCash::Log::INFO);
 
         NextCash::Log::addFormatted(Log::WARNING, "Test", "Current thread is %s %s",
