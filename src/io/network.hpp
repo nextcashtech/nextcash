@@ -29,7 +29,7 @@ namespace NextCash
             IPList() {}
             ~IPList()
             {
-                for(unsigned int i=0;i<size();i++)
+                for(unsigned int i = 0; i < size(); ++i)
                     delete[] (*this)[i];
             }
 
@@ -43,32 +43,72 @@ namespace NextCash
         // Parse IPv4/IPv6 text string into an IPv6 byte address
         uint8_t *parseIP(const char *pValue);
 
+        bool isIPv4MappedIPv6(const uint8_t *pIP);
+
+        class IPAddress
+        {
+        public:
+
+            enum Type { IPV4, IPV6 };
+
+            IPAddress();
+            IPAddress(const IPAddress &pCopy);
+            IPAddress(Type pType, const uint8_t *pIP, uint16_t pPort);
+
+            const IPAddress &operator = (const IPAddress &pRight);
+
+            Type type() const { return mType; }
+            const uint8_t *ipv4Bytes() const { return mIP + INET6_ADDRLEN - INET_ADDRLEN; }
+            const uint8_t *ipv6Bytes() const { return mIP; }
+            uint16_t port() const { return mPort; }
+
+            void clear();
+
+            bool matches(const IPAddress &pOther) const;
+            bool operator == (const IPAddress &pRight) const;
+            bool operator != (const IPAddress &pRight) const;
+
+            int compare(const IPAddress &pRight) const;
+
+            bool isValid() const;
+
+            void set(Type pType, const uint8_t *pIP, uint16_t pPort);
+
+            bool setText(const char *pText);
+            void setPort(uint16_t pPort) { mPort = pPort; }
+
+            String text() const;
+
+            void write(OutputStream *pStream) const;
+            bool read(InputStream *pStream);
+
+        private:
+
+            Type mType;
+            uint8_t mIP[INET6_ADDRLEN];
+            uint16_t mPort;
+        };
+
         class Connection
         {
         public:
 
             Connection() { mSocketID = -1; mBytesReceived = 0; mBytesSent = 0; }
-            Connection(const char *pIP, const char *pPort, unsigned int pTimeout = 10);
-            Connection(unsigned int pFamily, const uint8_t *pIP, uint16_t pPort, unsigned int pTimeout = 10);
+            Connection(IPAddress &pIP, unsigned int pTimeout = 10);
+            Connection(IPAddress::Type pType, const uint8_t *pIP, uint16_t pPort, unsigned int pTimeout = 10);
             Connection(int pSocketID, struct sockaddr *pAddress);
             ~Connection();
 
             int socket() { return mSocketID; }
 
-            bool open(const char *pIP, const char *pPort, unsigned int pTimeout = 10);
-            bool open(unsigned int pFamily, const uint8_t *pIP, uint16_t pPort, unsigned int pTimeout = 10);
+            bool open(const IPAddress &pIP, unsigned int pTimeout = 10);
+            bool open(IPAddress::Type pType, const uint8_t *pIP, uint16_t pPort, unsigned int pTimeout = 10);
+
             bool isOpen() { return mSocketID != -1; }
 
             bool set(int pSocketID, struct sockaddr *pAddress);
 
-            static bool isIPv4MappedIPv6(const uint8_t *pIP);
-
-            const char *ipAddress() { return mIPv4Address; }
-            const uint8_t *ipBytes() { return mIPv4; }
-            uint16_t port() { return mPort; }
-
-            const char *ipv6Address() { return mIPv6Address; }
-            const uint8_t *ipv6Bytes() { return mIPv6; }
+            const IPAddress &ip() const { return mIP; }
 
             // Returns number of bytes received
             unsigned int receive(OutputStream *pStream, bool pWait = false);
@@ -83,14 +123,12 @@ namespace NextCash
 
         protected:
 
+            bool open(unsigned int pTimeout = 10);
+
             void setTimeout(unsigned int pSeconds);
 
             int mSocketID;
-            int mType;
-            char mIPv4Address[INET_ADDRSTRLEN];
-            char mIPv6Address[INET6_ADDRSTRLEN];
-            uint8_t mIPv4[INET_ADDRLEN];
-            uint8_t mIPv6[INET6_ADDRLEN];
+            IPAddress mIP;
             uint16_t mPort;
             uint8_t mBuffer[NETWORK_BUFFER_SIZE];
 
@@ -127,101 +165,6 @@ namespace NextCash
             std::vector<Connection *> mPendingConnections;
         };
     }
-
-    class IPAddress
-    {
-    public:
-
-        IPAddress()
-        {
-            std::memset(ip, 0, INET6_ADDRLEN);
-            port = 0;
-        }
-        IPAddress(const IPAddress &pCopy)
-        {
-            std::memcpy(ip, pCopy.ip, INET6_ADDRLEN);
-            port = pCopy.port;
-        }
-        IPAddress(const uint8_t *pIP, uint16_t pPort)
-        {
-            std::memcpy(ip, pIP, INET6_ADDRLEN);
-            port = pPort;
-        }
-
-        void write(OutputStream *pStream) const;
-        bool read(InputStream *pStream);
-
-        bool matches(const IPAddress &pOther) const
-        {
-            return std::memcmp(ip, pOther.ip, INET6_ADDRLEN) == 0 && port == pOther.port;
-        }
-
-        bool operator == (const IPAddress &pRight) const
-        {
-            return std::memcmp(ip, pRight.ip, INET6_ADDRLEN) == 0 && port == pRight.port;
-        }
-
-        bool operator != (const IPAddress &pRight) const
-        {
-            return std::memcmp(ip, pRight.ip, INET6_ADDRLEN) != 0 || port != pRight.port;
-        }
-
-        void operator = (Network::Connection &pConnection)
-        {
-            if(pConnection.ipv6Bytes())
-                std::memcpy(ip, pConnection.ipv6Bytes(), INET6_ADDRLEN);
-            port = pConnection.port();
-        }
-
-        int compare(const IPAddress &pRight) const
-        {
-            const uint8_t *left = ip;
-            const uint8_t *right = pRight.ip;
-            for(unsigned int i = 0; i < INET6_ADDRLEN; ++i, ++left, ++right)
-            {
-                if(*left < *right)
-                    return -1;
-                else if(*left > *right)
-                    return 1;
-            }
-
-            if(port < pRight.port)
-                return -1;
-            else if(port > pRight.port)
-                return 1;
-            else
-                return 0;
-        }
-
-        bool isValid() const
-        {
-            bool zeroes = true;
-            for(int i=0;i<INET6_ADDRLEN;i++)
-                if(ip[i] != 0)
-                    zeroes = false;
-            return !zeroes;
-        }
-
-        const IPAddress &operator = (const IPAddress &pRight)
-        {
-            port = pRight.port;
-            std::memcpy(ip, pRight.ip, INET6_ADDRLEN);
-            return *this;
-        }
-
-        void set(uint8_t *pIP, uint16_t pPort)
-        {
-            std::memcpy(ip, pIP, INET6_ADDRLEN);
-            port = pPort;
-        }
-
-        bool setText(const char *pText);
-
-        String text() const;
-
-        uint8_t ip[INET6_ADDRLEN];
-        uint16_t port;
-    };
 }
 
 #endif

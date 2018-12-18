@@ -23,66 +23,226 @@
 
 namespace NextCash
 {
-
-    void IPAddress::write(OutputStream *pStream) const
+    namespace Network
     {
-        // IP
-        pStream->write(ip, 16);
-
-        // Port
-        Endian::Type previousType = pStream->outputEndian();
-        pStream->setOutputEndian(Endian::BIG);
-        pStream->writeUnsignedShort(port);
-        pStream->setOutputEndian(previousType);
-    }
-
-    bool IPAddress::read(InputStream *pStream)
-    {
-        // IP
-        pStream->read(ip, 16);
-
-        // Port
-        Endian::Type previousType = pStream->inputEndian();
-        pStream->setInputEndian(Endian::BIG);
-        port = pStream->readUnsignedShort();
-        pStream->setInputEndian(previousType);
-
-        return true;
-    }
-
-    String IPAddress::text() const
-    {
-        char ipv6Text[INET6_ADDRSTRLEN];
-        std::memset(ipv6Text, 0, INET6_ADDRSTRLEN);
-        inet_ntop(AF_INET6, ip, ipv6Text, INET6_ADDRSTRLEN);
-
-        String result;
-        result.writeFormatted("%s::%d", ipv6Text, port);
-        return result;
-    }
-
-    bool IPAddress::setText(const char *pText)
-    {
-        struct in6_addr address6;
-        if(inet_pton(AF_INET6, pText, &address6) == 1)
+        uint8_t *parseIP(const char *pValue)
         {
-            std::memcpy(ip, address6.s6_addr, INET6_ADDRLEN);
+            struct in6_addr address6;
+
+            if(inet_pton(AF_INET6, pValue, &address6) == 1)
+            {
+                uint8_t *result = new uint8_t[INET6_ADDRLEN];
+                std::memcpy(result, address6.s6_addr, INET6_ADDRLEN);
+            }
+
+            struct in_addr address4;
+            if(inet_pton(AF_INET, pValue, &address4) != 1)
+                return NULL;
+
+            uint8_t *result = new uint8_t[INET6_ADDRLEN];
+            std::memset(result, 0, INET6_ADDRLEN);
+            std::memset(result + INET6_ADDRLEN - INET_ADDRLEN - 2, 0xff, 2);
+            std::memcpy(result + INET6_ADDRLEN - INET_ADDRLEN, (uint8_t *)&address4.s_addr,
+              INET_ADDRLEN);
+
+            return result;
+        }
+
+        bool isIPv4MappedIPv6(const uint8_t *pIP)
+        {
+            // First 10 bytes are zeroes
+            for(int i=0;i<10;i++)
+                if(pIP[i] != 0)
+                    return false;;
+
+            // Next 2 bytes are 0xFF
+            if(pIP[10] != 0xff || pIP[11] != 0xff)
+                return false;
+
             return true;
         }
 
-        struct in_addr address4;
-        if(inet_pton(AF_INET, pText, &address4) != 1)
+        IPAddress::IPAddress()
+        {
+            mType = IPV6;
+            std::memset(mIP, 0, INET6_ADDRLEN);
+            mPort = 0;
+        }
+
+        IPAddress::IPAddress(const IPAddress &pCopy)
+        {
+            mType = pCopy.mType;
+            std::memcpy(mIP, pCopy.mIP, INET6_ADDRLEN);
+            mPort = pCopy.mPort;
+        }
+
+        IPAddress::IPAddress(Type pType, const uint8_t *pIP, uint16_t pPort)
+        {
+            if(pType == IPV6)
+            {
+                if(isIPv4MappedIPv6(pIP))
+                    mType = IPV4;
+                else
+                    mType = IPV6;
+                std::memcpy(mIP, pIP, INET6_ADDRLEN);
+            }
+            else
+            {
+                mType = IPV4;
+
+                // Map to IPV6 format for internal storage
+                std::memset(mIP, 0, 10);
+                mIP[10] = 0xff;
+                mIP[11] = 0xff;
+                std::memcpy(mIP + INET6_ADDRLEN - INET_ADDRLEN, pIP, INET_ADDRLEN);
+            }
+
+            mPort = pPort;
+        }
+
+        void IPAddress::clear()
+        {
+            mType = IPV6;
+            std::memset(mIP, 0, INET6_ADDRLEN);
+            mPort = 0;
+        }
+
+        bool IPAddress::matches(const IPAddress &pOther) const
+        {
+            return std::memcmp(mIP, pOther.mIP, INET6_ADDRLEN) == 0 && mPort == pOther.mPort;
+        }
+
+        bool IPAddress::operator == (const IPAddress &pRight) const
+        {
+            return std::memcmp(mIP, pRight.mIP, INET6_ADDRLEN) == 0 && mPort == pRight.mPort;
+        }
+
+        bool IPAddress::operator != (const IPAddress &pRight) const
+        {
+            return std::memcmp(mIP, pRight.mIP, INET6_ADDRLEN) != 0 || mPort != pRight.mPort;
+        }
+
+        int IPAddress::compare(const IPAddress &pRight) const
+        {
+            const uint8_t *left = mIP;
+            const uint8_t *right = pRight.mIP;
+            for(unsigned int i = 0; i < INET6_ADDRLEN; ++i, ++left, ++right)
+            {
+                if(*left < *right)
+                    return -1;
+                else if(*left > *right)
+                    return 1;
+            }
+
+            if(mPort < pRight.mPort)
+                return -1;
+            else if(mPort > pRight.mPort)
+                return 1;
+            else
+                return 0;
+        }
+
+        bool IPAddress::isValid() const
+        {
+            const uint8_t *byte = mIP;
+            for(unsigned int i = 0; i < INET6_ADDRLEN; ++i, ++byte)
+                if(*byte != 0)
+                    return true;
             return false;
+        }
 
-        std::memset(ip, 0, INET6_ADDRLEN);
-        std::memset(ip + INET6_ADDRLEN - INET_ADDRLEN - 2, 0xff, 2);
-        std::memcpy(ip + INET6_ADDRLEN - INET_ADDRLEN, (uint8_t *)&address4.s_addr,
-          INET_ADDRLEN);
-        return true;
-    }
+        const IPAddress &IPAddress::operator = (const IPAddress &pRight)
+        {
+            mType = pRight.mType;
+            mPort = pRight.mPort;
+            std::memcpy(mIP, pRight.mIP, INET6_ADDRLEN);
+            return *this;
+        }
 
-    namespace Network
-    {
+        void IPAddress::set(Type pType, const uint8_t *pIP, uint16_t pPort)
+        {
+            if(pType == IPV6)
+            {
+                if(isIPv4MappedIPv6(pIP))
+                    mType = IPV4;
+                else
+                    mType = IPV6;
+                std::memcpy(mIP, pIP, INET6_ADDRLEN);
+            }
+            else
+            {
+                mType = IPV4;
+
+                // Map to IPV6 format for internal storage
+                std::memset(mIP, 0, 10);
+                mIP[10] = 0xff;
+                mIP[11] = 0xff;
+                std::memcpy(mIP + INET6_ADDRLEN - INET_ADDRLEN, pIP, INET_ADDRLEN);
+            }
+
+            mPort = pPort;
+        }
+
+        String IPAddress::text() const
+        {
+            char ipv6Text[INET6_ADDRSTRLEN];
+            std::memset(ipv6Text, 0, INET6_ADDRSTRLEN);
+            inet_ntop(AF_INET6, mIP, ipv6Text, INET6_ADDRSTRLEN);
+
+            String result;
+            result.writeFormatted("%s::%d", ipv6Text, mPort);
+            return result;
+        }
+
+        bool IPAddress::setText(const char *pText)
+        {
+            struct in6_addr address6;
+            if(inet_pton(AF_INET6, pText, &address6) == 1)
+            {
+                mType = IPV6;
+                std::memcpy(mIP, address6.s6_addr, INET6_ADDRLEN);
+                return true;
+            }
+
+            struct in_addr address4;
+            if(inet_pton(AF_INET, pText, &address4) != 1)
+                return false;
+
+            mType = IPV4;
+            std::memset(mIP, 0, 10);
+            mIP[10] = 0xff;
+            mIP[11] = 0xff;
+            std::memcpy(mIP + INET6_ADDRLEN - INET_ADDRLEN, (uint8_t *)&address4.s_addr,
+              INET_ADDRLEN);
+            return true;
+        }
+
+        void IPAddress::write(OutputStream *pStream) const
+        {
+            // IP
+            pStream->write(mIP, 16);
+
+            // Port
+            Endian::Type previousType = pStream->outputEndian();
+            pStream->setOutputEndian(Endian::BIG);
+            pStream->writeUnsignedShort(mPort);
+            pStream->setOutputEndian(previousType);
+        }
+
+        bool IPAddress::read(InputStream *pStream)
+        {
+            // IP
+            pStream->read(mIP, 16);
+
+            // Port
+            Endian::Type previousType = pStream->inputEndian();
+            pStream->setInputEndian(Endian::BIG);
+            mPort = pStream->readUnsignedShort();
+            pStream->setInputEndian(previousType);
+
+            return true;
+        }
+
         bool list(const char *pName, IPList &pList)
         {
             pList.clear();
@@ -107,7 +267,7 @@ namespace NextCash
             char ip[INET6_ADDRSTRLEN];
             char *newIP;
 
-            for(testAddress=addressInfo;testAddress!=NULL;testAddress=testAddress->ai_next)
+            for(testAddress = addressInfo; testAddress != NULL; testAddress = testAddress->ai_next)
             {
                 if(testAddress->ai_addr->sa_family == AF_INET6)
                 {
@@ -136,44 +296,21 @@ namespace NextCash
             return true;
         }
 
-        uint8_t *parseIP(const char *pValue)
-        {
-            struct in6_addr address6;
-
-            if(inet_pton(AF_INET6, pValue, &address6) == 1)
-            {
-                uint8_t *result = new uint8_t[INET6_ADDRLEN];
-                std::memcpy(result, address6.s6_addr, INET6_ADDRLEN);
-            }
-
-            struct in_addr address4;
-            if(inet_pton(AF_INET, pValue, &address4) != 1)
-                return NULL;
-
-            uint8_t *result = new uint8_t[INET6_ADDRLEN];
-            std::memset(result, 0, INET6_ADDRLEN);
-            std::memset(result + INET6_ADDRLEN - INET_ADDRLEN - 2, 0xff, 2);
-            std::memcpy(result + INET6_ADDRLEN - INET_ADDRLEN, (uint8_t *)&address4.s_addr,
-              INET_ADDRLEN);
-
-            return result;
-        }
-
-        Connection::Connection(const char *pIPAddress, const char *pPort, unsigned int pTimeout)
+        Connection::Connection(IPAddress &pIP, unsigned int pTimeout) : mIP(pIP)
         {
             mSocketID = -1;
             mBytesReceived = 0;
             mBytesSent = 0;
-            open(pIPAddress, pPort, pTimeout);
+            open(pTimeout);
         }
 
-        Connection::Connection(unsigned int pFamily, const uint8_t *pIP, uint16_t pPort,
-          unsigned int pTimeout)
+        Connection::Connection(IPAddress::Type pType, const uint8_t *pIP, uint16_t pPort,
+          unsigned int pTimeout) : mIP(pType, pIP, pPort)
         {
             mSocketID = -1;
             mBytesReceived = 0;
             mBytesSent = 0;
-            open(pFamily, pIP, pPort, pTimeout);
+            open(pTimeout);
         }
 
         Connection::Connection(int pSocketID, struct sockaddr *pAddress)
@@ -188,125 +325,58 @@ namespace NextCash
         {
             close();
 
-            std::memset(mIPv4Address, 0, INET_ADDRSTRLEN);
-            std::memset(mIPv6Address, 0, INET6_ADDRSTRLEN);
-
             mSocketID = pSocketID;
             mBytesReceived = 0;
             mBytesSent = 0;
 
             struct sockaddr_in *address = (struct sockaddr_in *)pAddress;
 
-            mType = address->sin_family;
             if(address->sin_family == AF_INET6)
-            {
-                mPort = Endian::convert(((struct sockaddr_in6*)address)->sin6_port, Endian::BIG);
-                std::memcpy(mIPv6, (((struct sockaddr_in6*)address)->sin6_addr.s6_addr),
-                  INET6_ADDRLEN);
-                inet_ntop(address->sin_family, mIPv6, mIPv6Address, INET6_ADDRSTRLEN);
-            }
+                mIP.set(IPAddress::IPV6, ((struct sockaddr_in6*)address)->sin6_addr.s6_addr,
+                  Endian::convert(((struct sockaddr_in6*)address)->sin6_port, Endian::BIG));
             else if(address->sin_family == AF_INET)
-            {
-                mPort = Endian::convert(((struct sockaddr_in*)address)->sin_port, Endian::BIG);
-                std::memcpy(mIPv4, &(((struct sockaddr_in*)address)->sin_addr.s_addr),
-                  INET_ADDRLEN);
-                inet_ntop(address->sin_family, mIPv4, mIPv4Address, INET_ADDRSTRLEN);
-
-                std::memset(mIPv6 + INET6_ADDRLEN - INET_ADDRLEN - 2, 0xff, 2);
-                std::memcpy(mIPv6 + INET6_ADDRLEN - INET_ADDRLEN, mIPv4, INET_ADDRLEN);
-            }
-
-            return false;
-        }
-
-        bool Connection::isIPv4MappedIPv6(const uint8_t *pIP)
-        {
-            // First 10 bytes are zeroes
-            for(int i=0;i<10;i++)
-                if(pIP[i] != 0)
-                    return false;;
-
-            // Next 2 bytes are 0xFF
-            if(pIP[10] != 0xff || pIP[11] != 0xff)
+                mIP.set(IPAddress::IPV4, (uint8_t *)&(((struct sockaddr_in*)address)->sin_addr.s_addr),
+                  Endian::convert(((struct sockaddr_in*)address)->sin_port, Endian::BIG));
+            else
                 return false;
 
             return true;
         }
 
-        bool Connection::open(unsigned int pFamily, const uint8_t *pIP, uint16_t pPort,
+        bool Connection::open(const IPAddress &pIP, unsigned int pTimeout)
+        {
+            close(); // Previous connection
+            mBytesReceived = 0;
+            mBytesSent = 0;
+
+            mIP = pIP;
+            return open(pTimeout);
+        }
+
+        bool Connection::open(IPAddress::Type pType, const uint8_t *pIP, uint16_t pPort,
           unsigned int pTimeout)
         {
             close(); // Previous connection
             mBytesReceived = 0;
             mBytesSent = 0;
 
-            std::memset(mIPv4Address, 0, INET_ADDRSTRLEN);
-            std::memset(mIPv6Address, 0, INET6_ADDRSTRLEN);
+            mIP.set(pType, pIP, pPort);
 
-            if(pFamily == AF_INET || (pFamily == AF_INET6 && isIPv4MappedIPv6(pIP)))
+            return open(pTimeout);
+        }
+
+        bool Connection::open(unsigned int pTimeout)
+        {
+            if(mIP.type() == IPAddress::IPV6)
             {
-                mPort = pPort;
-                if(pFamily == AF_INET6)
-                {
-                    std::memcpy(mIPv4, pIP + 12, INET_ADDRLEN);
-                    std::memcpy(mIPv6, pIP, INET6_ADDRLEN);
-                }
-                else
-                {
-                    std::memcpy(mIPv4, pIP, INET_ADDRLEN);
-
-                    // Copy to IPv6 bytes as IPv4 mapped to IPv6
-                    std::memset(mIPv6 + INET6_ADDRLEN - INET_ADDRLEN - 2, 0xff, 2);
-                    std::memcpy(mIPv6 + INET6_ADDRLEN - INET_ADDRLEN, mIPv4, INET_ADDRLEN);
-                }
-
-                // Convert to text IPs for both formats
-                inet_ntop(AF_INET, mIPv4, mIPv4Address, INET_ADDRSTRLEN);
-                inet_ntop(AF_INET6, mIPv6, mIPv6Address, INET6_ADDRSTRLEN);
-
                 Log::addFormatted(Log::DEBUG, NETWORK_LOG_NAME,
-                  "Attempting IPv4 connection to %s : %d", mIPv4Address, mPort);
-
-                struct sockaddr_in address;
-                address.sin_family = AF_INET;
-                address.sin_port = Endian::convert(mPort, Endian::BIG);
-                std::memcpy(&address.sin_addr.s_addr, mIPv4, INET_ADDRLEN);
-
-                if((mSocketID = ::socket(AF_INET, SOCK_STREAM, 6)) == -1)
-                {
-                    Log::addFormatted(Log::DEBUG, NETWORK_LOG_NAME, "Socket failed : %s",
-                      std::strerror(errno));
-                    return false;
-                }
-
-                setTimeout(pTimeout);
-
-                if(connect(mSocketID, (const sockaddr *)&address, sizeof(address)) == -1)
-                {
-                    Log::addFormatted(Log::DEBUG, NETWORK_LOG_NAME, "Connect failed : %s",
-                      std::strerror(errno));
-                    ::close(mSocketID);
-                    mSocketID = -1;
-                    return false;
-                }
-
-                Log::addFormatted(Log::VERBOSE, NETWORK_LOG_NAME,
-                  "Connected to IPv4 %s : %d", mIPv4Address, mPort);
-                return true;
-            }
-            else if(pFamily == AF_INET6)
-            {
-                mPort = pPort;
-                std::memcpy(mIPv6, pIP, INET6_ADDRLEN);
-                inet_ntop(AF_INET6, mIPv6, mIPv6Address, INET6_ADDRSTRLEN);
-                Log::addFormatted(Log::DEBUG, NETWORK_LOG_NAME,
-                  "Attempting IPv6 connection to %s : %d", mIPv6Address, mPort);
+                  "Attempting IPv6 connection to %s", mIP.text().text());
 
                 struct sockaddr_in6 address;
                 address.sin6_family = AF_INET6;
-                address.sin6_port = Endian::convert(mPort, Endian::BIG);
+                address.sin6_port = Endian::convert(mIP.port(), Endian::BIG);
                 address.sin6_flowinfo = 0;
-                std::memcpy(address.sin6_addr.s6_addr, mIPv6, INET6_ADDRLEN);
+                std::memcpy(address.sin6_addr.s6_addr, mIP.ipv6Bytes(), INET6_ADDRLEN);
                 address.sin6_scope_id = 0;
 
                 if((mSocketID = ::socket(AF_INET6, SOCK_STREAM, 6)) == -1)
@@ -327,148 +397,42 @@ namespace NextCash
                     return false;
                 }
 
-                Log::addFormatted(Log::VERBOSE, NETWORK_LOG_NAME, "Connected to IPv6 %s : %d",
-                  mIPv6Address, mPort);
+                Log::addFormatted(Log::VERBOSE, NETWORK_LOG_NAME, "Connected to IPv6 %s",
+                  mIP.text().text());
                 return true;
             }
             else
             {
-                Log::add(Log::WARNING, NETWORK_LOG_NAME, "Unknown network family");
-                return false;
-            }
-        }
+                Log::addFormatted(Log::DEBUG, NETWORK_LOG_NAME,
+                  "Attempting IPv4 connection to %s", mIP.text().text());
 
-        bool Connection::open(const char *pIPAddress, const char *pPort, unsigned int pTimeout)
-        {
-            close(); // Previous connection
-            mBytesReceived = 0;
-            mBytesSent = 0;
+                struct sockaddr_in address;
+                address.sin_family = AF_INET;
+                address.sin_port = Endian::convert(mIP.port(), Endian::BIG);
+                std::memcpy(&address.sin_addr.s_addr, mIP.ipv4Bytes(), INET_ADDRLEN);
 
-            std::memset(mIPv4Address, 0, INET_ADDRSTRLEN);
-            std::memset(mIPv6Address, 0, INET6_ADDRSTRLEN);
-
-            struct addrinfo hintAddress, *addressInfo, *testAddress;
-            int errorCode;
-
-            std::memset(&hintAddress, 0, sizeof hintAddress);
-            hintAddress.ai_family = AF_UNSPEC;
-            hintAddress.ai_socktype = SOCK_STREAM;
-
-            Log::addFormatted(Log::DEBUG, NETWORK_LOG_NAME, "Looking up %s : %s", pIPAddress,
-              pPort);
-
-            if((errorCode = getaddrinfo(pIPAddress, pPort, &hintAddress, &addressInfo)) != 0)
-            {
-                Log::addFormatted(Log::VERBOSE, NETWORK_LOG_NAME,
-                  "Failed to get address info : %s", gai_strerror(errorCode));
-                return false;
-            }
-
-            for(testAddress=addressInfo;testAddress!=NULL;testAddress=testAddress->ai_next)
-            {
-                if(testAddress->ai_addr->sa_family == AF_INET6)
-                {
-                    mPort =
-                      Endian::convert(((struct sockaddr_in6*)testAddress->ai_addr)->sin6_port,
-                      Endian::BIG);
-                    std::memcpy(mIPv6,
-                      (((struct sockaddr_in6*)testAddress->ai_addr)->sin6_addr.s6_addr),
-                      INET6_ADDRLEN);
-                    inet_ntop(testAddress->ai_family, mIPv6, mIPv6Address, INET6_ADDRSTRLEN);
-                    Log::addFormatted(Log::VERBOSE, NETWORK_LOG_NAME, "Address found IPv6 %s : %d",
-                      mIPv6Address, mPort);
-                }
-                else if(testAddress->ai_addr->sa_family == AF_INET)
-                {
-                    mPort = Endian::convert(((struct sockaddr_in*)testAddress->ai_addr)->sin_port,
-                      Endian::BIG);
-                    std::memcpy(mIPv4,
-                      &(((struct sockaddr_in*)testAddress->ai_addr)->sin_addr.s_addr),
-                      INET_ADDRLEN);
-                    inet_ntop(testAddress->ai_family, mIPv4, mIPv4Address, INET_ADDRSTRLEN);
-                    Log::addFormatted(Log::VERBOSE, NETWORK_LOG_NAME, "Address found IPv4 %s : %d",
-                      mIPv4Address, mPort);
-                }
-            }
-
-            // Loop through all the results and connect to the first we can
-            for(testAddress = addressInfo; testAddress != NULL; testAddress = testAddress->ai_next)
-            {
-                if((mSocketID = ::socket(testAddress->ai_family, testAddress->ai_socktype,
-                  testAddress->ai_protocol)) == -1)
+                if((mSocketID = ::socket(AF_INET, SOCK_STREAM, 6)) == -1)
                 {
                     Log::addFormatted(Log::DEBUG, NETWORK_LOG_NAME, "Socket failed : %s",
                       std::strerror(errno));
-                    continue;
+                    return false;
                 }
 
                 setTimeout(pTimeout);
 
-                if(connect(mSocketID, testAddress->ai_addr, testAddress->ai_addrlen) == -1)
+                if(connect(mSocketID, (const sockaddr *)&address, sizeof(address)) == -1)
                 {
+                    Log::addFormatted(Log::DEBUG, NETWORK_LOG_NAME, "Connect failed : %s",
+                      std::strerror(errno));
                     ::close(mSocketID);
-                    continue;
+                    mSocketID = -1;
+                    return false;
                 }
 
-                if(testAddress->ai_addr->sa_family == AF_INET6)
-                {
-                    mPort =
-                      Endian::convert(((struct sockaddr_in6*)testAddress->ai_addr)->sin6_port,
-                      Endian::BIG);
-                    std::memcpy(mIPv6,
-                      (((struct sockaddr_in6*)testAddress->ai_addr)->sin6_addr.s6_addr),
-                      INET6_ADDRLEN);
-                    inet_ntop(testAddress->ai_family, mIPv6, mIPv6Address, INET6_ADDRSTRLEN);
-                }
-                else if(testAddress->ai_addr->sa_family == AF_INET)
-                {
-                    mPort = Endian::convert(((struct sockaddr_in*)testAddress->ai_addr)->sin_port,
-                      Endian::BIG);
-                    std::memcpy(mIPv4,
-                      &(((struct sockaddr_in*)testAddress->ai_addr)->sin_addr.s_addr),
-                      INET_ADDRLEN);
-                    inet_ntop(testAddress->ai_family, mIPv4, mIPv4Address, INET_ADDRSTRLEN);
-                }
-
-                mType = testAddress->ai_addr->sa_family;
-                break;
+                Log::addFormatted(Log::VERBOSE, NETWORK_LOG_NAME, "Connected to IPv4 %s",
+                  mIP.text().text());
+                return true;
             }
-
-            bool zeroes = true;
-            for(int i=0;i<INET6_ADDRLEN;i++)
-                if(mIPv6[i] != 0)
-                    zeroes = false;
-            if(zeroes)
-            {
-                std::memset(mIPv6 + INET6_ADDRLEN - INET_ADDRLEN - 2, 0xff, 2);
-                std::memcpy(mIPv6 + INET6_ADDRLEN - INET_ADDRLEN, mIPv4, INET_ADDRLEN);
-                inet_ntop(AF_INET6, mIPv6, mIPv6Address, INET6_ADDRSTRLEN);
-            }
-
-            freeaddrinfo(addressInfo);
-
-            if(testAddress == NULL)
-            {
-                mSocketID = -1;
-                if(mType == AF_INET)
-                    Log::addFormatted(Log::VERBOSE, NETWORK_LOG_NAME,
-                      "Failed to connect to IPv4 %s : %d - %s", mIPv4Address, mPort,
-                      std::strerror(errno));
-                else
-                    Log::addFormatted(Log::VERBOSE, NETWORK_LOG_NAME,
-                      "Failed to connect to IPv6 %s : %d - %s", mIPv6Address, mPort,
-                      std::strerror(errno));
-                return false;
-            }
-
-            if(mType == AF_INET)
-                Log::addFormatted(Log::VERBOSE, NETWORK_LOG_NAME, "Connected to IPv4 %s : %d",
-                  mIPv4Address, mPort);
-            else
-                Log::addFormatted(Log::VERBOSE, NETWORK_LOG_NAME, "Connected to IPv6 %s : %d",
-                  mIPv6Address, mPort);
-
-            return true;
         }
 
         Connection::~Connection()
@@ -486,26 +450,26 @@ namespace NextCash
             if(setsockopt(mSocketID, SOL_SOCKET, SO_RCVTIMEO, (char *)&timeout,
               sizeof(timeout)) == -1)
             {
-                if(mType == AF_INET)
+                if(mIP.type() == IPAddress::IPV6)
                     Log::addFormatted(Log::ERROR, NETWORK_LOG_NAME,
-                      "Failed to set receive timeout on IPv4 %s : %d - %s", mIPv4Address, mPort,
+                      "Failed to set receive timeout on IPv6 %s - %s", mIP.text().text(),
                       std::strerror(errno));
                 else
                     Log::addFormatted(Log::ERROR, NETWORK_LOG_NAME,
-                      "Failed to set receive timeout on IPv6 %s : %d - %s", mIPv6Address, mPort,
+                      "Failed to set receive timeout on IPv4 %s - %s", mIP.text().text(),
                       std::strerror(errno));
             }
 
             if(setsockopt(mSocketID, SOL_SOCKET, SO_SNDTIMEO, (char *)&timeout,
               sizeof(timeout)) == -1)
             {
-                if(mType == AF_INET)
+                if(mIP.type() == IPAddress::IPV6)
                     Log::addFormatted(Log::ERROR, NETWORK_LOG_NAME,
-                      "Failed to set send timeout on IPv4 %s : %d - %s", mIPv4Address, mPort,
+                      "Failed to set send timeout on IPv6 %s - %s", mIP.text().text(),
                       std::strerror(errno));
                 else
                     Log::addFormatted(Log::ERROR, NETWORK_LOG_NAME,
-                      "Failed to set send timeout on IPv6 %s : %d - %s", mIPv6Address, mPort,
+                      "Failed to set send timeout on IPv4 %s - %s", mIP.text().text(),
                       std::strerror(errno));
             }
         }
