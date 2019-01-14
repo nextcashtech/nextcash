@@ -83,6 +83,20 @@ namespace NextCash
             }
         }
 
+        // Double wipe data
+        void clean()
+        {
+            if(mData != NULL)
+            {
+                unsigned int theLength = length();
+                std::memset(mData, 0x00, theLength);
+                std::memset(mData, 0xff, theLength);
+                std::memset(mData, 0x00, theLength);
+                delete[] mData;
+                mData = NULL;
+            }
+        }
+
         // Allocate memory for a string of specific length and return it to be written into.
         char *writeAddress(unsigned int pLength);
 
