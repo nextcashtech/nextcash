@@ -38,6 +38,17 @@ namespace NextCash
         *this = pCopy;
     }
 
+    Buffer::Buffer(Buffer &pCopy, bool pShare)
+    {
+        mSize = 0;
+        mData = NULL;
+        mSharing = false;
+        if(pShare)
+            copyBuffer(pCopy, pCopy.remaining());
+        else
+            *this = pCopy;
+    }
+
     Buffer::Buffer(stream_size pSize)
     {
         mSize = pSize;

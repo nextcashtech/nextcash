@@ -22,6 +22,7 @@ namespace NextCash
 
         Buffer();
         Buffer(const Buffer &pCopy);
+        Buffer(Buffer &pCopy, bool pShare = false);
         Buffer(stream_size pSize);
         ~Buffer();
 
