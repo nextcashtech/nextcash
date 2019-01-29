@@ -19,18 +19,21 @@
 #define NEXTCASH_MUTEX_LOG_NAME "Mutex"
 
 // Microseconds between lock checks
-#define MUTEX_WAIT 25000
+#define MUTEX_WAIT 5000
+#define SLEEPS_BETWEEN_WARNS 250
+#define SLEEPS_BETWEEN_WARNS_LONG 1000
 
 
 namespace NextCash
 {
     void Mutex::lock()
     {
+#ifdef DEBUG_LOCKS
         int sleeps = 0;
         while(!mMutex.try_lock())
         {
             usleep(MUTEX_WAIT);
-            if(++sleeps > 50)
+            if(++sleeps > SLEEPS_BETWEEN_WARNS)
             {
                 // It has been over a second. So notify that this wait is taking too long
                 Log::addFormatted(Log::WARNING, NEXTCASH_MUTEX_LOG_NAME,
@@ -41,21 +44,27 @@ namespace NextCash
         }
 
         mLockedThread = Thread::currentID();
+#else
+        mMutex.lock();
+#endif
     }
 
     void Mutex::unlock()
     {
+#ifdef DEBUG_LOCKS
         mLockedThread = Thread::NullThreadID;
+#endif
         mMutex.unlock();
     }
 
     void MutexWithConstantName::lock()
     {
+#ifdef DEBUG_LOCKS
         int sleeps = 0;
         while(!mMutex.try_lock())
         {
             usleep(MUTEX_WAIT);
-            if(++sleeps > 50)
+            if(++sleeps > SLEEPS_BETWEEN_WARNS)
             {
                 // It has been over a second. So notify that this wait is taking too long
                 Log::addFormatted(Log::WARNING, NEXTCASH_MUTEX_LOG_NAME,
@@ -63,6 +72,9 @@ namespace NextCash
                 sleeps = 0;
             }
         }
+#else
+        mMutex.lock();
+#endif
     }
 
     void MutexWithConstantName::unlock()
@@ -83,7 +95,7 @@ namespace NextCash
                 return;
             }
 
-            if(++sleeps > 50)
+            if(++sleeps > SLEEPS_BETWEEN_WARNS)
             {
                 // It has been over a second. So notify that this wait is taking too long
                 if(mWriteLockName != NULL)
@@ -125,7 +137,7 @@ namespace NextCash
                 break;
             }
 
-            if(++sleeps > 200)
+            if(++sleeps > SLEEPS_BETWEEN_WARNS_LONG)
             {
                 // It has been over 5 seconds. So notify that this wait is taking too long
                 if(mWriterLocked)
@@ -161,7 +173,7 @@ namespace NextCash
                 return;
             }
 
-            if(++sleeps > 200)
+            if(++sleeps > SLEEPS_BETWEEN_WARNS_LONG)
             {
                 // It has been over 5 seconds. So notify that this wait is taking too long
                 if(pRequestName != NULL)

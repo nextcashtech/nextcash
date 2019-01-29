@@ -40,6 +40,12 @@ namespace NextCash
             return *this;
         }
 
+        void operator += (const Timer &pRight)
+        {
+            mHits += pRight.mHits;
+            mMicroseconds += pRight.mMicroseconds;
+        }
+
         void assign(const Timer &pRight)
         {
             mStartTime = pRight.mStartTime;
